@@ -6,6 +6,22 @@ use console_engine::KeyCode;
 
 
 fn main() {
+    
+    //Pieces
+    let white_king = ♔;
+    let white_queen = ♕;
+    let white_rook = ♖;
+    let white_bishop = ♗;
+    let white_knight = ♘;
+    let white_pawn = ♙;
+
+    let black_king = ♚;
+    let black_queen = ♛;
+    let black_rook = ♜;
+    let black_bishop = ♝;
+    let black_knight = ♞;
+    let black_pawn = ♟︎;
+
     let square = '█';
 
     // initializes a screen of 20x10 characters with a target of 3 frames per second
@@ -20,7 +36,7 @@ fn main() {
     loop {
         engine.wait_frame(); // wait for next frame + capture inputs
         engine.clear_screen(); // reset the screen
-    
+
 
 
         // pub fn rect(
@@ -35,11 +51,11 @@ fn main() {
         //draw board
         for mut y in 0..=7 {
             for mut x in 0..=7 {
- 
+
                 if x % 2 == 0 {
                     if y % 2 == 0 {
                         engine.rect(x, y, x, y, pixel::pxl_fg(square, Color::Black));
-                    } 
+                    }
                     else {
                         engine.rect(x, y, x, y, pixel::pxl_fg(square, Color::Grey));
                     }
@@ -47,7 +63,7 @@ fn main() {
                 else {
                     if y % 2 == 0 {
                         engine.rect(x, y, x, y, pixel::pxl_fg(square, Color::Grey));
-                    } 
+                    }
                     else {
                         engine.rect(x, y, x, y, pixel::pxl_fg(square, Color::Black));
                     }
@@ -61,13 +77,13 @@ fn main() {
 
         //engine.line(0, 0, 19, 9, pixel::pxl('█')); // draw a line of '#' from [0,0] to [19,9]
         //engine.print(0, 4, format!("Result: {}", value).as_str()); // prints some value at [0,4]
-    
+
         //engine.set_pxl(4, 0, pixel::pxl_fg('O', Color::Cyan)); // write a majestic cyan 'O' at [4,0]
 
         if engine.is_key_pressed(KeyCode::Char('q')) { // if the user presses 'q' :
             break; // exits app
         }
-    
+
         engine.draw(); // draw the screen
     }
 }
