@@ -6,21 +6,21 @@ use console_engine::KeyCode;
 
 
 fn main() {
-    
-    //Pieces
-    let white_king = ♔;
-    let white_queen = ♕;
-    let white_rook = ♖;
-    let white_bishop = ♗;
-    let white_knight = ♘;
-    let white_pawn = ♙;
 
-    let black_king = ♚;
-    let black_queen = ♛;
-    let black_rook = ♜;
-    let black_bishop = ♝;
-    let black_knight = ♞;
-    let black_pawn = ♟︎;
+    //Pieces
+    let white_king = '♔';
+    let white_queen = '♕';
+    let white_rook = '♖';
+    let white_bishop = '♗';
+    let white_knight = '♘';
+    let white_pawn = '♙';
+
+    let black_king = '♚';
+    let black_queen = '♛';
+    let black_rook = '♜';
+    let black_bishop = '♝';
+    let black_knight = '♞';
+    let black_pawn = '♟︎';
 
     let square = '█';
 
