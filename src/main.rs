@@ -31,18 +31,25 @@ fn main() {
     let bishop = '♝';
     let knight = '♞';
     let pawn = '♙';
+    let piece_list: [char; 6] = ['♚','♛','♜','♝','♞','♙']; 
 
     //initialize engine
     let mut engine = console_engine::ConsoleEngine::init_fill_require(48, 48, 30);
 
-    //let gen_board: [i32; 8] = [0, 3, 6, 9, 12, 15, 18, 21];
-    //let gen_board: [i32; 8] = [12, 15, 18, 21, 24, 27, 30, 33];
     let gen_board_x: [i32; 8] = [12, 14, 16, 18, 20, 22, 24, 26];
     let gen_board_y: [i32; 8] = [8, 9, 10, 11, 12, 13, 14, 15];
    
     let dark_square = console_engine::Color::Rgb{r: 209, g: 139, b: 70};
-    
     let light_square = console_engine::Color::Rgb{r: 254, g: 206, b: 158};
+
+
+    let mut piece_x = 8;
+    let mut piece_y = 3;
+    let piece_w = 16;
+    let piece_h = 4;
+    let mut dragging = false;
+    let mut relative_x = 0;
+    let mut relative_y = 0;
 
     loop {
         engine.wait_frame(); // wait for next frame + capture inputs
@@ -52,9 +59,11 @@ fn main() {
         }
         engine.clear_screen(); // reset the screen
 
-        let mouse_pos = engine.get_mouse_press(MouseButton::Left);
+        
 
         engine.print(0,4,"CHESS MOMENT!");
+        engine.print(1,5,"CHESS MOMENT!");
+        engine.print(2,6,"CHESS MOMENT!");
 
         //alg notation 
         engine.print(gen_board_x[0],gen_board_y[0]-2,"a b c d e f g h");
@@ -102,7 +111,56 @@ fn main() {
         }
 
 
-        
+        let mouse_pos = engine.get_mouse_press(MouseButton::Left);
+        if let Some(mouse_pos) = mouse_pos {
+            // if the mouse position is within the boundaries of a piece
+            // enables dragging mode and register relative position of the mouse
+            // if mouse_pos.0 as i32 >= piece_x
+            //     && mouse_pos.0 as i32 <= piece_x + piece_w
+            //     && mouse_pos.1 as i32 >= piece_y
+            //     && mouse_pos.1 as i32 <= piece_y + piece_h
+            // {
+            //     dragging = true;
+            //     relative_x = mouse_pos.0 as i32 - piece_x;
+            //     relative_y = mouse_pos.1 as i32 - piece_y;
+            // }
+
+
+            if piece_list.contains(&engine.get_pxl(mouse_pos.0 as i32, mouse_pos.1 as i32).unwrap().chr) {
+
+                dragging = true;
+                engine.print(10,5,"drag");
+
+            }
+        }
+
+        // // check if a mouse button is currently held
+        // let mouse_pos = engine.get_mouse_held(MouseButton::Left);
+        // if let Some(mouse_pos) = mouse_pos {
+        //     // if dragging mode is enabled, move the rectangle according to mouse's position
+        //     if dragging {
+        //         piece_x = mouse_pos.0 as i32 - relative_x;
+        //         piece_y = mouse_pos.1 as i32 - relative_y;
+        //     }
+        // }
+
+        // // check if the mouse has been released
+        // let mouse_pos = engine.get_mouse_released(MouseButton::Left);
+        // if mouse_pos.is_some() {
+        //     // disable dragging mode
+        //     dragging = false;
+        // }
+
+        // // print the recrangle
+        // engine.rect(
+        //     piece_x,
+        //     piece_y,
+        //     piece_x + piece_w,
+        //     piece_y + piece_h,
+        //     pixel::pxl('#'),
+        // );
+        // engine.print(piece_x + 4, piece_y + 2, "Drag me!");
+
 
         // draw_game(
         //     &mut engine,
