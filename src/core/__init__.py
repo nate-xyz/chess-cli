@@ -17,7 +17,7 @@ class Entity:
     pass
 # Class of different styles
 class style():
-    BLACK = '\033[30m'
+    BLACK = '\x1b[0,30m'
     RED = '\033[31m'
     GREEN = '\033[32m'
     YELLOW = '\033[33m'
@@ -93,8 +93,7 @@ def run_loop(calculate, initial_state):
                   break
             except IOError:
                 print('not ready')
-          
+
             time.sleep(.1)
       finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-  
