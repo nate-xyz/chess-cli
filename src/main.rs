@@ -8,10 +8,12 @@ use console_engine::KeyCode;
 fn draw_game(
     engine: &mut console_engine::ConsoleEngine,
     game_scr: &Screen,
+    piece: char
 
 ) {
     // print the game screen at specific coordinates
     engine.print_screen(12, 12, &game_scr);
+    engine.print_screen_alpha(1, 1, &game_scr, piece);
 
 
 }
@@ -55,17 +57,22 @@ fn main() {
 
     loop {
         engine.wait_frame(); // wait for next frame + capture inputs
+        if engine.is_key_pressed(KeyCode::Char('q')) { // if the user presses 'q' :
+        break; // exits app
+        }
         engine.clear_screen(); // reset the screen
 
+
+
+        
 
         draw_game(
             &mut engine,
             &board,
+            white_pawn
         );
 
-        if engine.is_key_pressed(KeyCode::Char('q')) { // if the user presses 'q' :
-            break; // exits app
-        }
+
 
         engine.draw(); // draw the screen
     }
