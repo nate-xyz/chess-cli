@@ -1,4 +1,3 @@
-//use console_engine::screen::Screen;
 use console_engine::pixel;
 use console_engine::Color;
 use console_engine::{KeyCode, MouseButton};
@@ -26,26 +25,24 @@ fn main() {
     // let bishop = 'B';
     // let knight = 'K';
     // let pawn = 'p';
-    let king = '♔';
-    let queen = '♕';
-    let rook = '♖';
-    let bishop = '♗';
-    let knight = '♘';
+    let king = '♚';
+    let queen = '♛';
+    let rook = '♜';
+    let bishop = '♝';
+    let knight = '♞';
     let pawn = '♙';
 
     //initialize engine
     let mut engine = console_engine::ConsoleEngine::init_fill_require(48, 48, 30);
-
-    //initialize board screen
-    //let mut board = Screen::new(24, 24);
 
     //let gen_board: [i32; 8] = [0, 3, 6, 9, 12, 15, 18, 21];
     //let gen_board: [i32; 8] = [12, 15, 18, 21, 24, 27, 30, 33];
     let gen_board_x: [i32; 8] = [12, 14, 16, 18, 20, 22, 24, 26];
     let gen_board_y: [i32; 8] = [8, 9, 10, 11, 12, 13, 14, 15];
    
-    let dark_square = Color::White;
-    let light_square = Color::DarkGrey;
+    let dark_square = console_engine::Color::Rgb{r: 209, g: 139, b: 70};
+    
+    let light_square = console_engine::Color::Rgb{r: 254, g: 206, b: 158};
 
     loop {
         engine.wait_frame(); // wait for next frame + capture inputs
@@ -57,8 +54,14 @@ fn main() {
 
         let mouse_pos = engine.get_mouse_press(MouseButton::Left);
 
-       
         engine.print(0,4,"CHESS MOMENT!");
+
+        //alg notation 
+        engine.print(gen_board_x[0],gen_board_y[0]-2,"a b c d e f g h");
+        engine.print(gen_board_x[0],gen_board_y[7]+2,"a b c d e f g h");
+        engine.print(gen_board_x[0]-4,gen_board_y[0],"8\n7\n6\n5\n4\n3\n2\n1");
+        engine.print(gen_board_x[7]+4,gen_board_y[0],"8\n7\n6\n5\n4\n3\n2\n1");
+        
 
         //draw board
         for y in &gen_board_y {
@@ -71,13 +74,13 @@ fn main() {
 
         //draw pieces
         for i in 0..=1 {
-            let mut piece_color = Color::Blue;
+            let mut piece_color = Color::DarkGrey;
             let mut top_row = 0;
             let mut pawn_row = 0;
             if i == 1 {
                 top_row = 7;
                 pawn_row = 5;
-                piece_color = Color::Red;
+                piece_color = Color::White;
             }
             engine.set_pxl(gen_board_x[0], gen_board_y[0]+top_row, pixel::pxl_fg(rook, piece_color));
             engine.set_pxl(gen_board_x[1], gen_board_y[0]+top_row, pixel::pxl_fg(knight, piece_color));
