@@ -2,7 +2,12 @@ use console_engine::pixel;
 use console_engine::Color;
 use console_engine::KeyCode;
 
+
+
+
 fn main() {
+    let square = '█';
+
     // initializes a screen of 20x10 characters with a target of 3 frames per second
     // coordinates will range from [0,0] to [19,9]
     let mut engine = console_engine::ConsoleEngine::init(40, 20, 10);
@@ -28,22 +33,23 @@ fn main() {
         // )
 
         //draw board
-        for y in 0..=7 {
-            for x in 0..=7 {
+        for mut y in 0..=7 {
+            for mut x in 0..=7 {
+ 
                 if x % 2 == 0 {
                     if y % 2 == 0 {
-                        engine.rect(x, y, x, y, pixel::pxl_fg('█', Color::Black));
+                        engine.rect(x, y, x, y, pixel::pxl_fg(square, Color::Black));
                     } 
                     else {
-                        engine.rect(x, y, x, y, pixel::pxl_fg('█', Color::Grey));
+                        engine.rect(x, y, x, y, pixel::pxl_fg(square, Color::Grey));
                     }
                 }
                 else {
                     if y % 2 == 0 {
-                        engine.rect(x, y, x, y, pixel::pxl_fg('█', Color::Grey));
+                        engine.rect(x, y, x, y, pixel::pxl_fg(square, Color::Grey));
                     } 
                     else {
-                        engine.rect(x, y, x, y, pixel::pxl_fg('█', Color::Black));
+                        engine.rect(x, y, x, y, pixel::pxl_fg(square, Color::Black));
                     }
                 }
 
