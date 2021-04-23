@@ -20,18 +20,18 @@ fn main() {
     let black_rook = '♜';
     let black_bishop = '♝';
     let black_knight = '♞';
-    let black_pawn = '♟︎';
+    let black_pawn = "♟︎";
 
     let square = '█';
 
     // initializes a screen of 20x10 characters with a target of 3 frames per second
     // coordinates will range from [0,0] to [19,9]
-    let mut engine = console_engine::ConsoleEngine::init(40, 20, 10);
+    let mut engine = console_engine::ConsoleEngine::init(40, 40, 10);
     //let value = 14;
     // main loop, be aware that you'll have to break it because ctrl+C is captured
 
-    let mut square_x = 0;
-    let mut square_y = 0;
+    //let mut square_x = 0;
+    //let mut square_y = 0;
 
     loop {
         engine.wait_frame(); // wait for next frame + capture inputs
@@ -49,25 +49,22 @@ fn main() {
         // )
 
         //draw board
-        for mut y in 0..=7 {
-            for mut x in 0..=7 {
+        let gen_board: [i32; 8] = [0, 3, 6, 9, 12, 15, 18, 21];
+        let dark_square = Color::Black;
+        let light_square = Color::Grey;
 
-                if x % 2 == 0 {
-                    if y % 2 == 0 {
-                        engine.rect(x, y, x, y, pixel::pxl_fg(square, Color::Black));
-                    }
-                    else {
-                        engine.rect(x, y, x, y, pixel::pxl_fg(square, Color::Grey));
-                    }
-                }
-                else {
-                    if y % 2 == 0 {
-                        engine.rect(x, y, x, y, pixel::pxl_fg(square, Color::Grey));
-                    }
-                    else {
-                        engine.rect(x, y, x, y, pixel::pxl_fg(square, Color::Black));
-                    }
-                }
+        for y in &gen_board {
+            for x in &gen_board {
+                let square_color = if *x % 2 == 0 { if *y % 2 == 0 {dark_square} else {light_square} } else  { if *y % 2 == 0 {light_square} else {dark_square} };
+
+
+
+                //engine.rect(*x, *y, *x, *y, pixel::pxl_fg(square, square_color));
+                // engine.rect(*x+1, *y, *x+1, *y, pixel::pxl_fg(square, square_color));
+                // engine.rect(*x+2, *y, *x+2, *y, pixel::pxl_fg(square, square_color));
+
+                engine.fill_rect(*x, *y, *x+2, *y+2, pixel::pxl_fg(square, square_color));
+
 
             }
         }
