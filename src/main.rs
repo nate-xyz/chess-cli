@@ -20,12 +20,18 @@ fn main() {
     // let black_knight = '♞';
     // let black_pawn = "♟︎";
     //let square = '█';
-    let king = 'K';
-    let queen = 'Q';
-    let rook = 'R';
-    let bishop = 'B';
-    let knight = 'K';
-    let pawn = 'p';
+    // let king = 'K';
+    // let queen = 'Q';
+    // let rook = 'R';
+    // let bishop = 'B';
+    // let knight = 'K';
+    // let pawn = 'p';
+    let king = '♔';
+    let queen = '♕';
+    let rook = '♖';
+    let bishop = '♗';
+    let knight = '♘';
+    let pawn = '♙';
 
     //initialize engine
     let mut engine = console_engine::ConsoleEngine::init_fill_require(48, 48, 30);
