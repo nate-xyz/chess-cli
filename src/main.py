@@ -1,4 +1,20 @@
 from core import run_loop, Entity, style
+
+pieces = {
+    'R': '♜ ',
+    'N': '♞ ',
+    'B': '♗ ',
+    'Q': '♕ ',
+    'K': '♔ ',
+    'P': '♙ ',
+    'r': '♜ ',
+    'n': '♞ ',
+    'b': '♝ ',
+    'q': '♛ ',
+    'k': '♚ ',
+    'p': '♙ ',
+
+}
 def game(state, press):
   mut_state = state
   if press == "q":
