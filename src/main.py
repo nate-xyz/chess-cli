@@ -17,17 +17,8 @@ pieces = {
 
 }
 
-#rng to decide color (for testing flip)
-playerColor = random.randint(1,2)
+entities_1 = {
 
-def game(state, press):
-  mut_state = state
-  if press == "q":
-    mut_state["running"] = False
-
-  return mut_state
-if playerColor == 1:
-    run_loop(game, {"running": True, "entities": {
 
         "WhatColor": Entity(40, 42, "You Play White", style.WHITE),
 
@@ -42,14 +33,14 @@ if playerColor == 1:
         "WhiteHRook": Entity(34, 40, pieces['r'], style.WHITE),
 
         #White Pawn Rank
-        "WhiteAPawn": Entity(20, 38, pieces['p'], style.WHITE),
-        "WhiteBPawn": Entity(22, 38, pieces['p'], style.WHITE),
-        "WhiteCPawn": Entity(24, 38, pieces['p'], style.WHITE),
-        "WhiteDPawn": Entity(26, 38, pieces['p'], style.WHITE),
-        "WhiteEPawn": Entity(28, 38, pieces['p'], style.WHITE),
-        "WhiteFPawn": Entity(30, 38, pieces['p'], style.WHITE),
-        "WhiteGPawn": Entity(32, 38, pieces['p'], style.WHITE),
-        "WhiteHPawn": Entity(34, 38, pieces['p'], style.WHITE),
+        "WhiteAPawn": Entity(20, 38, pieces['P'], style.WHITE),
+        "WhiteBPawn": Entity(22, 38, pieces['P'], style.WHITE),
+        "WhiteCPawn": Entity(24, 38, pieces['P'], style.WHITE),
+        "WhiteDPawn": Entity(26, 38, pieces['P'], style.WHITE),
+        "WhiteEPawn": Entity(28, 38, pieces['P'], style.WHITE),
+        "WhiteFPawn": Entity(30, 38, pieces['P'], style.WHITE),
+        "WhiteGPawn": Entity(32, 38, pieces['P'], style.WHITE),
+        "WhiteHPawn": Entity(34, 38, pieces['P'], style.WHITE),
 
         #Black First Rank
         "BlackARook": Entity(20, 30, pieces['R'], style.BLACK),
@@ -70,11 +61,10 @@ if playerColor == 1:
         "BlackFPawn": Entity(30, 32, pieces['P'], style.BLACK),
         "BlackGPawn": Entity(32, 32, pieces['P'], style.BLACK),
         "BlackHPawn": Entity(34, 32, pieces['P'], style.BLACK),
-        }})
 
-elif playerColor == 2:
-    run_loop(game, {"running": True, "entities": {
+}
 
+entities_2 = {
 
         "WhatColor": Entity(40, 42, "You Play Black", style.WHITE),
 
@@ -117,4 +107,30 @@ elif playerColor == 2:
         "WhiteFPawn": Entity(30, 32, pieces['p'], style.WHITE),
         "WhiteGPawn": Entity(32, 32, pieces['p'], style.WHITE),
         "WhiteHPawn": Entity(34, 32, pieces['p'], style.WHITE),
-        }})
+        "WhiteAPawn": Entity(40, 32, pieces['P'], style.WHITE),
+        "WhiteBPawn": Entity(42, 32, pieces['P'], style.WHITE),
+        "WhiteCPawn": Entity(44, 32, pieces['P'], style.WHITE),
+        "WhiteDPawn": Entity(46, 32, pieces['P'], style.WHITE),
+        "WhiteEPawn": Entity(48, 32, pieces['P'], style.WHITE),
+        "WhiteFPawn": Entity(50, 32, pieces['P'], style.WHITE),
+        "WhiteGPawn": Entity(52, 32, pieces['P'], style.WHITE),
+        "WhiteHPawn": Entity(54, 32, pieces['P'], style.WHITE),
+
+
+}
+
+
+#rng to decide color (for testing flip)
+playerColor = random.randint(1,2)
+
+def game(state, press):
+  mut_state = state
+  if press == "q":
+    mut_state["running"] = False
+
+  return mut_state
+if playerColor == 1:
+    run_loop(game, {"running": True, "entities": entities_1})
+
+elif playerColor == 2:
+    run_loop(game, {"running": True, "entities": entities_2})
