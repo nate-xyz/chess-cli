@@ -1,5 +1,7 @@
 from core import run_loop, Entity, style
 import random
+#import chess #pip install chess
+#import stockfish #pip install stockfish
 
 pieces = {
     'K': '♔',
@@ -14,7 +16,6 @@ pieces = {
     'b': '♝',
     'n': '♞',
     'p': '♟︎',
-
 }
 
 #rng to decide color (for testing flip)

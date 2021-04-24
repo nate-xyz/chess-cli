@@ -4,6 +4,9 @@ import os
 import time
 import tty
 import termios
+#import chess
+#import stockfish
+
 os.system("")
 
 # Entities.
