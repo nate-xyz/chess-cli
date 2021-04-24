@@ -110,7 +110,6 @@ elif playerColor == 2:
         "WhiteHRook": Entity(34, 30, pieces['r'], style.WHITE),
 
         #White Pawn Rank
-<<<<<<< HEAD
         "WhiteAPawn": Entity(20, 32, pieces['p'], style.WHITE),
         "WhiteBPawn": Entity(22, 32, pieces['p'], style.WHITE),
         "WhiteCPawn": Entity(24, 32, pieces['p'], style.WHITE),
@@ -119,7 +118,6 @@ elif playerColor == 2:
         "WhiteFPawn": Entity(30, 32, pieces['p'], style.WHITE),
         "WhiteGPawn": Entity(32, 32, pieces['p'], style.WHITE),
         "WhiteHPawn": Entity(34, 32, pieces['p'], style.WHITE),
-=======
         "WhiteAPawn": Entity(40, 32, pieces['P'], style.WHITE),
         "WhiteBPawn": Entity(42, 32, pieces['P'], style.WHITE),
         "WhiteCPawn": Entity(44, 32, pieces['P'], style.WHITE),
@@ -128,5 +126,4 @@ elif playerColor == 2:
         "WhiteFPawn": Entity(50, 32, pieces['P'], style.WHITE),
         "WhiteGPawn": Entity(52, 32, pieces['P'], style.WHITE),
         "WhiteHPawn": Entity(54, 32, pieces['P'], style.WHITE),
->>>>>>> 6c7e8f7891a0444cd564e80c26cd3d43f02a2af9
         }})
