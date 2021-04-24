@@ -20,7 +20,8 @@ class Entity:
     pass
 # Class of different styles
 class style():
-    BLACK = '\x1b[0,30m'
+    #BLACK = '\x1b[0,30m'
+    BLACK = '\033[1;90m'
     RED = '\033[31m'
     GREEN = '\033[32m'
     YELLOW = '\033[33m'
