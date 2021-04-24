@@ -69,7 +69,8 @@ def gen_board(board_FEN):
             else:
                 piece_style = style.BLACK
                 color_str = "Black"
-            entities[color_str+rank[x_coord]+piece_name[start_board[i]]] = Entity(x_coord, y_coord, pieces[start_board[i]], piece_style)
+            entities[color_str+rank[x_coord]+piece_name[start_board[i]]] = \
+            Entity(x_coord, y_coord, pieces[start_board[i]], piece_style)
             #print(x_coord, y_coord, pieces[start_board[i]])
             x_coord += 2
             continue
@@ -89,7 +90,7 @@ def game(state, press):
     if press == "q":
         mut_state["running"] = False
 
-    
+
 
     return mut_state
 
