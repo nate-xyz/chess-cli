@@ -70,7 +70,7 @@ def init_board():
                 piece_style = style.BLACK
                 color_str = "Black"
             entities[color_str+rank[x_coord]+piece_name[start_board[i]]] = Entity(x_coord, y_coord, pieces[start_board[i]], piece_style)
-            print(x_coord, y_coord, pieces[start_board[i]])
+            #print(x_coord, y_coord, pieces[start_board[i]])
             x_coord += 2
             continue
         else:
@@ -92,14 +92,6 @@ def game(state, press):
     init_board()
 
     return mut_state
-
-
-
-# if playerColor == 1:
-#     run_loop(game, {"running": True, "entities": entities_1})
-
-# elif playerColor == 2:
-#     run_loop(game, {"running": True, "entities": entities_2})
 
 
 run_loop(game, {"running": True, "entities": entities})
