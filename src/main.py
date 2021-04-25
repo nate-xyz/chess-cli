@@ -47,8 +47,8 @@ rank = {
 entities = dict()
 
 
-def init_board():
-    start_board = chess.STARTING_BOARD_FEN
+def gen_board(board_FEN):
+    start_board = board_FEN
     # 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'
     x_coord = 20 #increment by 2
     y_coord = 30 #increment by 2
@@ -79,7 +79,7 @@ def init_board():
 
     #entities["WhatColor"] = Entity(40, 42, "You Play White", style.WHITE)
 
-
+gen_board(chess.STARTING_BOARD_FEN)
 
 #rng to decide color (for testing flip)
 #playerColor = random.randint(1,2)
@@ -89,7 +89,7 @@ def game(state, press):
     if press == "q":
         mut_state["running"] = False
 
-    init_board()
+    
 
     return mut_state
 
