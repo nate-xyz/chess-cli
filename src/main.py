@@ -48,7 +48,7 @@ entities = dict()
 
 
 def gen_board(board_FEN):
-    entities = {}
+    #entities = {}
     start_board = board_FEN
     # 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'
     x_coord = 20 #increment by 2
