@@ -1,4 +1,13 @@
-import sys,os,traceback,random,curses,chess
+import sys, os, traceback, random, curses, curses.textpad, chess
+
+
+board = chess.Board()
+
+#prompt vars
+prompt_x_coord = 1
+prompt_y_coord = 1
+user_input_string = ""
+inputted_str = ""
 
 pieces = {
     'K': '♔',
@@ -44,6 +53,51 @@ rank = {
 }
 
 entities = dict()
+
+
+def display_info(info_window):
+    height, width = info_window.getmaxyx()
+    
+
+def update_input(prompt_window, key):
+    global prompt_x_coord
+    global prompt_y_coord
+    global user_input_string
+    global inputted_str
+    height, width = prompt_window.getmaxyx()
+
+    prompt_window.addch(prompt_y_coord, prompt_x_coord, key)
+    prompt_window.addch(prompt_y_coord, 0, '>')
+    
+    prompt_x_coord += 1
+
+    if prompt_x_coord >= width-1:
+        prompt_x_coord = 1
+        prompt_y_coord += 1
+
+    if prompt_y_coord >= height-1:
+        prompt_x_coord = 1
+        prompt_y_coord = 1
+        for i in range(1, height-1):
+            prompt_window.addstr(i, prompt_x_coord, " " * (width-1))
+    
+    if key==10: #enter key
+        inputted_str = user_input_string
+        user_input_string = ""
+        prompt_window.addch(prompt_y_coord, 0, '|')
+        prompt_x_coord = 1
+        prompt_y_coord = 1
+        prompt_window.addch(prompt_y_coord, 0, '>')
+        for i in range(1, height-1):
+            prompt_window.addstr(i, prompt_x_coord, " " * (width-1))
+
+    user_input_string += chr(key)
+
+#     prompt_x_coord = 0
+#     prompt_y_coord = 0
+
+
+
 
 
 def draw_board(board_window, board_FEN):
@@ -136,6 +190,10 @@ def draw_board(board_window, board_FEN):
         
 
 def game_logic(board_window):
+    global inputted_str
+    inputted_str = inputted_str.strip(' ')
+    inputted_str = inputted_str.strip('\0')
+    inputted_str = inputted_str.strip('^@')
     #draw board
     draw_board(board_window, chess.STARTING_BOARD_FEN)   
 
@@ -153,6 +211,7 @@ def draw_screen(stdscr):
 
     # allow input, Start colors in curses
     curses.echo()
+    curses.curs_set(0);
     curses.start_color()
     #curses.use_default_colors()
     curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)
@@ -187,7 +246,7 @@ def draw_screen(stdscr):
     
 
     # Loop where k is the last character pressed
-    while (key != ord('q')): # while not quitting
+    while (key != 15): # while not quitting
 
         # Initialization
         stdscr.clear()
@@ -232,10 +291,7 @@ def draw_screen(stdscr):
         prompt_title = "prompt"[:width-1]
         
         keystr = "Last key pressed: {}".format(key)[:width-1]
-        
-        statusbarstr = "Press 'q' to exit | CHESS-CLI | Pos: {}, {}".format(cursor_x, cursor_y)+" | "+keystr+" | colors="+str(curses.COLORS)
-        
-
+        statusbarstr = "Press 'Ctrl+o' to exit | CHESS-CLI | Pos: {}, {}".format(cursor_x, cursor_y)+" | "+keystr+" | colors="+str(curses.COLORS)
         
         if key == 0:
             keystr = "No key press detected..."[:width-1]
@@ -270,8 +326,11 @@ def draw_screen(stdscr):
             windows_array[i].attroff(curses.A_BOLD)
 
 
+        #external function calls
+        update_input(prompt_window, key)
         game_logic(board_window)
-
+        display_info(info_window)
+        
 
         # Refresh the screen
         stdscr.refresh()
