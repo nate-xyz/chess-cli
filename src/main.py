@@ -255,6 +255,7 @@ def game_logic(board_window):
     draw_board(board_window, board.board_fen())
 
     legal_move_str = ""
+    san_move_str = ""
     for move in board.legal_moves:
         legal_moves.append(chess.Move.uci(move))
         movo_str = chess.Move.uci(move)
