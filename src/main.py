@@ -11,7 +11,20 @@ inputted_str = ""
 last_move_str = "no move yet"
 status_str = ""
 legal_move_str = ""
+san_move_str = ""
 entered_move = False
+
+file = {
+    'a': 0,
+    'b': 1,
+    'c': 2,
+    'd': 3,
+    'e': 4,
+    'f': 5,
+    'g': 6,
+    'h': 7,
+}
+
 
 pieces = {
     'K': '♔',
@@ -65,6 +78,8 @@ def display_info(info_window):
     global status_str
     global inputted_str
     global legal_move_str
+    global san_move_str
+    #san_move_str = legal_move_str[2:4]
     height, width = info_window.getmaxyx()\
 
 
@@ -86,7 +101,7 @@ def display_info(info_window):
     info_window.attroff(curses.color_pair(9))
     info_window.addstr(4, 1, "{}: {}".format("input",inputted_str))
     info_window.attron(curses.color_pair(8))
-    info_window.addstr(5, 1, "{}: {}".format("legal moves",legal_move_str))
+    info_window.addstr(5, 1, "{}: {}".format("legal moves", san_move_str))
     info_window.attroff(curses.color_pair(9))
 
     status_str = ""
@@ -231,6 +246,7 @@ def game_logic(board_window):
     global status_str
     global entered_move
     global legal_move_str
+    global san_move_str
     global last_move_str
     inputted_str = inputted_str.strip(' ').strip('\0').strip('^@')
     legal_moves = []
@@ -241,8 +257,15 @@ def game_logic(board_window):
     legal_move_str = ""
     for move in board.legal_moves:
         legal_moves.append(chess.Move.uci(move))
-        movo_str = chess.Move.uci(move) + " "
-        legal_move_str += movo_str
+        movo_str = chess.Move.uci(move)
+        legal_move_str += movo_str + " "
+        piece_char = board.piece_at( file[movo_str[0]] + (int(movo_str[1])- 1)\
+         * 8 ).symbol()
+        if piece_char.upper() == "P":
+            piece_char = ""
+        san_move_str += piece_char + movo_str[2:4] + " "
+
+
 
     if entered_move:
         entered_move = False
@@ -266,7 +289,7 @@ def game_logic(board_window):
                         legal_moves.append(chess.Move.uci(move))
                         movo_str = chess.Move.uci(move) + " "
                         legal_move_str += movo_str
-
+                        san_move_str += legal_move_str[2:5]
 
 
 
