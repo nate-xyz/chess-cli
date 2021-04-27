@@ -250,6 +250,7 @@ def game_logic(board_window):
 
         if inputted_str == 'undo':
             board.pop()
+            draw_board(board_window, board.board_fen())
         else:
             if inputted_str not in legal_moves:
                 status_str = "last input is invalid"
