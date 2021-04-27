@@ -8,6 +8,10 @@ prompt_x_coord = 1
 prompt_y_coord = 1
 user_input_string = ""
 inputted_str = ""
+last_move_str = "no move yet"
+status_str = ""
+legal_move_str = ""
+entered_move = False
 
 pieces = {
     'K': '♔',
@@ -56,14 +60,33 @@ entities = dict()
 
 
 def display_info(info_window):
-    height, width = info_window.getmaxyx()
+    global last_move_str
+    global status_str
+    global inputted_str
+    global legal_move_str
+    height, width = info_window.getmaxyx()\
     
+
+    info_window.attron(curses.color_pair(3))
+    if board.turn == chess.WHITE:
+        info_window.addstr(1,1,"white to move")
+    elif board.turn == chess.BLACK:
+        info_window.addstr(1,1,"black to move")
+    info_window.addstr(2,1,"last move: {} {}".format(last_move_str, status_str))
+    info_window.attroff(curses.color_pair(3))
+
+    #info_window.addstr(3, 1, status_str)
+    info_window.addstr(4, 1, "{}: {}".format("input",inputted_str))
+    info_window.addstr(5, 1, "{}: {}".format("legal moves",legal_move_str))
+    
+    status_str = ""
 
 def update_input(prompt_window, key):
     global prompt_x_coord
     global prompt_y_coord
     global user_input_string
     global inputted_str
+    global entered_move
     height, width = prompt_window.getmaxyx()
 
     prompt_window.addch(prompt_y_coord, prompt_x_coord, key)
@@ -82,16 +105,18 @@ def update_input(prompt_window, key):
             prompt_window.addstr(i, prompt_x_coord, " " * (width-1))
     
     if key==10: #enter key
+        entered_move = True
         inputted_str = user_input_string
         user_input_string = ""
         prompt_window.addch(prompt_y_coord, 0, '|')
         prompt_x_coord = 1
         prompt_y_coord = 1
         prompt_window.addch(prompt_y_coord, 0, '>')
+        
         for i in range(1, height-1):
             prompt_window.addstr(i, prompt_x_coord, " " * (width-1))
-
-    user_input_string += chr(key)
+    else:
+        user_input_string += chr(key)
 
 #     prompt_x_coord = 0
 #     prompt_y_coord = 0
@@ -191,11 +216,47 @@ def draw_board(board_window, board_FEN):
 
 def game_logic(board_window):
     global inputted_str
-    inputted_str = inputted_str.strip(' ')
-    inputted_str = inputted_str.strip('\0')
-    inputted_str = inputted_str.strip('^@')
+    global board
+    global status_str
+    global entered_move
+    global legal_move_str
+    global last_move_str 
+    inputted_str = inputted_str.strip(' ').strip('\0').strip('^@')
+    legal_moves = []
+ 
     #draw board
-    draw_board(board_window, chess.STARTING_BOARD_FEN)   
+    draw_board(board_window, board.board_fen())   
+
+
+
+    if entered_move:
+        entered_move = False
+        legal_move_str = ""
+
+        if inputted_str == 'undo':
+            board.pop()
+        else:
+
+            for move in board.legal_moves:
+                legal_moves.append(chess.Move.uci(move))
+                movo_str = chess.Move.uci(move) + " "
+                legal_move_str += movo_str
+
+            if inputted_str not in legal_moves:
+                status_str = "inputted move is invalid"
+            else:
+                status_str = "move is legal"
+                if board.is_legal(chess.Move.from_uci(inputted_str)):
+                    last_move_str = chess.Move.from_uci(inputted_str)
+                    curses.beep()
+                    board.push(chess.Move.from_uci(inputted_str))
+                    draw_board(board_window, board.board_fen())   
+                    for move in board.legal_moves:
+                        legal_moves.append(chess.Move.uci(move))
+                        movo_str = chess.Move.uci(move) + " "
+                        legal_move_str += movo_str
+
+    
 
 
 def draw_screen(stdscr):
@@ -250,6 +311,8 @@ def draw_screen(stdscr):
 
         # Initialization
         stdscr.clear()
+        board_window.clear()
+        info_window.clear()
 
         #resize everything if necessary
         if curses.is_term_resized(height, width):
