@@ -49,10 +49,11 @@ entities = dict()
 def draw_board(board_window, board_FEN):
     height, width = board_window.getmaxyx()
 
+
     x_notation_string = 'abcdefgh'
     y_notation_string = '87654321'
     # 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'
-    x_inc = 2
+    x_inc = 1
     y_inc = 1
 
     x_coord = width//2 - 4*x_inc #increment by 2
@@ -60,31 +61,67 @@ def draw_board(board_window, board_FEN):
 
     og_xcoord = x_coord
     og_ycoord = y_coord
+
+    square_count = 0
+
     for i in range(len(board_FEN)):
         current_piece = board_FEN[i]
         
         if current_piece == '/':
             x_coord = og_xcoord
             y_coord += y_inc
+            square_count += 1
             continue
         elif current_piece.isdigit():
+
             for j in range(int(current_piece)):
-                board_window.addch(y_coord, x_coord, '.')
+                if square_count%2 == 0:
+                    color_pair = 4
+                else:
+                    color_pair = 5
+                board_window.attron(curses.color_pair(color_pair))
+                board_window.addch(y_coord, x_coord, ' ')
+                board_window.attroff(curses.color_pair(color_pair))
+                square_count += 1
                 x_coord += x_inc
             continue
         elif not current_piece.isdigit():
+
+
+            #determine proper color pair
+
+            # curses.init_pair(4, curses.COLOR_RED, curses.COLOR_WHITE)
+            # curses.init_pair(5, curses.COLOR_RED, curses.COLOR_BLACK)
+            # curses.init_pair(6, curses.COLOR_BLUE, curses.COLOR_WHITE)
+            # curses.init_pair(7, curses.COLOR_BLUE, curses.COLOR_BLACK)
             if current_piece.isupper():
-            #    piece_style = style.WHITE
-                color_str = "White"
+                if square_count%2 == 0:
+                    color_pair = 4
+                else:
+                    color_pair = 5
             else:
-             #   piece_style = style.BLACK
-                color_str = "Black"
+                if square_count%2 == 0:
+                    color_pair = 6
+                else:
+                    color_pair = 7
+            
+            board_window.attron(curses.color_pair(color_pair))
+            #board_window.attron(curses.A_BOLD)
+        
+     
             #entities[color_str+rank[x_coord]+piece_name[start_board[i]]] = \
             #Entity(x_coord, y_coord, pieces[start_board[i]], piece_style)
 
             board_window.addch(y_coord, x_coord, pieces[current_piece])
             #board_window.addch(y_coord, x_coord, 'x')
-
+            
+            
+            board_window.attroff(curses.color_pair(color_pair))
+            #board_window.attroff(curses.A_BOLD)  
+           
+   
+                  
+            square_count += 1
             x_coord += x_inc
             continue
         else:
@@ -122,6 +159,11 @@ def draw_screen(stdscr):
     curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
     curses.init_pair(3, curses.COLOR_BLACK, curses.COLOR_WHITE)
 
+    curses.init_pair(4, curses.COLOR_RED, curses.COLOR_WHITE)
+    curses.init_pair(5, curses.COLOR_RED, curses.COLOR_BLACK)
+    curses.init_pair(6, curses.COLOR_BLUE, curses.COLOR_WHITE)
+    curses.init_pair(7, curses.COLOR_BLUE, curses.COLOR_BLACK)
+
     #start windows
     
     board_window = curses.newwin(height-1, width//2, 0, 0)
@@ -139,7 +181,6 @@ def draw_screen(stdscr):
 
         #resize everything if necessary
         if curses.is_term_resized(height, width):
-            keystr = "RESIZE qLast key pressed: {}".format(key)[:width-1]
             height, width = stdscr.getmaxyx()
             stdscr.clear()
             curses.resize_term(height, width)
@@ -178,7 +219,7 @@ def draw_screen(stdscr):
         prompt_title = "prompt"[:width-1]
         
         keystr = "Last key pressed: {}".format(key)[:width-1]
-        statusbarstr = "Press 'q' to exit | CHESS-CLI | Pos: {}, {}".format(cursor_x, cursor_y)+keystr
+        statusbarstr = "Press 'q' to exit | CHESS-CLI | Pos: {}, {}".format(cursor_x, cursor_y)+" | "+keystr
         
         if key == 0:
             keystr = "No key press detected..."[:width-1]
@@ -203,9 +244,9 @@ def draw_screen(stdscr):
             windows_array[i].attron(curses.A_BOLD)
 
         # Rendering title
-        board_window.addstr(0, 0, board_title)
-        info_window.addstr(0, 0, info_title)
-        prompt_window.addstr(0, 0, prompt_title)
+        board_window.addstr(0, 1, board_title)
+        info_window.addstr(0, 1, info_title)
+        prompt_window.addstr(0, 1, prompt_title)
 
         # Turning off attributes for title
         for i in range(len(windows_array)):
