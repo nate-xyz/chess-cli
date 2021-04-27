@@ -317,7 +317,6 @@ def draw_screen(stdscr):
 
     windows_array = [board_window, info_window, prompt_window]
     
-    key = 0
     # Loop where k is the last character pressed
     while (key != 15): # while not quitting
 
