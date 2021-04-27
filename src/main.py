@@ -1,19 +1,19 @@
 import sys,os,traceback,random,curses,chess
 
 pieces = {
-    'K': '♔ ',
-    'Q': '♕ ',
-    'R': '♖ ',
-    'B': '♗ ',
-    'N': '♘ ',
-    'P': '♙ ',
-    'k': '♚ ',
-    'q': '♛ ',
-    'r': '♜ ',
-    'b': '♝ ',
-    'n': '♞ ',
+    'K': '♔',
+    'Q': '♕',
+    'R': '♖',
+    'B': '♗',
+    'N': '♘',
+    'P': '♙',
+    'k': '♚',
+    'q': '♛',
+    'r': '♜',
+    'b': '♝',
+    'n': '♞',
     #'p': '♟︎ ',
-    'p': '♙ ',
+    'p': '♙',
 
 }
 
@@ -49,21 +49,28 @@ entities = dict()
 def draw_board(board_window, board_FEN):
     height, width = board_window.getmaxyx()
 
+    x_notation_string = 'abcdefgh'
+    y_notation_string = '87654321'
     # 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'
-    x_coord = 4 #increment by 2
-    y_coord = 4 #increment by 2
+    x_inc = 2
+    y_inc = 1
+
+    x_coord = width//2 - 4*x_inc #increment by 2
+    y_coord = height//2 - 4*y_inc #increment by 2
+
     og_xcoord = x_coord
+    og_ycoord = y_coord
     for i in range(len(board_FEN)):
         current_piece = board_FEN[i]
-
+        
         if current_piece == '/':
             x_coord = og_xcoord
-            y_coord += 2
+            y_coord += y_inc
             continue
         elif current_piece.isdigit():
             for j in range(int(current_piece)):
-                board_window.addstr(y_coord, x_coord, '.')
-                x_coord += 2
+                board_window.addch(y_coord, x_coord, '.')
+                x_coord += x_inc
             continue
         elif not current_piece.isdigit():
             if current_piece.isupper():
@@ -75,17 +82,26 @@ def draw_board(board_window, board_FEN):
             #entities[color_str+rank[x_coord]+piece_name[start_board[i]]] = \
             #Entity(x_coord, y_coord, pieces[start_board[i]], piece_style)
 
-            board_window.addstr(y_coord, x_coord, pieces[current_piece])
+            board_window.addch(y_coord, x_coord, pieces[current_piece])
+            #board_window.addch(y_coord, x_coord, 'x')
 
-            x_coord += 2
+            x_coord += x_inc
             continue
         else:
             print("error parsing starting FEN")
             break
+    
+    for i in range(8):
+        board_window.addch(og_ycoord-y_inc-1, og_xcoord+x_inc*i, x_notation_string[i])
+        board_window.addch(og_ycoord+8*y_inc+1, og_xcoord+x_inc*i, x_notation_string[i])
+        board_window.addch(og_ycoord+y_inc*i, og_xcoord-x_inc-1, y_notation_string[i])
+        board_window.addch(og_ycoord+y_inc*i, og_xcoord+8*x_inc+1, y_notation_string[i])
+        
 
 def game_logic(board_window):
     #draw board
     draw_board(board_window, chess.STARTING_BOARD_FEN)   
+
 
 def draw_screen(stdscr):
     key = 0
