@@ -121,12 +121,29 @@ def draw_screen(stdscr):
         # Initialization
         stdscr.clear()
 
+        #resize everything if necessary
+        if curses.is_term_resized(height, width):
+            keystr = "RESIZE qLast key pressed: {}".format(key)[:width-1]
+            height, width = stdscr.getmaxyx()
+            stdscr.clear()
+            curses.resize_term(height, width)
+            stdscr.refresh()
 
+            board_window.resize(height-1, width//2)
+            info_window.resize(height//2, width//2)
+            prompt_window.resize((height-1)//2, width//2)
 
-        # board_window.border()
-        # info_window.border()
-        # prompt_window.border()
+            board_window.mvwin(0, 0)
+            info_window.mvwin(0, width//2)
+            prompt_window.mvwin(height//2, width//2)
 
+            board_window.clear()
+            info_window.clear()
+            prompt_window.clear()
+            board_window.refresh()
+            info_window.refresh()
+            prompt_window.refresh()
+        
         #get winodw dimensions
         height, width = stdscr.getmaxyx()
         board_window_height, board_window_width = board_window.getmaxyx()
@@ -143,8 +160,9 @@ def draw_screen(stdscr):
         board_title = "board"[:width-1]
         info_title = "info"[:width-1]
         prompt_title = "prompt"[:width-1]
+        
         keystr = "Last key pressed: {}".format(key)[:width-1]
-        statusbarstr = "Press 'q' to exit | CHESS-CLI | Pos: {}, {}".format(cursor_x, cursor_y)
+        statusbarstr = "Press 'q' to exit | CHESS-CLI | Pos: {}, {}".format(cursor_x, cursor_y)+keystr
         
         if key == 0:
             keystr = "No key press detected..."[:width-1]
