@@ -71,13 +71,22 @@ def display_info(info_window):
     if board.turn == chess.WHITE:
         info_window.addstr(1,1,"white to move")
     elif board.turn == chess.BLACK:
+        #info_window.attron(curses.A_REVERSE)
         info_window.addstr(1,1,"black to move")
-    info_window.addstr(2,1,"last move: {} {}".format(last_move_str, status_str))
+        #info_window.attroff(curses.A_REVERSE)
+    info_window.addstr(2,1,"last move: {}".format(last_move_str))
     info_window.attroff(curses.color_pair(3))
 
-    #info_window.addstr(3, 1, status_str)
+    if status_str == "move is legal":
+        info_window.attron(curses.color_pair(8))
+    else: 
+        info_window.attron(curses.color_pair(9))
+    info_window.addstr(3, 1, status_str)
+    info_window.attroff(curses.color_pair(9))
     info_window.addstr(4, 1, "{}: {}".format("input",inputted_str))
+    info_window.attron(curses.color_pair(8))
     info_window.addstr(5, 1, "{}: {}".format("legal moves",legal_move_str))
+    info_window.attroff(curses.color_pair(9))
     
     status_str = ""
 
@@ -248,6 +257,7 @@ def game_logic(board_window):
                 status_str = "move is legal"
                 if board.is_legal(chess.Move.from_uci(inputted_str)):
                     last_move_str = chess.Move.from_uci(inputted_str)
+                    curses.flash()
                     curses.beep()
                     board.push(chess.Move.from_uci(inputted_str))
                     draw_board(board_window, board.board_fen())   
@@ -296,6 +306,10 @@ def draw_screen(stdscr):
         curses.init_pair(5, curses.COLOR_RED, curses.COLOR_BLACK)
         curses.init_pair(6, curses.COLOR_BLUE, curses.COLOR_WHITE)
         curses.init_pair(7, curses.COLOR_BLUE, curses.COLOR_BLACK)
+
+    #move legality colors
+    curses.init_pair(8, curses.COLOR_WHITE, curses.COLOR_GREEN)
+    curses.init_pair(9, curses.COLOR_WHITE, curses.COLOR_RED)
 
     #start windows
     
