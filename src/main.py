@@ -12,7 +12,7 @@ pieces = {
     'r': '♜',
     'b': '♝',
     'n': '♞',
-    #'p': '♟︎ ',
+    #'p': '♟︎',
     'p': '♙',
 
 }
@@ -53,7 +53,7 @@ def draw_board(board_window, board_FEN):
     x_notation_string = 'abcdefgh'
     y_notation_string = '87654321'
     # 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'
-    x_inc = 1
+    x_inc = 2
     y_inc = 1
 
     x_coord = width//2 - 4*x_inc #increment by 2
@@ -159,10 +159,23 @@ def draw_screen(stdscr):
     curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
     curses.init_pair(3, curses.COLOR_BLACK, curses.COLOR_WHITE)
 
-    curses.init_pair(4, curses.COLOR_RED, curses.COLOR_WHITE)
-    curses.init_pair(5, curses.COLOR_RED, curses.COLOR_BLACK)
-    curses.init_pair(6, curses.COLOR_BLUE, curses.COLOR_WHITE)
-    curses.init_pair(7, curses.COLOR_BLUE, curses.COLOR_BLACK)
+
+    #piece and square colors
+    if curses.can_change_color():
+        light_square = 215 #SandyBrown
+        dark_square = 94 #Orange4
+        light_piece = 230 #Cornsilk1
+        dark_piece = 233 #Grey7
+
+        curses.init_pair(4, light_piece, light_square)
+        curses.init_pair(5, light_piece, dark_square)
+        curses.init_pair(6, dark_piece, light_square)
+        curses.init_pair(7, dark_piece, dark_square)
+    else:
+        curses.init_pair(4, curses.COLOR_RED, curses.COLOR_WHITE)
+        curses.init_pair(5, curses.COLOR_RED, curses.COLOR_BLACK)
+        curses.init_pair(6, curses.COLOR_BLUE, curses.COLOR_WHITE)
+        curses.init_pair(7, curses.COLOR_BLUE, curses.COLOR_BLACK)
 
     #start windows
     
@@ -219,7 +232,10 @@ def draw_screen(stdscr):
         prompt_title = "prompt"[:width-1]
         
         keystr = "Last key pressed: {}".format(key)[:width-1]
-        statusbarstr = "Press 'q' to exit | CHESS-CLI | Pos: {}, {}".format(cursor_x, cursor_y)+" | "+keystr
+        
+        statusbarstr = "Press 'q' to exit | CHESS-CLI | Pos: {}, {}".format(cursor_x, cursor_y)+" | "+keystr+" | colors="+str(curses.COLORS)
+        
+
         
         if key == 0:
             keystr = "No key press detected..."[:width-1]
