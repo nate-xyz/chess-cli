@@ -1,4 +1,4 @@
-import sys, os, traceback, random, curses, curses.textpad, chess
+import sys, os, traceback, random, curses, chess
 
 
 board = chess.Board()
@@ -77,7 +77,7 @@ def display_info(info_window):
     info_window.addstr(2,1,"last move: {}".format(last_move_str))
     info_window.attroff(curses.color_pair(3))
 
-    if status_str == "move is legal":
+    if status_str == "move is legal!":
         info_window.attron(curses.color_pair(8))
     else: 
         info_window.attron(curses.color_pair(9))
@@ -236,25 +236,23 @@ def game_logic(board_window):
     #draw board
     draw_board(board_window, board.board_fen())   
 
-
+    legal_move_str = ""
+    for move in board.legal_moves:
+        legal_moves.append(chess.Move.uci(move))
+        movo_str = chess.Move.uci(move) + " "
+        legal_move_str += movo_str
 
     if entered_move:
         entered_move = False
-        legal_move_str = ""
+        
 
         if inputted_str == 'undo':
             board.pop()
         else:
-
-            for move in board.legal_moves:
-                legal_moves.append(chess.Move.uci(move))
-                movo_str = chess.Move.uci(move) + " "
-                legal_move_str += movo_str
-
             if inputted_str not in legal_moves:
-                status_str = "inputted move is invalid"
+                status_str = "last input is invalid"
             else:
-                status_str = "move is legal"
+                status_str = "move is legal!"
                 if board.is_legal(chess.Move.from_uci(inputted_str)):
                     last_move_str = chess.Move.from_uci(inputted_str)
                     curses.flash()
@@ -319,7 +317,7 @@ def draw_screen(stdscr):
 
     windows_array = [board_window, info_window, prompt_window]
     
-
+    key = 0
     # Loop where k is the last character pressed
     while (key != 15): # while not quitting
 
