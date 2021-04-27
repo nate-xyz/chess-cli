@@ -1,17 +1,20 @@
 import sys, os, traceback, random, curses, chess
 
-
 board = chess.Board()
 
 #prompt vars
 prompt_x_coord = 1
 prompt_y_coord = 1
+
+#global strings
+last_move_str = "no move yet"
 user_input_string = ""
 inputted_str = ""
-last_move_str = "no move yet"
 status_str = ""
 legal_move_str = ""
 san_move_str = ""
+
+#true if user hits enter key
 entered_move = False
 
 file = {
@@ -24,7 +27,6 @@ file = {
     'g': 6,
     'h': 7,
 }
-
 
 pieces = {
     'K': '♔',
@@ -43,46 +45,11 @@ pieces = {
 
 }
 
-piece_name = {
-    'K': 'WhiteKing',
-    'Q': 'WhiteQueen',
-    'R': 'WhiteRook',
-    'B': 'WhiteBishop',
-    'N': 'WhiteKnight',
-    'P': 'WhitePawn',
-    'k': 'BlackKing',
-    'q': 'BlackQueen',
-    'r': 'BlackRook',
-    'b': 'BlackBishop',
-    'n': 'BlackKnight',
-    'p': 'BlackPawn',
-}
-
-rank = {
-    20: 'a',
-    22: 'b',
-    24: 'c',
-    26: 'd',
-    28: 'e',
-    30: 'f',
-    32: 'g',
-    34: 'h',
-}
-
-entities = dict()
-
-
 def display_info(info_window):
     #TODO: text wrapping to avoid errors when the terminal is too small
-    global last_move_str
-    global status_str
-    global inputted_str
-    global legal_move_str
-    global san_move_str
-    #san_move_str = legal_move_str[2:4]
-    height, width = info_window.getmaxyx()\
-
-
+    global last_move_str, status_str, inputted_str, legal_move_str, san_move_str
+    height, width = info_window.getmaxyx()
+        
     info_window.attron(curses.color_pair(3))
     if board.turn == chess.WHITE:
         info_window.addstr(1,1,"white to move")
@@ -90,28 +57,39 @@ def display_info(info_window):
         #info_window.attron(curses.A_REVERSE)
         info_window.addstr(1,1,"black to move")
         #info_window.attroff(curses.A_REVERSE)
+        
     info_window.addstr(2,1,"last move: {}".format(last_move_str))
     info_window.attroff(curses.color_pair(3))
 
     if status_str == "move is legal!":
-        info_window.attron(curses.color_pair(8))
+        text_colour = 8
     else:
-        info_window.attron(curses.color_pair(9))
+        text_colour = 9
+    info_window.attron(curses.color_pair(text_colour))
     info_window.addstr(3, 1, status_str)
-    info_window.attroff(curses.color_pair(9))
+    info_window.attroff(curses.color_pair(text_colour))
+
     info_window.addstr(4, 1, "{}: {}".format("input",inputted_str))
+
     info_window.attron(curses.color_pair(8))
-    info_window.addstr(5, 1, "{}: {}".format("legal moves", san_move_str))
-    info_window.attroff(curses.color_pair(9))
+
+    #info_window.addstr(5, 1, "{}: {}".format("legal moves (san)", san_move_str))
+    
+    san_move_str = "{}: {}".format("legal moves (san)", san_move_str)
+    for y in range(5, height-1):
+        if len(san_move_str) > width-2:
+            info_window.addstr(y, 1, san_move_str[:width-2])
+            san_move_str = san_move_str[width-2:]
+        else:
+            info_window.addstr(y, 1, san_move_str)
+            break
+    #info_window.addstr(7, 1, "{}: {}".format("legal moves (uci)", legal_move_str))
+    info_window.attroff(curses.color_pair(8))
 
     status_str = ""
 
 def update_input(prompt_window, key):
-    global prompt_x_coord
-    global prompt_y_coord
-    global user_input_string
-    global inputted_str
-    global entered_move
+    global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move
     height, width = prompt_window.getmaxyx()
 
     prompt_window.addch(prompt_y_coord, prompt_x_coord, key)
@@ -146,13 +124,8 @@ def update_input(prompt_window, key):
 #     prompt_x_coord = 0
 #     prompt_y_coord = 0
 
-
-
-
-
 def draw_board(board_window, board_FEN):
     height, width = board_window.getmaxyx()
-
 
     x_notation_string = 'abcdefgh'
     y_notation_string = '87654321'
@@ -241,14 +214,10 @@ def draw_board(board_window, board_FEN):
 
 
 def game_logic(board_window):
-    global inputted_str
-    global board
-    global status_str
-    global entered_move
-    global last_move_str
+    global inputted_str, board, status_str, entered_move, last_move_str
     inputted_str = inputted_str.strip(' ').strip('\0').strip('^@')
     legal_moves = []
-
+    legal_moves = generate_legal_moves()
     if entered_move:
         entered_move = False
         if inputted_str == 'undo':
@@ -267,11 +236,8 @@ def game_logic(board_window):
     draw_board(board_window, board.board_fen())
     legal_moves = generate_legal_moves()
 
-
 def generate_legal_moves():
-    global legal_move_str
-    global san_move_str
-    global board
+    global legal_move_str, san_move_str, board
     legal_moves = []
     legal_move_str = ""
     san_move_str = ""
@@ -447,10 +413,8 @@ def draw_screen(stdscr):
         # Wait for next input
         key = stdscr.getch()
 
-
 def main():
     curses.wrapper(draw_screen)
-
 
 if __name__ == "__main__":
     main()
