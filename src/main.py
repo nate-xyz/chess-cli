@@ -46,7 +46,6 @@ pieces = {
 }
 
 def display_info(info_window):
-    #TODO: text wrapping to avoid errors when the terminal is too small
     global last_move_str, status_str, inputted_str, legal_move_str, san_move_str
     height, width = info_window.getmaxyx()
         
