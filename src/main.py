@@ -245,15 +245,34 @@ def game_logic(board_window):
     global board
     global status_str
     global entered_move
-    global legal_move_str
-    global san_move_str
     global last_move_str
     inputted_str = inputted_str.strip(' ').strip('\0').strip('^@')
     legal_moves = []
 
+    if entered_move:
+        entered_move = False
+        if inputted_str == 'undo':
+            board.pop()
+        else:
+            if inputted_str not in legal_moves:
+                status_str = "last input is invalid"
+            else:
+                status_str = "move is legal!"
+                if board.is_legal(chess.Move.from_uci(inputted_str)):
+                    last_move_str = chess.Move.from_uci(inputted_str)
+                    curses.flash()
+                    curses.beep()
+                    board.push(chess.Move.from_uci(inputted_str))
     #draw board
     draw_board(board_window, board.board_fen())
+    legal_moves = generate_legal_moves()
 
+
+def generate_legal_moves():
+    global legal_move_str
+    global san_move_str
+    global board
+    legal_moves = []
     legal_move_str = ""
     san_move_str = ""
     for move in board.legal_moves:
@@ -265,33 +284,7 @@ def game_logic(board_window):
         if piece_char.upper() == "P":
             piece_char = ""
         san_move_str += piece_char + movo_str[2:4] + " "
-
-
-
-    if entered_move:
-        entered_move = False
-
-
-        if inputted_str == 'undo':
-            board.pop()
-            draw_board(board_window, board.board_fen())
-        else:
-            if inputted_str not in legal_moves:
-                status_str = "last input is invalid"
-            else:
-                status_str = "move is legal!"
-                if board.is_legal(chess.Move.from_uci(inputted_str)):
-                    last_move_str = chess.Move.from_uci(inputted_str)
-                    curses.flash()
-                    curses.beep()
-                    board.push(chess.Move.from_uci(inputted_str))
-                    draw_board(board_window, board.board_fen())
-                    for move in board.legal_moves:
-                        legal_moves.append(chess.Move.uci(move))
-                        movo_str = chess.Move.uci(move) + " "
-                        legal_move_str += movo_str
-                        san_move_str += legal_move_str[2:5]
-
+    return legal_moves
 
 
 def draw_screen(stdscr):
