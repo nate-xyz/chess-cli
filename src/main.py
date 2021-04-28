@@ -46,6 +46,29 @@ pieces = {
 }
 
 
+#                        d8b                                                                                                                                               
+#                        Y8P                                                                                                                                               
+                                                                                                                                                                         
+# 88888b.d88b.   8888b.  888 88888b.                                                                                                                                       
+# 888 "888 "88b     "88b 888 888 "88b                                                                                                                                      
+# 888  888  888 .d888888 888 888  888                                                                                                                                      
+# 888  888  888 888  888 888 888  888                                                                                                                                      
+# 888  888  888 "Y888888 888 888  888                                                                                                                                      
+            
+def main():
+    curses.wrapper(draw_screen)
+
+
+#      888                                                                                                                                                                 
+#      888                                                                                                                                                                 
+#      888                                                                                                                                                                 
+#  .d88888 888d888 8888b.  888  888  888        .d8888b   .d8888b 888d888 .d88b.   .d88b.  88888b.                                                                         
+# d88" 888 888P"      "88b 888  888  888        88K      d88P"    888P"  d8P  Y8b d8P  Y8b 888 "88b                                                                        
+# 888  888 888    .d888888 888  888  888        "Y8888b. 888      888    88888888 88888888 888  888                                                                        
+# Y88b 888 888    888  888 Y88b 888 d88P             X88 Y88b.    888    Y8b.     Y8b.     888  888                                                                        
+#  "Y88888 888    "Y888888  "Y8888888P" 88888888 88888P'  "Y8888P 888     "Y8888   "Y8888  888  888                                                                        
+                                                                                                                                                                         
+                                                                                                                                                        
 def draw_screen(stdscr):
     key = 0
     cursor_x = 0
@@ -195,6 +218,19 @@ def draw_screen(stdscr):
         # Wait for next input
         key = stdscr.getch()
 
+
+#                        888          888                    d8b                            888                                                                            
+#                        888          888                    Y8P                            888                                                                            
+#                        888          888                                                   888                                                                            
+# 888  888 88888b.   .d88888  8888b.  888888 .d88b.          888 88888b.  88888b.  888  888 888888                                                                         
+# 888  888 888 "88b d88" 888     "88b 888   d8P  Y8b         888 888 "88b 888 "88b 888  888 888                                                                            
+# 888  888 888  888 888  888 .d888888 888   88888888         888 888  888 888  888 888  888 888                                                                            
+# Y88b 888 888 d88P Y88b 888 888  888 Y88b. Y8b.             888 888  888 888 d88P Y88b 888 Y88b.                                                                          
+#  "Y88888 88888P"   "Y88888 "Y888888  "Y888 "Y8888 88888888 888 888  888 88888P"   "Y88888  "Y888                                                                         
+#          888                                                            888                                                                                              
+#          888                                                            888                                                                                              
+#          888                                                            888                                                                                              
+   
 def update_input(prompt_window, key):
     global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move
     height, width = prompt_window.getmaxyx()
@@ -232,6 +268,19 @@ def update_input(prompt_window, key):
 #     prompt_x_coord = 0
 #     prompt_y_coord = 0
 
+
+#                                                  888                   d8b                                                                                               
+#                                                  888                   Y8P                                                                                               
+#                                                  888                                                                                                                     
+#  .d88b.   8888b.  88888b.d88b.   .d88b.          888  .d88b.   .d88b.  888  .d8888b                                                                                      
+# d88P"88b     "88b 888 "888 "88b d8P  Y8b         888 d88""88b d88P"88b 888 d88P"                                                                                         
+# 888  888 .d888888 888  888  888 88888888         888 888  888 888  888 888 888                                                                                           
+# Y88b 888 888  888 888  888  888 Y8b.             888 Y88..88P Y88b 888 888 Y88b.                                                                                         
+#  "Y88888 "Y888888 888  888  888  "Y8888 88888888 888  "Y88P"   "Y88888 888  "Y8888P                                                                                      
+#      888                                                           888                                                                                                   
+# Y8b d88P                                                      Y8b d88P                                                                                                   
+#  "Y88P"                                                        "Y88P"                                                                                                    
+     
 def game_logic(board_window):
     global inputted_str, board, status_str, entered_move, last_move_str
     inputted_str = inputted_str.strip(' ').strip('\0').strip('^@')
@@ -255,6 +304,18 @@ def game_logic(board_window):
     draw_board(board_window, board.board_fen())
     legal_moves = generate_legal_moves()
 
+#      888 d8b                   888                            d8b           .d888                                                                                        
+#      888 Y8P                   888                            Y8P          d88P"                                                                                         
+#      888                       888                                         888                                                                                           
+#  .d88888 888 .d8888b  88888b.  888  8888b.  888  888          888 88888b.  888888 .d88b.                                                                                 
+# d88" 888 888 88K      888 "88b 888     "88b 888  888          888 888 "88b 888   d88""88b                                                                                
+# 888  888 888 "Y8888b. 888  888 888 .d888888 888  888          888 888  888 888   888  888                                                                                
+# Y88b 888 888      X88 888 d88P 888 888  888 Y88b 888          888 888  888 888   Y88..88P                                                                                
+#  "Y88888 888  88888P' 88888P"  888 "Y888888  "Y88888 88888888 888 888  888 888    "Y88P"                                                                                 
+#                       888                        888                                                                                                                     
+#                       888                   Y8b d88P                                                                                                                     
+#                       888                    "Y88P"                                                                                                                      
+      
 def display_info(info_window):
     global last_move_str, status_str, inputted_str, legal_move_str, san_move_str
     height, width = info_window.getmaxyx()
@@ -297,6 +358,14 @@ def display_info(info_window):
 
     status_str = ""
 
+#      888                                       888                                    888                                                                                
+#      888                                       888                                    888                                                                                
+#      888                                       888                                    888                                                                                
+#  .d88888 888d888 8888b.  888  888  888         88888b.   .d88b.   8888b.  888d888 .d88888                                                                                
+# d88" 888 888P"      "88b 888  888  888         888 "88b d88""88b     "88b 888P"  d88" 888                                                                                
+# 888  888 888    .d888888 888  888  888         888  888 888  888 .d888888 888    888  888                                                                                
+# Y88b 888 888    888  888 Y88b 888 d88P         888 d88P Y88..88P 888  888 888    Y88b 888                                                                                
+#  "Y88888 888    "Y888888  "Y8888888P" 88888888 88888P"   "Y88P"  "Y888888 888     "Y88888                                                                                             
 def draw_board(board_window, board_FEN):
     height, width = board_window.getmaxyx()
 
@@ -385,6 +454,17 @@ def draw_board(board_window, board_FEN):
         board_window.addch(og_ycoord+y_inc*i, og_xcoord-x_inc-1, y_notation_string[i])
         board_window.addch(og_ycoord+y_inc*i, og_xcoord+8*x_inc+1, y_notation_string[i])
 
+#                                                     888                    888                            888                                                            
+#                                                     888                    888                            888                                                            
+#                                                     888                    888                            888                                                            
+#  .d88b.   .d88b.  88888b.   .d88b.  888d888 8888b.  888888 .d88b.          888  .d88b.   .d88b.   8888b.  888          88888b.d88b.   .d88b.  888  888  .d88b.  .d8888b  
+# d88P"88b d8P  Y8b 888 "88b d8P  Y8b 888P"      "88b 888   d8P  Y8b         888 d8P  Y8b d88P"88b     "88b 888          888 "888 "88b d88""88b 888  888 d8P  Y8b 88K      
+# 888  888 88888888 888  888 88888888 888    .d888888 888   88888888         888 88888888 888  888 .d888888 888          888  888  888 888  888 Y88  88P 88888888 "Y8888b. 
+# Y88b 888 Y8b.     888  888 Y8b.     888    888  888 Y88b. Y8b.             888 Y8b.     Y88b 888 888  888 888          888  888  888 Y88..88P  Y8bd8P  Y8b.          X88 
+#  "Y88888  "Y8888  888  888  "Y8888  888    "Y888888  "Y888 "Y8888 88888888 888  "Y8888   "Y88888 "Y888888 888 88888888 888  888  888  "Y88P"    Y88P    "Y8888   88888P' 
+#      888                                                                                     888                                                                         
+# Y8b d88P                                                                                Y8b d88P                                                                         
+#  "Y88P"                                                                                  "Y88P"                                                                                                          
 def generate_legal_moves():
     global legal_move_str, san_move_str, board
     legal_moves = []
@@ -403,8 +483,7 @@ def generate_legal_moves():
 
 
 
-def main():
-    curses.wrapper(draw_screen)
+
 
 if __name__ == "__main__":
     main()
