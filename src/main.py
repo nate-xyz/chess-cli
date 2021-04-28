@@ -296,11 +296,12 @@ def draw_screen(stdscr):
 
     #start windows
 
-    board_window = curses.newwin(height-1, width//2, 0, 0)
-    info_window = curses.newwin(height//2, width//2, 0, width//2)
+    board_window = curses.newwin((height-1)//2, width//2, height*0, width*0)
+    info_window = curses.newwin((height-1)//2, width//2, height*0, width//2)
     prompt_window = curses.newwin((height-1)//2, width//2, height//2, width//2)
+    history_window = curses.newwin((height-1)//2, width//2, height//2, width*0)
 
-    windows_array = [board_window, info_window, prompt_window]
+    windows_array = [board_window, info_window, prompt_window, history_window]
 
     # Loop where k is the last character pressed
     while (key != 15): # while not quitting
@@ -320,23 +321,28 @@ def draw_screen(stdscr):
             board_window.resize(height-1, width//2)
             info_window.resize(height//2, width//2)
             prompt_window.resize((height-1)//2, width//2)
+            history_window.resize(height//2, width//2)
 
             board_window.mvwin(0, 0)
             info_window.mvwin(0, width//2)
             prompt_window.mvwin(height//2, width//2)
+            history_window.mvwin(height//2, width//2)
 
             board_window.clear()
             info_window.clear()
             prompt_window.clear()
+            history_window.clear()
             board_window.refresh()
             info_window.refresh()
             prompt_window.refresh()
+            history_window.refresh()
 
         #get winodw dimensions
         height, width = stdscr.getmaxyx()
         board_window_height, board_window_width = board_window.getmaxyx()
         info_window_height, info_window_width = info_window.getmaxyx()
         prompt_window_height, prompt_window_width = prompt_window.getmaxyx()
+        history_window_height, history_window_width = history_window.getmaxyx()
 
         cursor_x = max(0, cursor_x)
         cursor_x = min(width-1, cursor_x)
@@ -348,6 +354,7 @@ def draw_screen(stdscr):
         board_title = "board"[:width-1]
         info_title = "info"[:width-1]
         prompt_title = "prompt"[:width-1]
+        history_title = "moves"[:width-1]
 
         keystr = "Last key pressed: {}".format(key)[:width-1]
         #statusbarstr = "Press 'Ctrl+o' to exit | CHESS-CLI | Pos: {}, {}".format(cursor_x, cursor_y)
@@ -383,6 +390,7 @@ def draw_screen(stdscr):
         board_window.addstr(0, 1, board_title)
         info_window.addstr(0, 1, info_title)
         prompt_window.addstr(0, 1, prompt_title)
+        history_window.addstr(0,1, history_title)
 
         # Turning off attributes for title
         for i in range(len(windows_array)):
@@ -399,6 +407,7 @@ def draw_screen(stdscr):
         board_window.refresh()
         info_window.refresh()
         prompt_window.refresh()
+        history_window.refresh()
 
         # Wait for next input
         key = stdscr.getch()
