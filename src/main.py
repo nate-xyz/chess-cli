@@ -326,7 +326,7 @@ def draw_screen(stdscr):
         curses.init_pair(7, curses.COLOR_BLUE, curses.COLOR_BLACK)
 
     #move legality colors
-    curses.init_pair(8, curses.COLOR_WHITE, curses.COLOR_GREEN)
+    curses.init_pair(8, curses.COLOR_BLACK, curses.COLOR_GREEN)
     curses.init_pair(9, curses.COLOR_WHITE, curses.COLOR_RED)
 
     #start windows
