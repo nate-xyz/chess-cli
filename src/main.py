@@ -48,9 +48,8 @@ pieces = {
 def display_info(info_window):
     #TODO: text wrapping to avoid errors when the terminal is too small
     global last_move_str, status_str, inputted_str, legal_move_str, san_move_str
-    #san_move_str = legal_move_str[2:4]
     height, width = info_window.getmaxyx()
-
+        
     info_window.attron(curses.color_pair(3))
     if board.turn == chess.WHITE:
         info_window.addstr(1,1,"white to move")
@@ -58,20 +57,34 @@ def display_info(info_window):
         #info_window.attron(curses.A_REVERSE)
         info_window.addstr(1,1,"black to move")
         #info_window.attroff(curses.A_REVERSE)
+        
     info_window.addstr(2,1,"last move: {}".format(last_move_str))
     info_window.attroff(curses.color_pair(3))
 
     if status_str == "move is legal!":
-        info_window.attron(curses.color_pair(8))
+        text_colour = 8
     else:
-        info_window.attron(curses.color_pair(9))
+        text_colour = 9
+    info_window.attron(curses.color_pair(text_colour))
     info_window.addstr(3, 1, status_str)
-    info_window.attroff(curses.color_pair(9))
+    info_window.attroff(curses.color_pair(text_colour))
+
     info_window.addstr(4, 1, "{}: {}".format("input",inputted_str))
+
     info_window.attron(curses.color_pair(8))
-    info_window.addstr(5, 1, "{}: {}".format("legal moves (san)", san_move_str))
-    info_window.addstr(7, 1, "{}: {}".format("legal moves (uci)", legal_move_str))
-    info_window.attroff(curses.color_pair(9))
+
+    #info_window.addstr(5, 1, "{}: {}".format("legal moves (san)", san_move_str))
+    
+    san_move_str = "{}: {}".format("legal moves (san)", san_move_str)
+    for y in range(5, height-1):
+        if len(san_move_str) > width-2:
+            info_window.addstr(y, 1, san_move_str[:width-2])
+            san_move_str = san_move_str[width-2:]
+        else:
+            info_window.addstr(y, 1, san_move_str)
+            break
+    #info_window.addstr(7, 1, "{}: {}".format("legal moves (uci)", legal_move_str))
+    info_window.attroff(curses.color_pair(8))
 
     status_str = ""
 
@@ -222,7 +235,6 @@ def game_logic(board_window):
     #draw board
     draw_board(board_window, board.board_fen())
     legal_moves = generate_legal_moves()
-
 
 def generate_legal_moves():
     global legal_move_str, san_move_str, board
