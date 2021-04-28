@@ -7,9 +7,9 @@ prompt_x_coord = 1
 prompt_y_coord = 1
 
 #global strings
+last_move_str = "no move yet"
 user_input_string = ""
 inputted_str = ""
-last_move_str = "no move yet"
 status_str = ""
 legal_move_str = ""
 san_move_str = ""
@@ -45,15 +45,11 @@ pieces = {
 
 }
 
-
-
-
 def display_info(info_window):
     #TODO: text wrapping to avoid errors when the terminal is too small
     global last_move_str, status_str, inputted_str, legal_move_str, san_move_str
     #san_move_str = legal_move_str[2:4]
-    height, width = info_window.getmaxyx()\
-
+    height, width = info_window.getmaxyx()
 
     info_window.attron(curses.color_pair(3))
     if board.turn == chess.WHITE:
@@ -73,7 +69,8 @@ def display_info(info_window):
     info_window.attroff(curses.color_pair(9))
     info_window.addstr(4, 1, "{}: {}".format("input",inputted_str))
     info_window.attron(curses.color_pair(8))
-    info_window.addstr(5, 1, "{}: {}".format("legal moves", san_move_str))
+    info_window.addstr(5, 1, "{}: {}".format("legal moves (san)", san_move_str))
+    info_window.addstr(7, 1, "{}: {}".format("legal moves (uci)", legal_move_str))
     info_window.attroff(curses.color_pair(9))
 
     status_str = ""
@@ -114,13 +111,8 @@ def update_input(prompt_window, key):
 #     prompt_x_coord = 0
 #     prompt_y_coord = 0
 
-
-
-
-
 def draw_board(board_window, board_FEN):
     height, width = board_window.getmaxyx()
-
 
     x_notation_string = 'abcdefgh'
     y_notation_string = '87654321'
@@ -212,7 +204,7 @@ def game_logic(board_window):
     global inputted_str, board, status_str, entered_move, last_move_str
     inputted_str = inputted_str.strip(' ').strip('\0').strip('^@')
     legal_moves = []
-
+    legal_moves = generate_legal_moves()
     if entered_move:
         entered_move = False
         if inputted_str == 'undo':
@@ -400,13 +392,8 @@ def draw_screen(stdscr):
         # Wait for next input
         key = stdscr.getch()
 
-
-if __name__ == "__main__":
-    main()
-
-
-
 def main():
     curses.wrapper(draw_screen)
 
-
+if __name__ == "__main__":
+    main()
