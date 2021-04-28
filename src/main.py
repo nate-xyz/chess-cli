@@ -5,12 +5,16 @@ board = chess.Board()
 #prompt vars
 prompt_x_coord = 1
 prompt_y_coord = 1
+
+#global strings
 user_input_string = ""
 inputted_str = ""
 last_move_str = "no move yet"
 status_str = ""
 legal_move_str = ""
 san_move_str = ""
+
+#true if user hits enter key
 entered_move = False
 
 file = {
