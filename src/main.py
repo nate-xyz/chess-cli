@@ -95,12 +95,8 @@ def draw_screen(stdscr):
     history_window = curses.newwin( math.floor(height/2)-1, math.floor(width/2), math.floor(height/2), math.floor(width/2))
 
     windows_array = [board_window, info_window, prompt_window, history_window]
-
-
-    
-
-    # Loop where k is the last character pressed
-    while (key != 15): # while not quitting
+    # Loop where key is the last character pressed
+    while (key != 15): # while not quitting (ctrl+o)
 
         # Initialization
         stdscr.clear()
@@ -109,42 +105,38 @@ def draw_screen(stdscr):
 
         #resize everything if necessary
         if curses.is_term_resized(height, width):
-            height, width = stdscr.getmaxyx()
-            stdscr.clear()
+            height, width = stdscr.getmaxyx() #get new height and width
+            
+            #resize the terminal and refresh
             curses.resize_term(height, width)
+            stdscr.clear() 
             stdscr.refresh()
 
-            # board_window = curses.newwin( math.floor((height/4)*3), math.floor(width/2), 0, 0)
-            # prompt_window = curses.newwin( math.floor((height)/4)-1 , math.floor(width/2),  math.floor((height/4)*3), 0)
-            # info_window = curses.newwin(math.floor(height/2), math.floor(width/2), 0, math.floor(width/2))
-            # history_window = curses.newwin( math.floor(height/2)-1, math.floor(width/2), math.floor(height/2), math.floor(width/2))
-
+            #resize windows based on new dimensions
             board_window.resize(math.floor((height/4)*3), math.floor(width/2))
             prompt_window.resize(math.floor((height)/4)-1 , math.floor(width/2))
             info_window.resize(math.floor(height/2), math.floor(width/2))
             history_window.resize(math.floor(height/2)-1, math.floor(width/2))
 
+            #move windows to appropriate locations
             board_window.mvwin(0, 0)
             prompt_window.mvwin(math.floor((height/4)*3), 0)
             info_window.mvwin(0, math.floor(width/2))
             history_window.mvwin(math.floor(height/2), math.floor(width/2))
 
-            board_window.clear()
-            info_window.clear()
-            prompt_window.clear()
-            history_window.clear()
-            board_window.refresh()
-            info_window.refresh()
-            prompt_window.refresh()
-            history_window.refresh()
+            #clear and refresh all windows
+            for i in range(len(windows_array)):
+                windows_array[i].clear()
+                windows_array[i].refresh()
 
-        #get winodw dimensions
+        #get window dimensions
         height, width = stdscr.getmaxyx()
         board_window_height, board_window_width = board_window.getmaxyx()
         info_window_height, info_window_width = info_window.getmaxyx()
         prompt_window_height, prompt_window_width = prompt_window.getmaxyx()
         history_window_height, history_window_width = history_window.getmaxyx()
 
+        #get mouse location
         cursor_x = max(0, cursor_x)
         cursor_x = min(width-1, cursor_x)
 
@@ -161,20 +153,12 @@ def draw_screen(stdscr):
         #statusbarstr = "Press 'Ctrl+o' to exit | CHESS-CLI | Pos: {}, {}".format(cursor_x, cursor_y)
         statusbarstr = "Press 'Ctrl+o' to exit | CHESS-CLI"
 
-
         statusbarfull = "{} | {}".format(statusbarstr, keystr)
         #statusbarfull = ""
 
         if key == 0:
             keystr = "No key press detected..."[:width-1]
 
-        # Centering calculations
-        # start_x_title = int((width // 2) - (len(title) // 2) - len(title) % 2)
-        # start_x_subtitle = int((width // 2) - (len(subtitle) // 2) - len(subtitle) % 2)
-        # start_x_keystr = int((width // 2) - (len(keystr) // 2) - len(keystr) % 2)
-        # start_y = int((height // 2) - 2)
-
-        #render strings
         # Render status bar
         stdscr.attron(curses.color_pair(3))
         stdscr.addstr(height-1, 0, statusbarfull)
@@ -205,10 +189,8 @@ def draw_screen(stdscr):
 
         # Refresh the screen
         stdscr.refresh()
-        board_window.refresh()
-        info_window.refresh()
-        prompt_window.refresh()
-        history_window.refresh()
+        for i in range(len(windows_array)):
+            windows_array[i].refresh()
 
         # Wait for next input
         key = stdscr.getch()
@@ -217,12 +199,10 @@ def update_input(prompt_window, key):
     global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move
     height, width = prompt_window.getmaxyx()
 
-
     prompt_window.addch(prompt_y_coord, prompt_x_coord, key)
     prompt_window.addch(prompt_y_coord, 0, '>')
     prompt_window.addch(prompt_y_coord, prompt_x_coord+1, chr(8248))
     
-
     prompt_x_coord += 1
 
     if prompt_x_coord >= width-1:
@@ -316,8 +296,6 @@ def display_info(info_window):
     info_window.attroff(curses.color_pair(8))
 
     status_str = ""
-
-
 
 def draw_board(board_window, board_FEN):
     height, width = board_window.getmaxyx()
@@ -430,3 +408,10 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# Centering calculations
+# start_x_title = int((width // 2) - (len(title) // 2) - len(title) % 2)
+# start_x_subtitle = int((width // 2) - (len(subtitle) // 2) - len(subtitle) % 2)
+# start_x_keystr = int((width // 2) - (len(keystr) // 2) - len(keystr) % 2)
+# start_y = int((height // 2) - 2)
