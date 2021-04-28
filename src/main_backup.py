@@ -1,5 +1,6 @@
 import sys, os, traceback, random, curses, chess
 
+
 board = chess.Board()
 
 #prompt vars
@@ -24,6 +25,7 @@ file = {
     'h': 7,
 }
 
+
 pieces = {
     'K': '♔',
     'Q': '♕',
@@ -41,12 +43,42 @@ pieces = {
 
 }
 
+piece_name = {
+    'K': 'WhiteKing',
+    'Q': 'WhiteQueen',
+    'R': 'WhiteRook',
+    'B': 'WhiteBishop',
+    'N': 'WhiteKnight',
+    'P': 'WhitePawn',
+    'k': 'BlackKing',
+    'q': 'BlackQueen',
+    'r': 'BlackRook',
+    'b': 'BlackBishop',
+    'n': 'BlackKnight',
+    'p': 'BlackPawn',
+}
 
+rank = {
+    20: 'a',
+    22: 'b',
+    24: 'c',
+    26: 'd',
+    28: 'e',
+    30: 'f',
+    32: 'g',
+    34: 'h',
+}
+
+entities = dict()
 
 
 def display_info(info_window):
     #TODO: text wrapping to avoid errors when the terminal is too small
-    global last_move_str, status_str, inputted_str, legal_move_str, san_move_str
+    global last_move_str
+    global status_str
+    global inputted_str
+    global legal_move_str
+    global san_move_str
     #san_move_str = legal_move_str[2:4]
     height, width = info_window.getmaxyx()\
 
@@ -75,7 +107,11 @@ def display_info(info_window):
     status_str = ""
 
 def update_input(prompt_window, key):
-    global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move
+    global prompt_x_coord
+    global prompt_y_coord
+    global user_input_string
+    global inputted_str
+    global entered_move
     height, width = prompt_window.getmaxyx()
 
     prompt_window.addch(prompt_y_coord, prompt_x_coord, key)
@@ -205,7 +241,11 @@ def draw_board(board_window, board_FEN):
 
 
 def game_logic(board_window):
-    global inputted_str, board, status_str, entered_move, last_move_str
+    global inputted_str
+    global board
+    global status_str
+    global entered_move
+    global last_move_str
     inputted_str = inputted_str.strip(' ').strip('\0').strip('^@')
     legal_moves = []
 
@@ -229,7 +269,9 @@ def game_logic(board_window):
 
 
 def generate_legal_moves():
-    global legal_move_str, san_move_str, board
+    global legal_move_str
+    global san_move_str
+    global board
     legal_moves = []
     legal_move_str = ""
     san_move_str = ""
@@ -284,7 +326,7 @@ def draw_screen(stdscr):
         curses.init_pair(7, curses.COLOR_BLUE, curses.COLOR_BLACK)
 
     #move legality colors
-    curses.init_pair(8, curses.COLOR_BLACK, curses.COLOR_GREEN)
+    curses.init_pair(8, curses.COLOR_WHITE, curses.COLOR_GREEN)
     curses.init_pair(9, curses.COLOR_WHITE, curses.COLOR_RED)
 
     #start windows
@@ -397,12 +439,9 @@ def draw_screen(stdscr):
         key = stdscr.getch()
 
 
-if __name__ == "__main__":
-    main()
-
-
-
 def main():
     curses.wrapper(draw_screen)
 
 
+if __name__ == "__main__":
+    main()
