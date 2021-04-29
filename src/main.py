@@ -118,6 +118,7 @@ def draw_screen(stdscr):
     history_window = curses.newwin( math.floor(height/2)-1, math.floor(width/2), math.floor(height/2), math.floor(width/2))
 
     windows_array = [board_window, info_window, prompt_window, history_window]
+    
     # Loop where key is the last character pressed
     while (key != 15): # while not quitting (ctrl+o)
 
@@ -296,10 +297,11 @@ def game_logic(board_window):
             else:
                 status_str = "move is legal!"
                 if board.is_legal(board.parse_san(inputted_str)):
-                    last_move_str = (board.parse_san(inputted_str))
+                    board.push_san(inputted_str)
+                    last_move_str = inputted_str
                     curses.flash()
                     curses.beep()
-                    board.push_san(inputted_str)
+                    
     #draw board
     draw_board(board_window, board.board_fen())
     legal_moves = generate_legal_moves()
@@ -345,14 +347,26 @@ def display_info(info_window):
 
     #info_window.addstr(5, 1, "{}: {}".format("legal moves (san)", san_move_str))
 
+    wrap_y = 0
     san_move_str = "{}: {}".format("legal moves (san)", san_move_str)
     for y in range(5, height-1):
+        wrap_y = y
         if len(san_move_str) > width-2:
             info_window.addstr(y, 1, san_move_str[:width-2])
             san_move_str = san_move_str[width-2:]
         else:
             info_window.addstr(y, 1, san_move_str)
             break
+    
+    legal_move_str = "{}: {}".format("legal moves (uci)", legal_move_str)
+    for y in range(wrap_y+2, height-1):
+        if len(legal_move_str) > width-2:
+            info_window.addstr(y, 1, legal_move_str[:width-2])
+            legal_move_str = legal_move_str[width-2:]
+        else:
+            info_window.addstr(y, 1, legal_move_str)
+            break
+
     #info_window.addstr(7, 1, "{}: {}".format("legal moves (uci)", legal_move_str))
     info_window.attroff(curses.color_pair(8))
 
@@ -406,8 +420,6 @@ def draw_board(board_window, board_FEN):
                 x_coord += x_inc
             continue
         elif not current_piece.isdigit():
-
-
             #determine proper color pair
 
             # curses.init_pair(4, curses.COLOR_RED, curses.COLOR_WHITE)
@@ -427,19 +439,15 @@ def draw_board(board_window, board_FEN):
 
             board_window.attron(curses.color_pair(color_pair))
             board_window.attron(curses.A_BOLD)
-
-
+        
             #entities[color_str+rank[x_coord]+piece_name[start_board[i]]] = \
             #Entity(x_coord, y_coord, pieces[start_board[i]], piece_style)
 
             board_window.addstr(y_coord, x_coord, pieces[current_piece.upper()]+" ")
             #board_window.addch(y_coord, x_coord, 'x')
 
-
             board_window.attroff(curses.color_pair(color_pair))
             board_window.attroff(curses.A_BOLD)
-
-
 
             square_count += 1
             x_coord += x_inc
@@ -471,26 +479,26 @@ def generate_legal_moves():
     legal_move_str = ""
     san_move_str = ""
     for move in board.legal_moves:
-        legal_moves.append(board.san(move))
+
+        #append to legal moves array
         legal_moves.append(chess.Move.uci(move))
-        legal_moves.append('e4')
-        movo_str = chess.Move.uci(move)
-        legal_move_str += movo_str + " "
-        piece_char = board.piece_at( file[movo_str[0]] + (int(movo_str[1])- 1)\
-         * 8 ).symbol()
-        if piece_char.upper() == "P":
-            piece_char = ""
-        san_move_str += piece_char + movo_str[2:4] + " "
+        legal_moves.append(board.san(move))
+      
+        #add to the global strings to be displayed in the info window
+        legal_move_str += chess.Move.uci(move) + " "
+        san_move_str += board.san(move) + " "
 
-    return legal_moves
+        # piece_char = board.piece_at( file[movo_str[0]] + (int(movo_str[1])- 1)\
+        #  * 8 ).symbol()
+        # if piece_char.upper() == "P":
+        #     piece_char = ""
+        # san_move_str += piece_char + movo_str[2:4] + " "
 
-
-
-
+    #return legal moves array
+    return legal_moves 
 
 if __name__ == "__main__":
     main()
-
 
 # Centering calculations
 # start_x_title = int((width // 2) - (len(title) // 2) - len(title) % 2)
