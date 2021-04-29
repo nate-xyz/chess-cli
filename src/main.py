@@ -1,6 +1,12 @@
 import sys, os, traceback, random, curses, chess, math
 
+
+## GLOBAL VARS ##
+
 board = chess.Board()
+
+#set to true to skip welcome screen
+dev_mode = True
 
 #prompt vars
 prompt_x_coord = 1
@@ -17,6 +23,8 @@ history_arr = ["init"]
 
 #true if user hits enter key
 entered_move = False
+quit_from_welcome = False
+
 
 file = {
     'a': 0,
@@ -47,6 +55,8 @@ pieces = {
 }
 
 
+## FUNCTIONS ##
+
 #                        d8b
 #                        Y8P
 
@@ -59,7 +69,6 @@ pieces = {
 def main():
     curses.wrapper(draw_screen)
 
-
 #      888
 #      888
 #      888
@@ -71,6 +80,7 @@ def main():
 
 
 def draw_screen(stdscr):
+    global dev_mode
     key = 0
     cursor_x = 0
     cursor_y = 0
@@ -112,6 +122,8 @@ def draw_screen(stdscr):
     curses.init_pair(8, curses.COLOR_BLACK, curses.COLOR_GREEN)
     curses.init_pair(9, curses.COLOR_WHITE, curses.COLOR_RED)
 
+    if not dev_mode:
+        welcome_screen(stdscr)
     #start windows
     board_window = curses.newwin( math.floor((height/4)*3), math.floor(width/2), 0, 0)
     prompt_window = curses.newwin( math.floor((height)/4)-1 , math.floor(width/2),  math.floor((height/4)*3), 0)
@@ -122,7 +134,8 @@ def draw_screen(stdscr):
     
     # Loop where key is the last character pressed
     while (key != 15): # while not quitting (ctrl+o)
-
+        if quit_from_welcome:
+            break
         # Initialization
         stdscr.clear()
         board_window.clear()
@@ -268,6 +281,8 @@ def update_input(prompt_window, key):
             prompt_window.addstr(i, prompt_x_coord, " " * (width-1))
     else:
         user_input_string += chr(key)
+
+    prompt_window.border()
 
 #     prompt_x_coord = 0
 #     prompt_y_coord = 0
@@ -538,7 +553,71 @@ def generate_legal_moves():
     return legal_moves 
 
 
-            
+def welcome_screen(screen):
+    global quit_from_welcome, user_input_string, inputted_str, entered_move
+    height, width = screen.getmaxyx()
+    key = 0
+
+    prompt_welcome_window = curses.newwin( math.floor((height)/4)-1 , width,  math.floor((height/4)*3), 0)
+
+    while (key !=12): # while not quitting 
+        if key == 15:
+            quit_from_welcome = True
+            break
+
+        screen.clear()
+        
+        # Declaration of strings
+        title = "chess-cli"[:width-1]
+        subtitle = "play locally with a friend, against stockfish, or online with lichess!"[:width-1]
+        keystr = "Last key pressed: {}".format(key)[:width-1]
+        statusbarstr = "Press 'Ctrl-l' to skip to local | Press 'Ctrl-o' to quit"
+
+        # Centering calculations
+        start_x_title = int((width // 2) - (len(title) // 2) - len(title) % 2)
+        start_x_subtitle = int((width // 2) - (len(subtitle) // 2) - len(subtitle) % 2)
+        start_x_keystr = int((width // 2) - (len(keystr) // 2) - len(keystr) % 2)
+        start_y = int((height // 2) - 2)
+
+        # Rendering some text
+        whstr = "Width: {}, Height: {}".format(width, height)
+        screen.addstr(0, 0, whstr, curses.color_pair(1))
+
+        # Render status bar
+        screen.attron(curses.color_pair(3))
+        screen.addstr(height-1, 0, statusbarstr)
+        screen.addstr(height-1, len(statusbarstr), " " * (width - len(statusbarstr) - 1))
+        screen.attroff(curses.color_pair(3))
+
+        # Turning on attributes for title
+        screen.attron(curses.color_pair(2))
+        screen.attron(curses.A_BOLD)
+
+        # Rendering title
+        screen.addstr(start_y, start_x_title, title)
+
+        # Turning off attributes for title
+        screen.attroff(curses.color_pair(2))
+        screen.attroff(curses.A_BOLD)
+
+        # Print rest of text
+        screen.addstr(start_y + 1, start_x_subtitle, subtitle)
+        screen.addstr(start_y + 3, (width // 2) - 2, '-' * 4)
+        screen.addstr(start_y + 5, start_x_keystr, keystr)
+        
+        update_input(prompt_welcome_window, key)
+
+        prompt_welcome_window.border()
+        screen.refresh()
+        prompt_welcome_window.refresh()
+        key = screen.getch()
+    
+    #reset global strings that may have been set in the prompt window
+    user_input_string = ""
+    inputted_str = ""
+    entered_move = ""
+
+
 
 if __name__ == "__main__":
     main()
