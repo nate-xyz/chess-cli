@@ -13,6 +13,7 @@ inputted_str = ""
 status_str = ""
 legal_move_str = ""
 san_move_str = ""
+history_arr = ["init"]
 
 #true if user hits enter key
 entered_move = False
@@ -126,6 +127,7 @@ def draw_screen(stdscr):
         stdscr.clear()
         board_window.clear()
         info_window.clear()
+        history_window.clear()
 
         #resize everything if necessary
         if curses.is_term_resized(height, width):
@@ -210,6 +212,7 @@ def draw_screen(stdscr):
         update_input(prompt_window, key)
         game_logic(board_window)
         display_info(info_window)
+        display_history(history_window)
 
         # Refresh the screen
         stdscr.refresh()
@@ -283,7 +286,7 @@ def update_input(prompt_window, key):
 #  "Y88P"                                                        "Y88P"
 
 def game_logic(board_window):
-    global inputted_str, board, status_str, entered_move, last_move_str
+    global inputted_str, board, status_str, entered_move, last_move_str, history_arr
     inputted_str = inputted_str.strip(' ').strip('\0').strip('^@')
     legal_moves = []
     legal_moves = generate_legal_moves()
@@ -297,8 +300,10 @@ def game_logic(board_window):
             else:
                 status_str = "move is legal!"
                 if board.is_legal(board.parse_san(inputted_str)):
+                    
                     board.push_san(inputted_str)
                     last_move_str = inputted_str
+                    history_arr.insert(0, inputted_str)
                     curses.flash()
                     curses.beep()
                     
@@ -496,6 +501,30 @@ def generate_legal_moves():
 
     #return legal moves array
     return legal_moves 
+
+def display_history(history_window):
+    global history_arr
+    height, width = history_window.getmaxyx()
+
+    history_str_i = 0
+    if len(history_arr) == 0:
+        history_window.addstr(1, 1, "no moves yet")
+    
+    for y in range(1, height-1):
+        if y >= len(history_arr):
+            break
+        hist_str = history_arr[history_str_i] 
+        piece_str = pieces["p"]
+        if hist_str[0].isupper():
+            piece_str = pieces[hist_str[0:1]]
+        hist_str = "move "+str(history_str_i+1)+": "+hist_str+" "+piece_str
+        if len(hist_str) > width-2:
+            history_window.addstr(y, 1, hist_str[:width-2])
+            #hist_str = hist_str[width-2:]
+        else:
+            history_window.addstr(y, 1, hist_str)
+        history_str_i += 1
+            
 
 if __name__ == "__main__":
     main()
