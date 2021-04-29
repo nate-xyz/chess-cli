@@ -377,6 +377,41 @@ def display_info(info_window):
 
     status_str = ""
 
+
+                                                                                                                                                          
+#          88  88                          88                                     88           88                                                           
+#          88  ""                          88                                     88           ""               ,d                                          
+#          88                              88                                     88                            88                                          
+#  ,adPPYb,88  88  ,adPPYba,  8b,dPPYba,   88  ,adPPYYba,  8b       d8            88,dPPYba,   88  ,adPPYba,  MM88MMM  ,adPPYba,   8b,dPPYba,  8b       d8  
+# a8"    `Y88  88  I8[    ""  88P'    "8a  88  ""     `Y8  `8b     d8'            88P'    "8a  88  I8[    ""    88    a8"     "8a  88P'   "Y8  `8b     d8'  
+# 8b       88  88   `"Y8ba,   88       d8  88  ,adPPPPP88   `8b   d8'             88       88  88   `"Y8ba,     88    8b       d8  88           `8b   d8'   
+# "8a,   ,d88  88  aa    ]8I  88b,   ,a8"  88  88,    ,88    `8b,d8'              88       88  88  aa    ]8I    88,   "8a,   ,a8"  88            `8b,d8'    
+#  `"8bbdP"Y8  88  `"YbbdP"'  88`YbbdP"'   88  `"8bbdP"Y8      Y88'               88       88  88  `"YbbdP"'    "Y888  `"YbbdP"'   88              Y88'     
+#                             88                               d8'                                                                                 d8'      
+#                             88                              d8'     888888888888                                                                d8'                                                                                                                                                   
+def display_history(history_window):
+    global history_arr
+    height, width = history_window.getmaxyx()
+
+    history_str_i = 0
+    if len(history_arr) == 0:
+        history_window.addstr(1, 1, "no moves yet")
+    
+    for y in range(1, height-1):
+        if y >= len(history_arr):
+            break
+        hist_str = history_arr[history_str_i] 
+        piece_str = pieces["p"]
+        if hist_str[0].isupper():
+            piece_str = pieces[hist_str[0:1]]
+        hist_str = "move "+str(history_str_i+1)+": "+hist_str+" "+piece_str
+        if len(hist_str) > width-2:
+            history_window.addstr(y, 1, hist_str[:width-2])
+            #hist_str = hist_str[width-2:]
+        else:
+            history_window.addstr(y, 1, hist_str)
+        history_str_i += 1
+
 #      888                                       888                                    888
 #      888                                       888                                    888
 #      888                                       888                                    888
@@ -502,28 +537,7 @@ def generate_legal_moves():
     #return legal moves array
     return legal_moves 
 
-def display_history(history_window):
-    global history_arr
-    height, width = history_window.getmaxyx()
 
-    history_str_i = 0
-    if len(history_arr) == 0:
-        history_window.addstr(1, 1, "no moves yet")
-    
-    for y in range(1, height-1):
-        if y >= len(history_arr):
-            break
-        hist_str = history_arr[history_str_i] 
-        piece_str = pieces["p"]
-        if hist_str[0].isupper():
-            piece_str = pieces[hist_str[0:1]]
-        hist_str = "move "+str(history_str_i+1)+": "+hist_str+" "+piece_str
-        if len(hist_str) > width-2:
-            history_window.addstr(y, 1, hist_str[:width-2])
-            #hist_str = hist_str[width-2:]
-        else:
-            history_window.addstr(y, 1, hist_str)
-        history_str_i += 1
             
 
 if __name__ == "__main__":
