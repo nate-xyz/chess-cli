@@ -13,7 +13,6 @@ prompt_x_coord = 1
 prompt_y_coord = 1
 
 #global strings
-game_outcome_enum = 0
 last_move_str = "no move yet"
 user_input_string = ""
 inputted_str = ""
@@ -335,21 +334,12 @@ def game_logic(board_window):
                             curses.flash()
                             curses.beep()
 
-                            if board.is_checkmate() == True:
-                                game_outcome_enum = 1
-                                status_str = outcome_tuple[game_outcome_enum]
-                            if board.is_stalemate() == True:
-                                game_outcome_enum = 2
-                                status_str = outcome_tuple[game_outcome_enum]
-                            if board.is_insufficient_material() == True:
-                                game_outcome_enum = 3
-                                status_str = outcome_tuple[game_outcome_enum]
-                            if board.is_seventyfive_moves() == True:
-                                game_outcome_enum = 4
-                                status_str = outcome_tuple[game_outcome_enum]
-                            if board.is_fivefold_repetition() == True:
-                                game_outcome_enum = 5
-                                status_str = outcome_tuple[game_outcome_enum]
+                        game_outcome_enum = game_outcome()
+                        if game_outcome_enum != 0:
+                            status_str = outcome_tuple[game_outcome_enum]
+
+
+
 
     #draw board
     draw_board(board_window, board.board_fen())
@@ -590,7 +580,25 @@ def generate_legal_moves():
 #░░██████  ████ █████░░██████  ██████  ██████  █████████ █████     ░░████████ █████░░██████  ██████
 # ░░░░░░  ░░░░ ░░░░░  ░░░░░░  ░░░░░░  ░░░░░░  ░░░░░░░░░ ░░░░░       ░░░░░░░░ ░░░░░  ░░░░░░  ░░░░░░
 
-#def game_outcome():
+def game_outcome():
+
+    global game_outcome_enum
+
+    game_outcome_enum = 0
+
+    if board.is_checkmate() == True:
+        game_outcome_enum = 1
+    if board.is_stalemate() == True:
+        game_outcome_enum = 2
+    if board.is_insufficient_material() == True:
+        game_outcome_enum = 3
+    if board.is_seventyfive_moves() == True:
+        game_outcome_enum = 4
+    if board.is_fivefold_repetition() == True:
+        game_outcome_enum = 5
+
+
+    return game_outcome_enum
 
 
 
