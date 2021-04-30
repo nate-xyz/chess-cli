@@ -1,4 +1,4 @@
-import sys, os, traceback, random, curses, chess, math
+import sys, os, traceback, random, curses, chess, math, enum
 
 
 ## GLOBAL VARS ##
@@ -13,6 +13,7 @@ prompt_x_coord = 1
 prompt_y_coord = 1
 
 #global strings
+game_outcome_enum = 0
 last_move_str = "no move yet"
 user_input_string = ""
 inputted_str = ""
@@ -21,10 +22,21 @@ legal_move_str = ""
 san_move_str = ""
 history_arr = ["init"]
 
+
 #true if user hits enter key
 entered_move = False
 quit_from_welcome = False
 
+outcome_tuple = (
+    'Good luck.', #[0]
+    'Checkmate!', #[1]
+    'Stalemate.', #[2]
+    'Draw - insufficient material.', #[3]
+    'Draw - 75 move rule.', #[4]
+    'Draw - fivefold repetition.', #[5]
+    'Draw - 50 move rule.', #[6]
+    'Draw by threefold repetition has been claimed.', #[7]
+)
 
 file = {
     'a': 0,
@@ -131,7 +143,7 @@ def draw_screen(stdscr):
     history_window = curses.newwin( math.floor(height/2)-1, math.floor(width/2), math.floor(height/2), math.floor(width/2))
 
     windows_array = [board_window, info_window, prompt_window, history_window]
-    
+
     # Loop where key is the last character pressed
     while (key != 15): # while not quitting (ctrl+o)
         if quit_from_welcome:
@@ -301,7 +313,7 @@ def update_input(prompt_window, key):
 #  "Y88P"                                                        "Y88P"
 
 def game_logic(board_window):
-    global inputted_str, board, status_str, entered_move, last_move_str, history_arr
+    global inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum
     inputted_str = inputted_str.strip(' ').strip('\0').strip('^@')
     legal_moves = []
     legal_moves = generate_legal_moves()
@@ -312,16 +324,33 @@ def game_logic(board_window):
         else:
             if inputted_str not in legal_moves:
                 status_str = "last input is invalid"
+
             else:
-                status_str = "move is legal!"
-                if board.is_legal(board.parse_san(inputted_str)):
-                    
-                    board.push_san(inputted_str)
-                    last_move_str = inputted_str
-                    history_arr.insert(0, inputted_str)
-                    curses.flash()
-                    curses.beep()
-                    
+                        status_str = "move is legal!"
+                        if board.is_legal(board.parse_san(inputted_str)):
+
+                            board.push_san(inputted_str)
+                            last_move_str = inputted_str
+                            history_arr.insert(0, inputted_str)
+                            curses.flash()
+                            curses.beep()
+
+                            if board.is_checkmate() == True:
+                                game_outcome_enum = 1
+                                status_str = outcome_tuple[game_outcome_enum]
+                            if board.is_stalemate() == True:
+                                game_outcome_enum = 2
+                                status_str = outcome_tuple[game_outcome_enum]
+                            if board.is_insufficient_material() == True:
+                                game_outcome_enum = 3
+                                status_str = outcome_tuple[game_outcome_enum]
+                            if board.is_seventyfive_moves() == True:
+                                game_outcome_enum = 4
+                                status_str = outcome_tuple[game_outcome_enum]
+                            if board.is_fivefold_repetition() == True:
+                                game_outcome_enum = 5
+                                status_str = outcome_tuple[game_outcome_enum]
+
     #draw board
     draw_board(board_window, board.board_fen())
     legal_moves = generate_legal_moves()
@@ -377,7 +406,7 @@ def display_info(info_window):
         else:
             info_window.addstr(y, 1, san_move_str)
             break
-    
+
     legal_move_str = "{}: {}".format("legal moves (uci)", legal_move_str)
     for y in range(wrap_y+2, height-1):
         if len(legal_move_str) > width-2:
@@ -393,17 +422,17 @@ def display_info(info_window):
     status_str = ""
 
 
-                                                                                                                                                          
-#          88  88                          88                                     88           88                                                           
-#          88  ""                          88                                     88           ""               ,d                                          
-#          88                              88                                     88                            88                                          
-#  ,adPPYb,88  88  ,adPPYba,  8b,dPPYba,   88  ,adPPYYba,  8b       d8            88,dPPYba,   88  ,adPPYba,  MM88MMM  ,adPPYba,   8b,dPPYba,  8b       d8  
-# a8"    `Y88  88  I8[    ""  88P'    "8a  88  ""     `Y8  `8b     d8'            88P'    "8a  88  I8[    ""    88    a8"     "8a  88P'   "Y8  `8b     d8'  
-# 8b       88  88   `"Y8ba,   88       d8  88  ,adPPPPP88   `8b   d8'             88       88  88   `"Y8ba,     88    8b       d8  88           `8b   d8'   
-# "8a,   ,d88  88  aa    ]8I  88b,   ,a8"  88  88,    ,88    `8b,d8'              88       88  88  aa    ]8I    88,   "8a,   ,a8"  88            `8b,d8'    
-#  `"8bbdP"Y8  88  `"YbbdP"'  88`YbbdP"'   88  `"8bbdP"Y8      Y88'               88       88  88  `"YbbdP"'    "Y888  `"YbbdP"'   88              Y88'     
-#                             88                               d8'                                                                                 d8'      
-#                             88                              d8'     888888888888                                                                d8'                                                                                                                                                   
+
+#          88  88                          88                                     88           88
+#          88  ""                          88                                     88           ""               ,d
+#          88                              88                                     88                            88
+#  ,adPPYb,88  88  ,adPPYba,  8b,dPPYba,   88  ,adPPYYba,  8b       d8            88,dPPYba,   88  ,adPPYba,  MM88MMM  ,adPPYba,   8b,dPPYba,  8b       d8
+# a8"    `Y88  88  I8[    ""  88P'    "8a  88  ""     `Y8  `8b     d8'            88P'    "8a  88  I8[    ""    88    a8"     "8a  88P'   "Y8  `8b     d8'
+# 8b       88  88   `"Y8ba,   88       d8  88  ,adPPPPP88   `8b   d8'             88       88  88   `"Y8ba,     88    8b       d8  88           `8b   d8'
+# "8a,   ,d88  88  aa    ]8I  88b,   ,a8"  88  88,    ,88    `8b,d8'              88       88  88  aa    ]8I    88,   "8a,   ,a8"  88            `8b,d8'
+#  `"8bbdP"Y8  88  `"YbbdP"'  88`YbbdP"'   88  `"8bbdP"Y8      Y88'               88       88  88  `"YbbdP"'    "Y888  `"YbbdP"'   88              Y88'
+#                             88                               d8'                                                                                 d8'
+#                             88                              d8'     888888888888                                                                d8'
 def display_history(history_window):
     global history_arr
     height, width = history_window.getmaxyx()
@@ -411,11 +440,11 @@ def display_history(history_window):
     history_str_i = 0
     if len(history_arr) == 0:
         history_window.addstr(1, 1, "no moves yet")
-    
+
     for y in range(1, height-1):
         if y >= len(history_arr):
             break
-        hist_str = history_arr[history_str_i] 
+        hist_str = history_arr[history_str_i]
         piece_str = pieces["p"]
         if hist_str[0].isupper():
             piece_str = pieces[hist_str[0:1]]
@@ -494,7 +523,7 @@ def draw_board(board_window, board_FEN):
 
             board_window.attron(curses.color_pair(color_pair))
             board_window.attron(curses.A_BOLD)
-        
+
             #entities[color_str+rank[x_coord]+piece_name[start_board[i]]] = \
             #Entity(x_coord, y_coord, pieces[start_board[i]], piece_style)
 
@@ -538,7 +567,7 @@ def generate_legal_moves():
         #append to legal moves array
         legal_moves.append(chess.Move.uci(move))
         legal_moves.append(board.san(move))
-      
+
         #add to the global strings to be displayed in the info window
         legal_move_str += chess.Move.uci(move) + " "
         san_move_str += board.san(move) + " "
@@ -550,7 +579,33 @@ def generate_legal_moves():
         # san_move_str += piece_char + movo_str[2:4] + " "
 
     #return legal moves array
-    return legal_moves 
+    return legal_moves
+
+#          █████                                                              ████
+#         ░░███                                                              ░░███
+ # ██████  ░███████    ██████   █████   █████            ████████  █████ ████ ░███   ██████   █████
+ #███░░███ ░███░░███  ███░░███ ███░░   ███░░            ░░███░░███░░███ ░███  ░███  ███░░███ ███░░
+#░███ ░░░  ░███ ░███ ░███████ ░░█████ ░░█████            ░███ ░░░  ░███ ░███  ░███ ░███████ ░░█████
+#░███  ███ ░███ ░███ ░███░░░   ░░░░███ ░░░░███           ░███      ░███ ░███  ░███ ░███░░░   ░░░░███
+#░░██████  ████ █████░░██████  ██████  ██████  █████████ █████     ░░████████ █████░░██████  ██████
+# ░░░░░░  ░░░░ ░░░░░  ░░░░░░  ░░░░░░  ░░░░░░  ░░░░░░░░░ ░░░░░       ░░░░░░░░ ░░░░░  ░░░░░░  ░░░░░░
+
+#def game_outcome():
+
+
+
+
+
+
+#                      888
+#                       888
+#                       888
+#888  888  888  .d88b.  888  .d8888b .d88b.  88888b.d88b.   .d88b.         .d8888b   .d8888b 888d888 .d88b.   .d88b.  88888b.
+#888  888  888 d8P  Y8b 888 d88P"   d88""88b 888 "888 "88b d8P  Y8b        88K      d88P"    888P"  d8P  Y8b d8P  Y8b 888 "88b
+#888  888  888 88888888 888 888     888  888 888  888  888 88888888        "Y8888b. 888      888    88888888 88888888 888  888
+#Y88b 888 d88P Y8b.     888 Y88b.   Y88..88P 888  888  888 Y8b.                 X88 Y88b.    888    Y8b.     Y8b.     888  888
+# "Y8888888P"   "Y8888  888  "Y8888P "Y88P"  888  888  888  "Y8888 88888888 88888P'  "Y8888P 888     "Y8888   "Y8888  888  888
+
 
 
 def welcome_screen(screen):
@@ -560,13 +615,13 @@ def welcome_screen(screen):
 
     prompt_welcome_window = curses.newwin( math.floor((height)/4)-1 , width,  math.floor((height/4)*3), 0)
 
-    while (key !=12): # while not quitting 
+    while (key !=12): # while not quitting
         if key == 15:
             quit_from_welcome = True
             break
 
         screen.clear()
-        
+
         # Declaration of strings
         title = "chess-cli"[:width-1]
         subtitle = "play locally with a friend, against stockfish, or online with lichess!"[:width-1]
@@ -604,14 +659,14 @@ def welcome_screen(screen):
         screen.addstr(start_y + 1, start_x_subtitle, subtitle)
         screen.addstr(start_y + 3, (width // 2) - 2, '-' * 4)
         screen.addstr(start_y + 5, start_x_keystr, keystr)
-        
+
         update_input(prompt_welcome_window, key)
 
         prompt_welcome_window.border()
         screen.refresh()
         prompt_welcome_window.refresh()
         key = screen.getch()
-    
+
     #reset global strings that may have been set in the prompt window
     user_input_string = ""
     inputted_str = ""
