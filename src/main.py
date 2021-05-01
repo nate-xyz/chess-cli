@@ -371,6 +371,8 @@ def game_logic(board_window):
                 game_outcome_enum = game_outcome()
                 if game_outcome_enum != 0:
                     status_str = outcome_tuple[game_outcome_enum]
+                    final_position = board.fen
+                    
 
     #draw board
     draw_board(board_window, board.board_fen())
