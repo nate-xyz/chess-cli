@@ -723,7 +723,16 @@ def welcome_screen(screen):
 
 
 #########################################################################################################################
-# post game window
+#                                 .                                                                           
+#                                .o8                                                                           
+# oo.ooooo.   .ooooo.   .oooo.o .o888oo              .oooo.o  .ooooo.  oooo d8b  .ooooo.   .ooooo.  ooo. .oo.   
+#  888' `88b d88' `88b d88(  "8   888               d88(  "8 d88' `"Y8 `888""8P d88' `88b d88' `88b `888P"Y88b  
+#  888   888 888   888 `"Y88b.    888               `"Y88b.  888        888     888ooo888 888ooo888  888   888  
+#  888   888 888   888 o.  )88b   888 .             o.  )88b 888   .o8  888     888    .o 888    .o  888   888  
+#  888bod8P' `Y8bod8P' 8""888P'   "888" ooooooooooo 8""888P' `Y8bod8P' d888b    `Y8bod8P' `Y8bod8P' o888o o888o 
+#  888                                                                                                          
+# o888o                                                                                                         
+#########################################################################################################################                                                                    
 def post_screen(screen1):
     global quit_from_post, user_input_string, inputted_str, entered_move
     screen1 = curses.initscr()
