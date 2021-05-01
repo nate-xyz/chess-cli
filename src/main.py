@@ -271,8 +271,12 @@ def update_input(prompt_window, key):
     
 
     if key==127: #delete key
-        prompt_window.addch(prompt_y_coord, prompt_x_coord-1, chr(8248)) #clear last char printed
-        prompt_window.addch(prompt_y_coord, prompt_x_coord, ' ') #clear last char printed
+        if prompt_x_coord-1 <= 0:
+            delete_x = 1
+        else:
+            delete_x = prompt_x_coord-1
+        prompt_window.addch(prompt_y_coord, delete_x, chr(8248)) #clear last char printed
+        prompt_window.addch(prompt_y_coord, delete_x+1, ' ') #clear last char printed
         prompt_x_coord -= 1 #decrement char position
         user_input_string = user_input_string[:-1]
     elif chr(key).isalnum():
@@ -282,10 +286,10 @@ def update_input(prompt_window, key):
         
 
     #adjust coordinates
-    if prompt_x_coord < 0:
+    if prompt_x_coord <= 0:
         prompt_x_coord = 1
         prompt_y_coord -= 1
-    if prompt_y_coord < 0:
+    if prompt_y_coord <= 0:
         prompt_x_coord = 1
         prompt_y_coord = 1
     if prompt_x_coord >= width-1:
@@ -317,9 +321,6 @@ def update_input(prompt_window, key):
     #redraw border in case it was painted over
     prompt_window.border()
     prompt_window.addch(prompt_y_coord, 0, '>') #indicate line youre on
-
-#     prompt_x_coord = 0
-#     prompt_y_coord = 0
 
 
 #                                                  888                   d8b
