@@ -138,6 +138,7 @@ def draw_screen(stdscr):
 
     if not dev_mode:
         welcome_screen(stdscr)
+        user_input_string = ""
     #start windows
     board_window = curses.newwin( math.floor((height/4)*3), math.floor(width/2), 0, 0)
     prompt_window = curses.newwin( math.floor((height)/4)-1 , math.floor(width/2),  math.floor((height/4)*3), 0)
@@ -265,7 +266,7 @@ def draw_screen(stdscr):
 #          888                                                            888
 
 def update_input(prompt_window, key):
-    global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move
+    global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str
     height, width = prompt_window.getmaxyx()
 
     
@@ -275,7 +276,7 @@ def update_input(prompt_window, key):
             delete_x = 1
         else:
             delete_x = prompt_x_coord-1
-        prompt_window.addch(prompt_y_coord, delete_x, chr(8248)) #clear last char printed
+        prompt_window.addch(prompt_y_coord, delete_x, chr(8248)) #clear last char pointer
         prompt_window.addch(prompt_y_coord, delete_x+1, ' ') #clear last char printed
         prompt_x_coord -= 1 #decrement char position
         user_input_string = user_input_string[:-1]
@@ -284,24 +285,24 @@ def update_input(prompt_window, key):
         prompt_window.addch(prompt_y_coord, prompt_x_coord, key)
         prompt_x_coord += 1 #increment char position
         
-
     #adjust coordinates
     if prompt_x_coord <= 0:
-        prompt_x_coord = 1
+        prompt_window.addch(prompt_y_coord, 1, ' ') #clear last char pointer
+        prompt_x_coord = width-2
         prompt_y_coord -= 1
     if prompt_y_coord <= 0:
         prompt_x_coord = 1
-        prompt_y_coord = 1
+        prompt_y_coord = 1        
     if prompt_x_coord >= width-1:
         prompt_x_coord = 1
         prompt_y_coord += 1
     if prompt_y_coord >= height-1:
-        prompt_x_coord = 1
-        prompt_y_coord = 1
-        for i in range(1, height-1):
-            prompt_window.addstr(i, prompt_x_coord, " " * (width-1))
-
-
+        prompt_x_coord = width-2
+        prompt_y_coord = height-2
+        status_str = "char limit reached"
+        return
+        # for i in range(1, height-1):
+        #     prompt_window.addstr(i, prompt_x_coord, " " * (width-1))
     if key==10: #enter key
         entered_move = True 
         inputted_str = user_input_string #set global string to check if move is legal
