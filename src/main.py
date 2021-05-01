@@ -218,9 +218,17 @@ def draw_screen(stdscr):
         stdscr.addstr(height-1, len(statusbarfull), " " * (width - len(statusbarfull) - 1))
         stdscr.attroff(curses.color_pair(3))
 
-        # Turning on attributes for title
         for i in range(len(windows_array)):
             windows_array[i].border()
+
+        #external function calls
+        update_input(prompt_window, key)
+        game_logic(board_window)
+        display_info(info_window)
+        display_history(history_window)
+
+        # Turning on attributes for title
+        for i in range(len(windows_array)):
             windows_array[i].attron(curses.color_pair(2))
             windows_array[i].attron(curses.A_BOLD)
 
@@ -234,12 +242,6 @@ def draw_screen(stdscr):
         for i in range(len(windows_array)):
             windows_array[i].attroff(curses.color_pair(2))
             windows_array[i].attroff(curses.A_BOLD)
-
-        #external function calls
-        update_input(prompt_window, key)
-        game_logic(board_window)
-        display_info(info_window)
-        display_history(history_window)
 
         # Refresh the screen
         stdscr.refresh()
@@ -266,37 +268,55 @@ def update_input(prompt_window, key):
     global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move
     height, width = prompt_window.getmaxyx()
 
-    prompt_window.addch(prompt_y_coord, prompt_x_coord, key)
-    prompt_window.addch(prompt_y_coord, 0, '>')
-    prompt_window.addch(prompt_y_coord, prompt_x_coord+1, chr(8248))
+    
 
-    prompt_x_coord += 1
+    if key==127: #delete key
+        prompt_window.addch(prompt_y_coord, prompt_x_coord-1, chr(8248)) #clear last char printed
+        prompt_window.addch(prompt_y_coord, prompt_x_coord, ' ') #clear last char printed
+        prompt_x_coord -= 1 #decrement char position
+        user_input_string = user_input_string[:-1]
+    elif chr(key).isalnum():
+        prompt_window.addch(prompt_y_coord, prompt_x_coord+1, chr(8248)) #indicate char youre on
+        prompt_window.addch(prompt_y_coord, prompt_x_coord, key)
+        prompt_x_coord += 1 #increment char position
+        
 
+    #adjust coordinates
+    if prompt_x_coord < 0:
+        prompt_x_coord = 1
+        prompt_y_coord -= 1
+    if prompt_y_coord < 0:
+        prompt_x_coord = 1
+        prompt_y_coord = 1
     if prompt_x_coord >= width-1:
         prompt_x_coord = 1
         prompt_y_coord += 1
-
     if prompt_y_coord >= height-1:
         prompt_x_coord = 1
         prompt_y_coord = 1
         for i in range(1, height-1):
             prompt_window.addstr(i, prompt_x_coord, " " * (width-1))
 
-    if key==10: #enter key
-        entered_move = True
-        inputted_str = user_input_string
-        user_input_string = ""
-        prompt_window.addch(prompt_y_coord, 0, '|')
-        prompt_x_coord = 1
-        prompt_y_coord = 1
-        prompt_window.addch(prompt_y_coord, 0, '>')
 
-        for i in range(1, height-1):
+    if key==10: #enter key
+        entered_move = True 
+        inputted_str = user_input_string #set global string to check if move is legal
+        user_input_string = "" #reset input buffer
+        prompt_x_coord = 1 #reset char coordinates
+        prompt_y_coord = 1#reset char coordinates
+        #prompt_window.addch(prompt_y_coord, 0, '|')
+        #prompt_window.addch(prompt_y_coord, 0, '>')
+
+        for i in range(1, height-1): #clear window
             prompt_window.addstr(i, prompt_x_coord, " " * (width-1))
-    else:
+    
+    #add to the current input buffer
+    if key != 10 and key != 127 and chr(key).isalnum(): #not enter and not delete
         user_input_string += chr(key)
 
+    #redraw border in case it was painted over
     prompt_window.border()
+    prompt_window.addch(prompt_y_coord, 0, '>') #indicate line youre on
 
 #     prompt_x_coord = 0
 #     prompt_y_coord = 0
@@ -632,7 +652,7 @@ def welcome_screen(screen):
 
     prompt_welcome_window = curses.newwin( math.floor((height)/4)-1 , width,  math.floor((height/4)*3), 0)
 
-    while (key !=12): # while not quitting
+    while (key != 12): # while not quitting
         if key == 15:
             quit_from_welcome = True
             break
