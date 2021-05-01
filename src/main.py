@@ -1,4 +1,4 @@
-import sys, os, traceback, random, curses, chess, math, enum
+import sys, os, traceback, random, curses, chess, math, enum, itertools
 
 
 ## GLOBAL VARS ##
@@ -21,10 +21,13 @@ legal_move_str = ""
 san_move_str = ""
 history_arr = ["init"]
 
+move_amount = 0
+game_outcome_enum = 0
 
 #true if user hits enter key
 entered_move = False
 quit_from_welcome = False
+
 
 outcome_tuple = (
     'Good luck.', #[0]
@@ -312,10 +315,16 @@ def update_input(prompt_window, key):
 #  "Y88P"                                                        "Y88P"
 
 def game_logic(board_window):
-    global inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum
+    global inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount
     inputted_str = inputted_str.strip(' ').strip('\0').strip('^@')
-    legal_moves = []
     legal_moves = generate_legal_moves()
+    legal_moves_san = legal_moves[0] 
+    legal_moves_san_lowercase = legal_moves[1]
+    legal_moves_uci = legal_moves[2]
+
+    legal_moves = list(itertools.chain.from_iterable(legal_moves))
+
+
     if entered_move:
         entered_move = False
         if inputted_str == 'undo':
@@ -323,23 +332,23 @@ def game_logic(board_window):
         else:
             if inputted_str not in legal_moves:
                 status_str = "last input is invalid"
-
             else:
-                        status_str = "move is legal!"
-                        if board.is_legal(board.parse_san(inputted_str)):
+                status_str = "move is legal!"
 
-                            board.push_san(inputted_str)
-                            last_move_str = inputted_str
-                            history_arr.insert(0, inputted_str)
-                            curses.flash()
-                            curses.beep()
+                if inputted_str in legal_moves_san_lowercase:
+                    inputted_str = legal_moves_san[legal_moves_san_lowercase.index(inputted_str)] #get the equivalent string with proper case
+  
+                if board.is_legal(board.parse_san(inputted_str)):
+                    board.push_san(inputted_str) #make the actual move with the chess module
+                    last_move_str = inputted_str #set the last move string to be displayed in the info window
+                    history_arr.insert(0, inputted_str) #push to the front of the history stack for the history window
+                    move_amount+=1 #increment the global move amount for the history window
+                    curses.flash()
+                    curses.beep()
 
-                        game_outcome_enum = game_outcome()
-                        if game_outcome_enum != 0:
-                            status_str = outcome_tuple[game_outcome_enum]
-
-
-
+                game_outcome_enum = game_outcome()
+                if game_outcome_enum != 0:
+                    status_str = outcome_tuple[game_outcome_enum]
 
     #draw board
     draw_board(board_window, board.board_fen())
@@ -424,7 +433,7 @@ def display_info(info_window):
 #                             88                               d8'                                                                                 d8'
 #                             88                              d8'     888888888888                                                                d8'
 def display_history(history_window):
-    global history_arr
+    global history_arr, move_amount
     height, width = history_window.getmaxyx()
 
     history_str_i = 0
@@ -438,7 +447,8 @@ def display_history(history_window):
         piece_str = pieces["p"]
         if hist_str[0].isupper():
             piece_str = pieces[hist_str[0:1]]
-        hist_str = "move "+str(history_str_i+1)+": "+hist_str+" "+piece_str
+            
+        hist_str = "move "+str(move_amount-history_str_i)+": "+hist_str+" "+piece_str
         if len(hist_str) > width-2:
             history_window.addstr(y, 1, hist_str[:width-2])
             #hist_str = hist_str[width-2:]
@@ -549,14 +559,18 @@ def draw_board(board_window, board_FEN):
 #  "Y88P"                                                                                  "Y88P"
 def generate_legal_moves():
     global legal_move_str, san_move_str, board
-    legal_moves = []
+    legal_moves = [[],[],[]]
+    legal_moves_san = []
+    legal_moves_san_lowercase = []
+    legal_moves_uci = []
     legal_move_str = ""
     san_move_str = ""
     for move in board.legal_moves:
 
         #append to legal moves array
-        legal_moves.append(chess.Move.uci(move))
-        legal_moves.append(board.san(move))
+        legal_moves_san.append(board.san(move))
+        legal_moves_san_lowercase.append(board.san(move).lower())
+        legal_moves_uci.append(chess.Move.uci(move))
 
         #add to the global strings to be displayed in the info window
         legal_move_str += chess.Move.uci(move) + " "
@@ -569,6 +583,9 @@ def generate_legal_moves():
         # san_move_str += piece_char + movo_str[2:4] + " "
 
     #return legal moves array
+    legal_moves[0] = legal_moves_san
+    legal_moves[1] = legal_moves_san_lowercase
+    legal_moves[2] = legal_moves_uci
     return legal_moves
 
 #          █████                                                              ████
@@ -581,28 +598,20 @@ def generate_legal_moves():
 # ░░░░░░  ░░░░ ░░░░░  ░░░░░░  ░░░░░░  ░░░░░░  ░░░░░░░░░ ░░░░░       ░░░░░░░░ ░░░░░  ░░░░░░  ░░░░░░
 
 def game_outcome():
-
     global game_outcome_enum
 
-    game_outcome_enum = 0
-
-    if board.is_checkmate() == True:
+    if board.is_checkmate():
         game_outcome_enum = 1
-    if board.is_stalemate() == True:
+    if board.is_stalemate():
         game_outcome_enum = 2
-    if board.is_insufficient_material() == True:
+    if board.is_insufficient_material():
         game_outcome_enum = 3
-    if board.is_seventyfive_moves() == True:
+    if board.is_seventyfive_moves():
         game_outcome_enum = 4
-    if board.is_fivefold_repetition() == True:
+    if board.is_fivefold_repetition():
         game_outcome_enum = 5
 
-
     return game_outcome_enum
-
-
-
-
 
 
 #                      888
