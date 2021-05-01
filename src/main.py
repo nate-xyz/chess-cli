@@ -23,6 +23,7 @@ status_str = ""
 legal_move_str = ""
 san_move_str = ""
 history_arr = ["init"]
+final_position = ""
 
 move_amount = 0
 game_outcome_enum = 0
@@ -377,6 +378,7 @@ def game_logic(board_window):
                     final_position = board.fen
                     if not post_screen_toggle:
                         post_screen(draw_screen)
+                    
                     
 
     #draw board
@@ -740,11 +742,12 @@ def post_screen(screen1):
     key = 0
 
     prompt_post_window = curses.newwin( math.floor((height)/4)-1 , width,  math.floor((height/4)*3), 0)
-
+    board_post_window = curses.newwin( math.floor((height)-(height/3)), math.floor(width),  0, 0)
+   
     while (key != 12): # while not quitting
         if key == 15:
             quit_from_post = True
-            break
+            
 
         screen1.clear()
 
@@ -760,10 +763,6 @@ def post_screen(screen1):
         start_x_final_history_str = int((width // 2) - (len(final_history_str) // 2) - len(final_history_str) % 2)
         start_y = int((height // 2) - 2)
 
-        # Rendering some text
-        whstr = "Width: {}, Height: {}".format(width, height)
-        screen1.addstr(0, 0, whstr, curses.color_pair(1))
-
         # Render status bar
         screen1.attron(curses.color_pair(3))
         screen1.addstr(height-1, 0, statusbarstr)
@@ -771,26 +770,29 @@ def post_screen(screen1):
         screen1.attroff(curses.color_pair(3))
 
         # Turning on attributes for title
-        screen1.attron(curses.color_pair(2))
-        screen1.attron(curses.A_BOLD)
+        board_post_window.attron(curses.color_pair(2))
+        board_post_window.attron(curses.A_BOLD)
 
         # Rendering title
-        screen1.addstr(start_y, start_x_title, title)
+        board_post_window.addstr(start_y, start_x_title, title)
 
         # Turning off attributes for title
         screen1.attroff(curses.color_pair(2))
         screen1.attroff(curses.A_BOLD)
 
         # Print rest of text
-        screen1.addstr(start_y + 1, start_x_final_position_str, final_position_str)
-        screen1.addstr(start_y + 3, (width // 2) - 2, '-' * 4)
-        screen1.addstr(start_y + 5, start_x_final_history_str, final_history_str)
+        board_post_window.addstr(start_y + 1, start_x_final_position_str, final_position_str)
+        board_post_window.addstr(start_y + 3, (width // 2) - 2, '-' * 4)
+        board_post_window.addstr(start_y + 5, start_x_final_history_str, final_history_str)
+        draw_board(board_post_window, final_position)
 
         update_input(prompt_post_window, key)
 
         prompt_post_window.border()
+        board_post_window.border()
         screen1.refresh()
         prompt_post_window.refresh()
+        board_post_window.refresh()
         key = screen1.getch()
 
     #reset global strings that may have been set in the prompt window
