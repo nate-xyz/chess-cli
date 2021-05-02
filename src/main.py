@@ -68,6 +68,7 @@ pieces = {
 
 }
 
+board_square_coord = dict()
 
 ## FUNCTIONS ##
 
@@ -222,8 +223,10 @@ def draw_screen(stdscr):
         for i in range(len(windows_array)):
             windows_array[i].border()
 
+        ## EXTERNAL FUNCTION CALL !!! ###
         #external function calls
         update_input(prompt_window, key)
+        board_input(board_window, key, width, height)
         game_logic(board_window)
         display_info(info_window)
         display_history(history_window)
@@ -269,8 +272,6 @@ def update_input(prompt_window, key):
     global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str
     height, width = prompt_window.getmaxyx()
 
-    
-
     if key==127: #delete key
         if prompt_x_coord-1 <= 0:
             delete_x = 1
@@ -280,7 +281,7 @@ def update_input(prompt_window, key):
         prompt_window.addch(prompt_y_coord, delete_x+1, ' ') #clear last char printed
         prompt_x_coord -= 1 #decrement char position
         user_input_string = user_input_string[:-1]
-    elif chr(key).isalnum():
+    elif chr(key).isalnum() or key ==35:
         prompt_window.addch(prompt_y_coord, prompt_x_coord+1, chr(8248)) #indicate char youre on
         prompt_window.addch(prompt_y_coord, prompt_x_coord, key)
         prompt_x_coord += 1 #increment char position
@@ -316,12 +317,22 @@ def update_input(prompt_window, key):
             prompt_window.addstr(i, prompt_x_coord, " " * (width-1))
     
     #add to the current input buffer
-    if key != 10 and key != 127 and chr(key).isalnum(): #not enter and not delete
+    if key != 10 and key != 127 and (chr(key).isalnum() or key == 35): #not enter and not delete
         user_input_string += chr(key)
 
     #redraw border in case it was painted over
     prompt_window.border()
     prompt_window.addch(prompt_y_coord, 0, '>') #indicate line youre on
+
+def board_input(board_window, key, screen_width, screen_height):
+    global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str
+    height, width = board_window.getmaxyx()
+
+    if key != curses.KEY_MOUSE: #input needs to be mouse input
+        return
+    
+    #(id_, x, y, z, bstate) = curses.getmouse()
+
 
 
 #                                                  888                   d8b
@@ -487,8 +498,9 @@ def display_history(history_window):
 # Y88b 888 888    888  888 Y88b 888 d88P         888 d88P Y88..88P 888  888 888    Y88b 888
 #  "Y88888 888    "Y888888  "Y8888888P" 88888888 88888P"   "Y88P"  "Y888888 888     "Y88888
 def draw_board(board_window, board_FEN):
+    global board_square_coord
     height, width = board_window.getmaxyx()
-
+    board_square_coord = {}
     x_notation_string = 'abcdefgh'
     y_notation_string = '87654321'
     # 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'
@@ -503,35 +515,32 @@ def draw_board(board_window, board_FEN):
 
     square_count = 0
 
-    for i in range(len(board_FEN)):
-        current_piece = board_FEN[i]
+    for i in range(len(board_FEN)): #loop to parse the FEN stirng
+
+        current_piece = board_FEN[i] #current piece character from the FEN string
 
         if current_piece == '/':
             board_window.addstr(y_coord, x_coord, chr(9))
-            x_coord = og_xcoord
-            y_coord += y_inc
+            x_coord = og_xcoord #set x_coord to first in the row
+            y_coord += y_inc #incremen
             square_count += 1
             continue
-        elif current_piece.isdigit():
 
+        elif current_piece.isdigit():
             for j in range(int(current_piece)):
                 if square_count%2 == 0:
                     color_pair = 4
                 else:
                     color_pair = 5
                 board_window.attron(curses.color_pair(color_pair))
-                board_window.addstr(y_coord, x_coord, " "+chr(9))
+                board_window.addstr(y_coord, x_coord, " "+chr(9)) #add a space+tab character for an empty square
                 board_window.attroff(curses.color_pair(color_pair))
                 square_count += 1
                 x_coord += x_inc
             continue
+
         elif not current_piece.isdigit():
             #determine proper color pair
-
-            # curses.init_pair(4, curses.COLOR_RED, curses.COLOR_WHITE)
-            # curses.init_pair(5, curses.COLOR_RED, curses.COLOR_BLACK)
-            # curses.init_pair(6, curses.COLOR_BLUE, curses.COLOR_WHITE)
-            # curses.init_pair(7, curses.COLOR_BLUE, curses.COLOR_BLACK)
             if current_piece.isupper():
                 if square_count%2 == 0:
                     color_pair = 4
@@ -546,11 +555,7 @@ def draw_board(board_window, board_FEN):
             board_window.attron(curses.color_pair(color_pair))
             board_window.attron(curses.A_BOLD)
 
-            #entities[color_str+rank[x_coord]+piece_name[start_board[i]]] = \
-            #Entity(x_coord, y_coord, pieces[start_board[i]], piece_style)
-
             board_window.addstr(y_coord, x_coord, pieces[current_piece.upper()]+" ")
-            #board_window.addch(y_coord, x_coord, 'x')
 
             board_window.attroff(curses.color_pair(color_pair))
             board_window.attroff(curses.A_BOLD)
