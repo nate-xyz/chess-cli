@@ -32,6 +32,8 @@ game_outcome_enum = 0
 #true if user hits enter key
 entered_move = False
 quit_game = False
+mouse_pressed = False
+floating_piece = ""
 
 
 outcome_tuple = (
@@ -75,6 +77,7 @@ pieces = {
 
 board_square_coord = dict()
 
+
 ## FUNCTIONS ##
 
 #                        d8b
@@ -110,6 +113,11 @@ def draw_screen(stdscr):
     # Clear and refresh the screen for a blank canvas
     stdscr.clear()
     stdscr.refresh()
+
+    #necessary for mouse input, start keypad, read all mouse events
+    stdscr.keypad(1)
+    curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
+    print("\033[?1003h")
 
     # allow input, Start colors in curses
     curses.echo()
@@ -231,7 +239,7 @@ def draw_screen(stdscr):
         ## EXTERNAL FUNCTION CALL !!! ###
         #external function calls
         update_input(prompt_window, key)
-        board_input(board_window, key, width, height)
+        
         game_logic(board_window)
         if post_screen_toggle:
             post_screen_toggle = False
@@ -242,6 +250,7 @@ def draw_screen(stdscr):
             continue
         display_info(info_window)
         display_history(history_window)
+        board_input(board_window, key, width, height)
 
         # Turning on attributes for title
         for i in range(len(windows_array)):
@@ -284,6 +293,8 @@ def update_input(prompt_window, key):
     global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str
     height, width = prompt_window.getmaxyx()
 
+    if key == curses.KEY_MOUSE: #dont do any input for mouse event
+        return
     if key==127: #delete key
         if prompt_x_coord-1 <= 0:
             delete_x = 1
@@ -345,14 +356,42 @@ def update_input(prompt_window, key):
 # 88Y8888' `88888P' `88888P8 dP       `88888P8              dP dP    dP 88Y888P' `88888P'   dP   
 #                                              oooooooooooo             88                       
 #                                                                       dP                       
-def board_input(board_window, key, screen_width, screen_height):
-    global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str
-    height, width = board_window.getmaxyx()
+def board_input(screen, key, screen_width, screen_height):
+    global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str, board_square_coord, mouse_pressed, floating_piece
+    height, width = screen.getmaxyx()
 
     if key != curses.KEY_MOUSE: #input needs to be mouse input
         return
     
-    #(id_, x, y, z, bstate) = curses.getmouse()
+    try:
+        _, mouse_x, mouse_y, _, button_state =  curses.getmouse()
+        bs_str = "none"
+        if button_state & curses.BUTTON1_PRESSED != 0:
+            bs_str = "b1 pressed"
+            mouse_pressed = True
+        if button_state & curses.BUTTON1_RELEASED != 0:
+            bs_str = "b1 released"
+            mouse_pressed = False
+        screen.addstr(2, 2, "mouse_x: {} mouse_y: {} button_state: {}".format( str(mouse_x), str(mouse_y), bs_str))
+        key_tuple = (mouse_x, mouse_y)
+        if key_tuple in board_square_coord.keys() and mouse_pressed:
+            screen.addstr(6, 2, "has key")
+            piece_str = board_square_coord[key_tuple][1]
+            if piece_str != None:
+                floating_piece = board_square_coord[key_tuple]
+                screen.addstr(5, 2, "piece is {}".format(piece_str ))
+        if mouse_pressed:
+            color_pair = floating_piece[0]
+            screen.attron(curses.color_pair(color_pair))
+            screen.attron(curses.A_BOLD)
+            screen.addstr(mouse_y, mouse_x, floating_piece[1]+chr(9))
+            screen.attron(curses.color_pair(color_pair))
+            screen.attron(curses.A_BOLD)
+    except:
+        screen.addstr(7, 2, "error")
+    
+
+
 
 
 
@@ -541,6 +580,7 @@ def draw_board(board_window, board_FEN):
     for i in range(len(board_FEN)): #loop to parse the FEN stirng
 
         current_piece = board_FEN[i] #current piece character from the FEN string
+        key_tuple = (x_coord, y_coord)
 
         if current_piece == '/':
             board_window.addstr(y_coord, x_coord, chr(9))
@@ -557,6 +597,7 @@ def draw_board(board_window, board_FEN):
                     color_pair = 5
                 board_window.attron(curses.color_pair(color_pair))
                 board_window.addstr(y_coord, x_coord, " "+chr(9)) #add a space+tab character for an empty square
+                board_square_coord[key_tuple] = (color_pair, None)
                 board_window.attroff(curses.color_pair(color_pair))
                 square_count += 1
                 x_coord += x_inc
@@ -579,6 +620,8 @@ def draw_board(board_window, board_FEN):
             board_window.attron(curses.A_BOLD)
 
             board_window.addstr(y_coord, x_coord, pieces[current_piece.upper()]+" ")
+            
+            board_square_coord[key_tuple] = (color_pair, pieces[current_piece.upper()])
 
             board_window.attroff(curses.color_pair(color_pair))
             board_window.attroff(curses.A_BOLD)
