@@ -1,4 +1,4 @@
-import sys,os
+import sys,os,math
 import curses
 
 def draw_menu(stdscr):
@@ -9,9 +9,11 @@ def draw_menu(stdscr):
     # Clear and refresh the screen for a blank canvas
     stdscr.clear()
     stdscr.refresh()
-
-    curses.mousemask(curses.ALL_MOUSE_EVENTS)
-    curses.mouseinterval(0)
+    stdscr.keypad(1)
+    #curses.curs_set(0) #set cursor visibility
+    curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
+    #curses.flushinp()
+    print("\033[?1003h")
     # Start colors in curses
     curses.start_color()
     curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)
@@ -21,10 +23,6 @@ def draw_menu(stdscr):
     # Loop where k is the last character pressed
     while (k != ord('q')):
 
-        if k == curses.KEY_MOUSE:
-            stdscr.addstr(2, 3, repr(curses.getmouse()) + " ")
-        else:
-            stdscr.addstr(1, 3, str(k) + " ")
 
         # Initialization
         stdscr.clear()
@@ -85,6 +83,24 @@ def draw_menu(stdscr):
         stdscr.addstr(start_y + 3, (width // 2) - 2, '-' * 4)
         stdscr.addstr(start_y + 5, start_x_keystr, keystr)
         stdscr.move(cursor_y, cursor_x)
+
+
+
+        if k == curses.KEY_MOUSE:
+            try:
+                _, mouse_x, mouse_y, _, button_state =  curses.getmouse()
+                bs_str = "none"
+                if button_state & curses.BUTTON1_PRESSED != 0:
+                    bs_str = "b1 pressed"
+                if button_state & curses.BUTTON1_RELEASED != 0:
+                    bs_str = "b1 released"
+                stdscr.addstr(2, math.floor(width/2), "mouse_x: {} mouse_y: {} button_state: {}".format( str(mouse_x), str(mouse_y), bs_str))
+            except:
+                stdscr.addstr(2, math.floor(width/2), "error")
+                pass
+        else:
+            stdscr.addstr(2, math.floor(width/2), str(k))
+
 
         # Refresh the screen
         stdscr.refresh()
