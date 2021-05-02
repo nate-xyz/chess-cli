@@ -328,6 +328,15 @@ def update_input(prompt_window, key):
     prompt_window.border()
     prompt_window.addch(prompt_y_coord, 0, '>') #indicate line youre on
 
+
+# dP                                        dP              oo                              dP   
+# 88                                        88                                              88   
+# 88d888b. .d8888b. .d8888b. 88d888b. .d888b88              dP 88d888b. 88d888b. dP    dP d8888P 
+# 88'  `88 88'  `88 88'  `88 88'  `88 88'  `88              88 88'  `88 88'  `88 88    88   88   
+# 88.  .88 88.  .88 88.  .88 88       88.  .88              88 88    88 88.  .88 88.  .88   88   
+# 88Y8888' `88888P' `88888P8 dP       `88888P8              dP dP    dP 88Y888P' `88888P'   dP   
+#                                              oooooooooooo             88                       
+#                                                                       dP                       
 def board_input(board_window, key, screen_width, screen_height):
     global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str
     height, width = board_window.getmaxyx()
