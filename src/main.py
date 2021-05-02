@@ -10,6 +10,7 @@ dev_mode = True
 
 #Set true to disable post screen
 post_screen_toggle = False
+#f3 e5 g4 Qh4#
 
 #prompt vars
 prompt_x_coord = 1
@@ -368,7 +369,7 @@ def board_input(board_window, key, screen_width, screen_height):
 #  "Y88P"                                                        "Y88P"
 
 def game_logic(board_window):
-    global inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount
+    global inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle
     inputted_str = inputted_str.strip(' ').strip('\0').strip('^@')
     legal_moves = generate_legal_moves()
     legal_moves_san = legal_moves[0] 
@@ -754,7 +755,7 @@ def welcome_screen(screen):
 # o888o                                                                                                         
 #########################################################################################################################                                                                    
 def post_screen(screen1):
-    global quit_game, user_input_string, inputted_str, entered_move
+    global quit_game, user_input_string, inputted_str, entered_move, history_arr, final_position
 
     screen1.clear()
     screen1.refresh()
@@ -802,7 +803,9 @@ def post_screen(screen1):
 
         # Print rest of text
         board_post_window.addstr(start_y + 1, start_x_final_position_str, final_position_str)
-        board_post_window.addstr(start_y + 3, (width // 2) - 2, '-' * 4)
+        history = " -> ".join([str(elem) for elem in [ele for ele in reversed(history_arr)][1:]])[:width-2]
+        board_post_window.addstr(start_y + 3, math.floor((width/2) - (len(history)/2)), history)
+
         board_post_window.addstr(start_y + 5, start_x_final_history_str, final_history_str)
         draw_board(board_post_window, final_position)
 
