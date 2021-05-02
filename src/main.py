@@ -233,12 +233,15 @@ def draw_screen(stdscr):
         board_input(board_window, key, width, height)
         game_logic(board_window)
         if post_screen_toggle:
+            post_screen_toggle = False
             post_screen(stdscr)
+            if quit_from_welcome:
+                break
+            welcome_screen(stdscr)
+            user_input_string = ""
             continue
         display_info(info_window)
         display_history(history_window)
-
-
 
         # Turning on attributes for title
         for i in range(len(windows_array)):
@@ -400,11 +403,8 @@ def game_logic(board_window):
                 game_outcome_enum = game_outcome()
                 if game_outcome_enum != 0:
                     status_str = outcome_tuple[game_outcome_enum]
-                    final_position = board.fen
+                    final_position = board.board_fen()
                     post_screen_toggle = True
-
-                    
-                    
 
     #draw board
     draw_board(board_window, board.board_fen())
@@ -755,7 +755,7 @@ def welcome_screen(screen):
 # o888o                                                                                                         
 #########################################################################################################################                                                                    
 def post_screen(screen1):
-    global quit_from_post, user_input_string, inputted_str, entered_move
+    global quit_from_welcome, user_input_string, inputted_str, entered_move
 
     screen1.clear()
     screen1.refresh()
@@ -768,8 +768,8 @@ def post_screen(screen1):
    
     while (key != 12): # while not quitting ctrl-l
         if key == 15: #ctrl-o
-            quit_from_post = True
-            
+            quit_from_welcome = True
+            break
         screen1.clear()
 
         # Declaration of strings
@@ -819,17 +819,7 @@ def post_screen(screen1):
     #reset global strings that may have been set in the prompt window
     user_input_string = ""
     inputted_str = ""
-    entered_move = ""
-    return 
-
-
-
-
-
-
-
-
-
+    entered_move = "" 
 
 
 
