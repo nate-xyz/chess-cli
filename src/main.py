@@ -232,8 +232,13 @@ def draw_screen(stdscr):
         update_input(prompt_window, key)
         board_input(board_window, key, width, height)
         game_logic(board_window)
+        if post_screen_toggle:
+            post_screen(stdscr)
+            continue
         display_info(info_window)
         display_history(history_window)
+
+
 
         # Turning on attributes for title
         for i in range(len(windows_array)):
@@ -396,8 +401,8 @@ def game_logic(board_window):
                 if game_outcome_enum != 0:
                     status_str = outcome_tuple[game_outcome_enum]
                     final_position = board.fen
-                    if not post_screen_toggle:
-                        post_screen(draw_screen)
+                    post_screen_toggle = True
+
                     
                     
 
@@ -751,18 +756,20 @@ def welcome_screen(screen):
 #########################################################################################################################                                                                    
 def post_screen(screen1):
     global quit_from_post, user_input_string, inputted_str, entered_move
-    screen1 = curses.initscr()
+
+    screen1.clear()
+    screen1.refresh()
+
     height, width = screen1.getmaxyx()
     key = 0
 
     prompt_post_window = curses.newwin( math.floor((height)/4)-1 , width,  math.floor((height/4)*3), 0)
     board_post_window = curses.newwin( math.floor((height)-(height/3)), math.floor(width),  0, 0)
    
-    while (key != 12): # while not quitting
-        if key == 15:
+    while (key != 12): # while not quitting ctrl-l
+        if key == 15: #ctrl-o
             quit_from_post = True
             
-
         screen1.clear()
 
         # Declaration of strings
@@ -813,7 +820,7 @@ def post_screen(screen1):
     user_input_string = ""
     inputted_str = ""
     entered_move = ""
-
+    return 
 
 
 
