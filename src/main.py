@@ -30,7 +30,7 @@ game_outcome_enum = 0
 
 #true if user hits enter key
 entered_move = False
-quit_from_welcome = False
+quit_game = False
 
 
 outcome_tuple = (
@@ -143,7 +143,7 @@ def draw_screen(stdscr):
 
     if not dev_mode:
         welcome_screen(stdscr)
-        user_input_string = ""
+    
     #start windows
     board_window = curses.newwin( math.floor((height/4)*3), math.floor(width/2), 0, 0)
     prompt_window = curses.newwin( math.floor((height)/4)-1 , math.floor(width/2),  math.floor((height/4)*3), 0)
@@ -154,7 +154,7 @@ def draw_screen(stdscr):
 
     # Loop where key is the last character pressed
     while (key != 15): # while not quitting (ctrl+o)
-        if quit_from_welcome:
+        if quit_game:
             break
         # Initialization
         stdscr.clear()
@@ -235,10 +235,9 @@ def draw_screen(stdscr):
         if post_screen_toggle:
             post_screen_toggle = False
             post_screen(stdscr)
-            if quit_from_welcome:
+            if quit_game:
                 break
             welcome_screen(stdscr)
-            user_input_string = ""
             continue
         display_info(info_window)
         display_history(history_window)
@@ -676,7 +675,7 @@ def game_outcome():
 
 
 def welcome_screen(screen):
-    global quit_from_welcome, user_input_string, inputted_str, entered_move
+    global quit_game, user_input_string, inputted_str, entered_move
     height, width = screen.getmaxyx()
     key = 0
 
@@ -684,7 +683,7 @@ def welcome_screen(screen):
 
     while (key != 12): # while not quitting
         if key == 15:
-            quit_from_welcome = True
+            quit_game = True
             break
 
         screen.clear()
@@ -755,7 +754,7 @@ def welcome_screen(screen):
 # o888o                                                                                                         
 #########################################################################################################################                                                                    
 def post_screen(screen1):
-    global quit_from_welcome, user_input_string, inputted_str, entered_move
+    global quit_game, user_input_string, inputted_str, entered_move
 
     screen1.clear()
     screen1.refresh()
@@ -768,7 +767,7 @@ def post_screen(screen1):
    
     while (key != 12): # while not quitting ctrl-l
         if key == 15: #ctrl-o
-            quit_from_welcome = True
+            quit_game = True
             break
         screen1.clear()
 
