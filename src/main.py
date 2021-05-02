@@ -8,6 +8,9 @@ board = chess.Board()
 #set to true to skip welcome screen
 dev_mode = True
 
+#Set true to disable post screen
+post_screen_toggle = False
+
 #prompt vars
 prompt_x_coord = 1
 prompt_y_coord = 1
@@ -20,6 +23,7 @@ status_str = ""
 legal_move_str = ""
 san_move_str = ""
 history_arr = ["init"]
+final_position = ""
 
 move_amount = 0
 game_outcome_enum = 0
@@ -95,7 +99,7 @@ def main():
 
 
 def draw_screen(stdscr):
-    global dev_mode
+    global dev_mode, post_screen_toggle
     key = 0
     cursor_x = 0
     cursor_y = 0
@@ -281,7 +285,7 @@ def update_input(prompt_window, key):
         prompt_window.addch(prompt_y_coord, delete_x+1, ' ') #clear last char printed
         prompt_x_coord -= 1 #decrement char position
         user_input_string = user_input_string[:-1]
-    elif chr(key).isalnum() or key ==35:
+    elif chr(key).isalnum() or key ==35 or key == 43:
         prompt_window.addch(prompt_y_coord, prompt_x_coord+1, chr(8248)) #indicate char youre on
         prompt_window.addch(prompt_y_coord, prompt_x_coord, key)
         prompt_x_coord += 1 #increment char position
@@ -317,7 +321,7 @@ def update_input(prompt_window, key):
             prompt_window.addstr(i, prompt_x_coord, " " * (width-1))
     
     #add to the current input buffer
-    if key != 10 and key != 127 and (chr(key).isalnum() or key == 35): #not enter and not delete
+    if key != 10 and key != 127 and (chr(key).isalnum() or key == 35 or key == 43): #not enter and not delete
         user_input_string += chr(key)
 
     #redraw border in case it was painted over
@@ -382,6 +386,11 @@ def game_logic(board_window):
                 game_outcome_enum = game_outcome()
                 if game_outcome_enum != 0:
                     status_str = outcome_tuple[game_outcome_enum]
+                    final_position = board.fen
+                    if not post_screen_toggle:
+                        post_screen(draw_screen)
+                    
+                    
 
     #draw board
     draw_board(board_window, board.board_fen())
@@ -715,6 +724,96 @@ def welcome_screen(screen):
     user_input_string = ""
     inputted_str = ""
     entered_move = ""
+
+
+
+
+
+#########################################################################################################################
+#                                 .                                                                           
+#                                .o8                                                                           
+# oo.ooooo.   .ooooo.   .oooo.o .o888oo              .oooo.o  .ooooo.  oooo d8b  .ooooo.   .ooooo.  ooo. .oo.   
+#  888' `88b d88' `88b d88(  "8   888               d88(  "8 d88' `"Y8 `888""8P d88' `88b d88' `88b `888P"Y88b  
+#  888   888 888   888 `"Y88b.    888               `"Y88b.  888        888     888ooo888 888ooo888  888   888  
+#  888   888 888   888 o.  )88b   888 .             o.  )88b 888   .o8  888     888    .o 888    .o  888   888  
+#  888bod8P' `Y8bod8P' 8""888P'   "888" ooooooooooo 8""888P' `Y8bod8P' d888b    `Y8bod8P' `Y8bod8P' o888o o888o 
+#  888                                                                                                          
+# o888o                                                                                                         
+#########################################################################################################################                                                                    
+def post_screen(screen1):
+    global quit_from_post, user_input_string, inputted_str, entered_move
+    screen1 = curses.initscr()
+    height, width = screen1.getmaxyx()
+    key = 0
+
+    prompt_post_window = curses.newwin( math.floor((height)/4)-1 , width,  math.floor((height/4)*3), 0)
+    board_post_window = curses.newwin( math.floor((height)-(height/3)), math.floor(width),  0, 0)
+   
+    while (key != 12): # while not quitting
+        if key == 15:
+            quit_from_post = True
+            
+
+        screen1.clear()
+
+        # Declaration of strings
+        title = "Game has ended."[:width-1]
+        final_position_str = "Final position: "[:width-1]
+        final_history_str = "Last key pressed: {}".format(key)[:width-1]
+        statusbarstr = "Press 'Ctrl-l' to play again | Press 'Ctrl-o' to quit"
+
+        # Centering calculations
+        start_x_title = int((width // 2) - (len(title) // 2) - len(title) % 2)
+        start_x_final_position_str = int((width // 2) - (len(final_position_str) // 2) - len(final_position_str) % 2)
+        start_x_final_history_str = int((width // 2) - (len(final_history_str) // 2) - len(final_history_str) % 2)
+        start_y = int((height // 2) - 2)
+
+        # Render status bar
+        screen1.attron(curses.color_pair(3))
+        screen1.addstr(height-1, 0, statusbarstr)
+        screen1.addstr(height-1, len(statusbarstr), " " * (width - len(statusbarstr) - 1))
+        screen1.attroff(curses.color_pair(3))
+
+        # Turning on attributes for title
+        board_post_window.attron(curses.color_pair(2))
+        board_post_window.attron(curses.A_BOLD)
+
+        # Rendering title
+        board_post_window.addstr(start_y, start_x_title, title)
+
+        # Turning off attributes for title
+        screen1.attroff(curses.color_pair(2))
+        screen1.attroff(curses.A_BOLD)
+
+        # Print rest of text
+        board_post_window.addstr(start_y + 1, start_x_final_position_str, final_position_str)
+        board_post_window.addstr(start_y + 3, (width // 2) - 2, '-' * 4)
+        board_post_window.addstr(start_y + 5, start_x_final_history_str, final_history_str)
+        draw_board(board_post_window, final_position)
+
+        update_input(prompt_post_window, key)
+
+        prompt_post_window.border()
+        board_post_window.border()
+        screen1.refresh()
+        prompt_post_window.refresh()
+        board_post_window.refresh()
+        key = screen1.getch()
+
+    #reset global strings that may have been set in the prompt window
+    user_input_string = ""
+    inputted_str = ""
+    entered_move = ""
+
+
+
+
+
+
+
+
+
+
 
 
 
