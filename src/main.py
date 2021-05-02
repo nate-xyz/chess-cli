@@ -34,6 +34,7 @@ entered_move = False
 quit_game = False
 mouse_pressed = False
 floating_piece = ""
+floating = False
 
 
 outcome_tuple = (
@@ -140,6 +141,10 @@ def draw_screen(stdscr):
         curses.init_pair(5, light_piece, dark_square)
         curses.init_pair(6, dark_piece, light_square)
         curses.init_pair(7, dark_piece, dark_square)
+
+        #floating piece colors
+        curses.init_pair(10, light_piece, dark_piece)
+        curses.init_pair(11, dark_piece, light_piece)
     else:
         curses.init_pair(4, curses.COLOR_RED, curses.COLOR_WHITE)
         curses.init_pair(5, curses.COLOR_RED, curses.COLOR_BLACK)
@@ -149,6 +154,8 @@ def draw_screen(stdscr):
     #move legality colors
     curses.init_pair(8, curses.COLOR_BLACK, curses.COLOR_GREEN)
     curses.init_pair(9, curses.COLOR_WHITE, curses.COLOR_RED)
+
+
 
     if not dev_mode:
         welcome_screen(stdscr)
@@ -357,7 +364,7 @@ def update_input(prompt_window, key):
 #                                              oooooooooooo             88                       
 #                                                                       dP                       
 def board_input(screen, key, screen_width, screen_height):
-    global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str, board_square_coord, mouse_pressed, floating_piece
+    global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str, board_square_coord, mouse_pressed, floating_piece, floating
     height, width = screen.getmaxyx()
 
     if key != curses.KEY_MOUSE: #input needs to be mouse input
@@ -372,19 +379,22 @@ def board_input(screen, key, screen_width, screen_height):
         if button_state & curses.BUTTON1_RELEASED != 0:
             bs_str = "b1 released"
             mouse_pressed = False
+            floating = False
+    
         screen.addstr(2, 2, "mouse_x: {} mouse_y: {} button_state: {}".format( str(mouse_x), str(mouse_y), bs_str))
         key_tuple = (mouse_x, mouse_y)
         if key_tuple in board_square_coord.keys() and mouse_pressed:
             screen.addstr(6, 2, "has key")
             piece_str = board_square_coord[key_tuple][1]
-            if piece_str != None:
+            if piece_str != None and not floating:
+                floating = True
                 floating_piece = board_square_coord[key_tuple]
                 screen.addstr(5, 2, "piece is {}".format(piece_str ))
         if mouse_pressed:
             color_pair = floating_piece[0]
             screen.attron(curses.color_pair(color_pair))
             screen.attron(curses.A_BOLD)
-            screen.addstr(mouse_y, mouse_x, floating_piece[1]+chr(9))
+            screen.addstr(mouse_y, mouse_x, floating_piece[1]+" ")
             screen.attron(curses.color_pair(color_pair))
             screen.attron(curses.A_BOLD)
     except:
@@ -606,11 +616,13 @@ def draw_board(board_window, board_FEN):
         elif not current_piece.isdigit():
             #determine proper color pair
             if current_piece.isupper():
+                floating_color = 10
                 if square_count%2 == 0:
                     color_pair = 4
                 else:
                     color_pair = 5
             else:
+                floating_color = 11
                 if square_count%2 == 0:
                     color_pair = 6
                 else:
@@ -621,7 +633,7 @@ def draw_board(board_window, board_FEN):
 
             board_window.addstr(y_coord, x_coord, pieces[current_piece.upper()]+" ")
             
-            board_square_coord[key_tuple] = (color_pair, pieces[current_piece.upper()])
+            board_square_coord[key_tuple] = (floating_color, pieces[current_piece.upper()])
 
             board_window.attroff(curses.color_pair(color_pair))
             board_window.attroff(curses.A_BOLD)
