@@ -1,5 +1,7 @@
 import sys, os, traceback, random, curses, chess, math, enum, itertools
 
+from chess_display import draw_board
+
 #                                                  888                   d8b
 #                                                  888                   Y8P
 #                                                  888
@@ -12,6 +14,7 @@ import sys, os, traceback, random, curses, chess, math, enum, itertools
 # Y8b d88P                                                      Y8b d88P
 #  "Y88P"                                                        "Y88P"
 
+#game_logic determines if an inputted move is legal and manages the gamestate
 def game_logic( board_window, inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle, 
                 board_square_coord, pieces, 
                 legal_move_str, san_move_str,
@@ -60,102 +63,6 @@ def game_logic( board_window, inputted_str, board, status_str, entered_move, las
 
     return (inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle, board_square_coord, legal_move_str, san_move_str)
 
-
-
-
-
-#      888                                       888                                    888
-#      888                                       888                                    888
-#      888                                       888                                    888
-#  .d88888 888d888 8888b.  888  888  888         88888b.   .d88b.   8888b.  888d888 .d88888
-# d88" 888 888P"      "88b 888  888  888         888 "88b d88""88b     "88b 888P"  d88" 888
-# 888  888 888    .d888888 888  888  888         888  888 888  888 .d888888 888    888  888
-# Y88b 888 888    888  888 Y88b 888 d88P         888 d88P Y88..88P 888  888 888    Y88b 888
-#  "Y88888 888    "Y888888  "Y8888888P" 88888888 88888P"   "Y88P"  "Y888888 888     "Y88888
-def draw_board(board_window, board_FEN, board_square_coord, pieces):
-    #global board_square_coord
-    height, width = board_window.getmaxyx()
-    board_square_coord = {}
-    x_notation_string = 'abcdefgh'
-    y_notation_string = '87654321'
-    # 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'
-    x_inc = 2
-    y_inc = 1
-
-    x_coord = width//2 - 4*x_inc #increment by 2
-    y_coord = height//2 - 4*y_inc #increment by 2
-
-    og_xcoord = x_coord
-    og_ycoord = y_coord
-
-    square_count = 0
-
-    for i in range(len(board_FEN)): #loop to parse the FEN stirng
-
-        current_piece = board_FEN[i] #current piece character from the FEN string
-        key_tuple = (x_coord, y_coord)
-
-        if current_piece == '/':
-            board_window.addstr(y_coord, x_coord, chr(9))
-            x_coord = og_xcoord #set x_coord to first in the row
-            y_coord += y_inc #incremen
-            square_count += 1
-            continue
-
-        elif current_piece.isdigit():
-            for j in range(int(current_piece)):
-                if square_count%2 == 0:
-                    color_pair = 4
-                else:
-                    color_pair = 5
-                board_window.attron(curses.color_pair(color_pair))
-                board_window.addstr(y_coord, x_coord, " "+chr(9)) #add a space+tab character for an empty square
-                board_square_coord[key_tuple] = (color_pair, None)
-                board_window.attroff(curses.color_pair(color_pair))
-                square_count += 1
-                x_coord += x_inc
-            continue
-
-        elif not current_piece.isdigit():
-            #determine proper color pair
-            if current_piece.isupper():
-                floating_color = 10
-                if square_count%2 == 0:
-                    color_pair = 4
-                else:
-                    color_pair = 5
-            else:
-                floating_color = 11
-                if square_count%2 == 0:
-                    color_pair = 6
-                else:
-                    color_pair = 7
-
-            board_window.attron(curses.color_pair(color_pair))
-            board_window.attron(curses.A_BOLD)
-
-            board_window.addstr(y_coord, x_coord, pieces[current_piece.upper()]+" ")
-            
-            board_square_coord[key_tuple] = (floating_color, pieces[current_piece.upper()])
-
-            board_window.attroff(curses.color_pair(color_pair))
-            board_window.attroff(curses.A_BOLD)
-
-            square_count += 1
-            x_coord += x_inc
-            continue
-        else:
-            print("error parsing starting FEN")
-            break
-
-    for i in range(8):
-        board_window.addch(og_ycoord-y_inc-1, og_xcoord+x_inc*i, x_notation_string[i])
-        board_window.addch(og_ycoord+8*y_inc+1, og_xcoord+x_inc*i, x_notation_string[i])
-        board_window.addch(og_ycoord+y_inc*i, og_xcoord-x_inc-1, y_notation_string[i])
-        board_window.addch(og_ycoord+y_inc*i, og_xcoord+8*x_inc+1, y_notation_string[i])
-    
-    return board_square_coord
-
 #                                                     888                    888                            888
 #                                                     888                    888                            888
 #                                                     888                    888                            888
@@ -167,6 +74,9 @@ def draw_board(board_window, board_FEN, board_square_coord, pieces):
 #      888                                                                                     888
 # Y8b d88P                                                                                Y8b d88P
 #  "Y88P"                                                                                  "Y88P"
+
+#helper function for game logic, generates 3 arrays of legal moves based on the current gamestate. 
+#the first array is the current legal SAN moves, the second is lowercase SAN, and the third is UCI moves
 def generate_legal_moves(legal_move_str, san_move_str, board):
     #global legal_move_str, san_move_str, board
     legal_moves = [[],[],[]]
@@ -207,6 +117,7 @@ def generate_legal_moves(legal_move_str, san_move_str, board):
 #░░██████  ████ █████░░██████  ██████  ██████  █████████ █████     ░░████████ █████░░██████  ██████
 # ░░░░░░  ░░░░ ░░░░░  ░░░░░░  ░░░░░░  ░░░░░░  ░░░░░░░░░ ░░░░░       ░░░░░░░░ ░░░░░  ░░░░░░  ░░░░░░
 
+#returns an enumerated type based on the current game outcome
 def game_outcome(board, game_outcome_enum):
     #global game_outcome_enum
 

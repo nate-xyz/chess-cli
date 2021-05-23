@@ -6,10 +6,12 @@ from game_logic import *
 
 ## GLOBAL VARS ##
 #set to true to skip welcome screen
-dev_mode = False
+dev_mode = True
 
 #Set true to disable post screen
 post_screen_toggle = False
+
+#quick game to get to post screen:
 #f3 e5 g4 Qh4#
 
 ## FUNCTIONS ##
@@ -160,6 +162,7 @@ def draw_screen(stdscr):
 
 
     if not dev_mode:
+        #welcome screen
         quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str = welcome_screen(stdscr, quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str)
     
     #start windows
@@ -248,10 +251,10 @@ def draw_screen(stdscr):
         ## EXTERNAL FUNCTION CALL !!! ###
         #external function calls
 
-        #update input updates the game screen prompt window and returns what the user is currently typing
+        #update_input updates the game screen prompt window and returns what the user is currently typing
         prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str = update_input(prompt_window, key, prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str)
         
-        #game logic determines if an inputted move is legal and manages the gamestate
+        #game_logic determines if an inputted move is legal and manages the gamestate
         inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle, board_square_coord, legal_move_str, san_move_str = game_logic(board_window, inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle, board_square_coord, pieces, legal_move_str, san_move_str, outcome_tuple)
         
         
@@ -274,7 +277,7 @@ def draw_screen(stdscr):
         #display move history
         history_arr, move_amount = display_history(history_window, history_arr, move_amount, pieces)
         #update the board window mouse input
-        mouse_pressed, floating_piece, floating = board_input(board_window, key, width, height, board_square_coord, mouse_pressed, floating_piece, floating)
+        mouse_pressed, floating_piece, floating = board_window_mouse_input(board_window, key, width, height, board_square_coord, mouse_pressed, floating_piece, floating)
 
         #end of external function call section 
 

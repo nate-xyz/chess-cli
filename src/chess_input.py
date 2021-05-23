@@ -12,6 +12,7 @@ import sys, os, traceback, random, curses, chess, math, enum, itertools
 #          888                                                            888
 #          888                                                            888
 
+#update_input updates the game screen prompt window and returns what the user is currently typing
 def update_input(prompt_window, key, prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str):
     #global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str
     height, width = prompt_window.getmaxyx()
@@ -81,7 +82,9 @@ def update_input(prompt_window, key, prompt_x_coord, prompt_y_coord, user_input_
 # 88Y8888' `88888P' `88888P8 dP       `88888P8              dP dP    dP 88Y888P' `88888P'   dP   
 #                                              oooooooooooo             88                       
 #                                                                       dP                       
-def board_input(screen, key, screen_width, screen_height, board_square_coord, mouse_pressed, floating_piece, floating):
+
+#checks board window for mouse movement and handles mouse input
+def board_window_mouse_input(screen, key, screen_width, screen_height, board_square_coord, mouse_pressed, floating_piece, floating):
     #global board_square_coord, mouse_pressed, floating_piece, floating
     height, width = screen.getmaxyx()
 
