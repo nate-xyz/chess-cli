@@ -1,83 +1,12 @@
 import sys, os, traceback, random, curses, chess, math, enum, itertools
 
-
 ## GLOBAL VARS ##
-
-board = chess.Board()
-
 #set to true to skip welcome screen
-dev_mode = True
+dev_mode = False
 
 #Set true to disable post screen
 post_screen_toggle = False
 #f3 e5 g4 Qh4#
-
-#prompt vars
-prompt_x_coord = 1
-prompt_y_coord = 1
-
-#global strings
-last_move_str = "no move yet"
-user_input_string = ""
-inputted_str = ""
-status_str = ""
-legal_move_str = ""
-san_move_str = ""
-history_arr = ["init"]
-final_position = ""
-
-move_amount = 0
-game_outcome_enum = 0
-
-#true if user hits enter key
-entered_move = False
-quit_game = False
-mouse_pressed = False
-floating_piece = ""
-floating = False
-
-
-outcome_tuple = (
-    'Good luck.', #[0]
-    'Checkmate!', #[1]
-    'Stalemate.', #[2]
-    'Draw - insufficient material.', #[3]
-    'Draw - 75 move rule.', #[4]
-    'Draw - fivefold repetition.', #[5]
-    'Draw - 50 move rule.', #[6]
-    'Draw by threefold repetition has been claimed.', #[7]
-)
-
-file = {
-    'a': 0,
-    'b': 1,
-    'c': 2,
-    'd': 3,
-    'e': 4,
-    'f': 5,
-    'g': 6,
-    'h': 7,
-}
-
-pieces = {
-    'K': '♔',
-    'Q': '♕',
-    'R': '♖',
-    'B': '♗',
-    'N': '♘',
-    'P': '♙',
-    'k': '♚',
-    'q': '♛',
-    'r': '♜',
-    'b': '♝',
-    'n': '♞',
-    #'p': '♟︎',
-    'p': '♙',
-
-}
-
-board_square_coord = dict()
-
 
 ## FUNCTIONS ##
 
@@ -105,6 +34,74 @@ def main():
 
 def draw_screen(stdscr):
     global dev_mode, post_screen_toggle
+
+    board = chess.Board()
+    #prompt vars
+    prompt_x_coord = 1
+    prompt_y_coord = 1
+
+    #global strings
+    last_move_str = "no move yet"
+    user_input_string = ""
+    inputted_str = ""
+    status_str = ""
+    legal_move_str = ""
+    san_move_str = ""
+    history_arr = ["init"]
+    final_position = ""
+
+    move_amount = 0
+    game_outcome_enum = 0
+
+    #true if user hits enter key
+    entered_move = False
+    quit_game = False
+    mouse_pressed = False
+    floating_piece = ""
+    floating = False
+
+
+    outcome_tuple = (
+        'Good luck.', #[0]
+        'Checkmate!', #[1]
+        'Stalemate.', #[2]
+        'Draw - insufficient material.', #[3]
+        'Draw - 75 move rule.', #[4]
+        'Draw - fivefold repetition.', #[5]
+        'Draw - 50 move rule.', #[6]
+        'Draw by threefold repetition has been claimed.', #[7]
+    )
+
+    file = {
+        'a': 0,
+        'b': 1,
+        'c': 2,
+        'd': 3,
+        'e': 4,
+        'f': 5,
+        'g': 6,
+        'h': 7,
+    }
+
+    pieces = {
+        'K': '♔',
+        'Q': '♕',
+        'R': '♖',
+        'B': '♗',
+        'N': '♘',
+        'P': '♙',
+        'k': '♚',
+        'q': '♛',
+        'r': '♜',
+        'b': '♝',
+        'n': '♞',
+        #'p': '♟︎',
+        'p': '♙',
+
+    }
+
+    board_square_coord = dict()
+
     key = 0
     cursor_x = 0
     cursor_y = 0
@@ -158,7 +155,7 @@ def draw_screen(stdscr):
 
 
     if not dev_mode:
-        welcome_screen(stdscr)
+        quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str = welcome_screen(stdscr, quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str)
     
     #start windows
     board_window = curses.newwin( math.floor((height/4)*3), math.floor(width/2), 0, 0)
@@ -245,19 +242,36 @@ def draw_screen(stdscr):
 
         ## EXTERNAL FUNCTION CALL !!! ###
         #external function calls
-        update_input(prompt_window, key)
+
+        #update input updates the game screen prompt window and returns what the user is currently typing
+        prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str = update_input(prompt_window, key, prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str)
         
-        game_logic(board_window)
-        if post_screen_toggle:
+        #game logic determines if an inputted move is legal and manages the gamestate
+        inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle, board_square_coord, legal_move_str, san_move_str = game_logic(board_window, inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle, board_square_coord, pieces, legal_move_str, san_move_str, outcome_tuple)
+        
+        
+        if post_screen_toggle: #check if post_screen is enabled
             post_screen_toggle = False
-            post_screen(stdscr)
+
+            #post_screen displays after the win condition has been met
+            quit_game, user_input_string, inputted_str, entered_move, history_arr, final_position, prompt_x_coord, prompt_y_coord, status_str = post_screen(stdscr, quit_game, user_input_string, inputted_str, entered_move, history_arr, final_position, prompt_x_coord, prompt_y_coord, status_str, board_square_coord, pieces)
             if quit_game:
                 break
-            welcome_screen(stdscr)
+
+            #return to the welcome screen
+            quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str = welcome_screen(stdscr, quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str)
             continue
-        display_info(info_window)
-        display_history(history_window)
-        board_input(board_window, key, width, height)
+        
+        #windows for the game screen
+
+        #display game information
+        board, last_move_str, status_str, inputted_str, legal_move_str, san_move_str = display_info(board, info_window, last_move_str, status_str, inputted_str, legal_move_str, san_move_str)
+        #display move history
+        history_arr, move_amount = display_history(history_window, history_arr, move_amount, pieces)
+        #update the board window mouse input
+        mouse_pressed, floating_piece, floating = board_input(board_window, key, width, height, board_square_coord, mouse_pressed, floating_piece, floating)
+
+        #end of external function call section 
 
         # Turning on attributes for title
         for i in range(len(windows_array)):
@@ -296,12 +310,12 @@ def draw_screen(stdscr):
 #          888                                                            888
 #          888                                                            888
 
-def update_input(prompt_window, key):
-    global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str
+def update_input(prompt_window, key, prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str):
+    #global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str
     height, width = prompt_window.getmaxyx()
 
     if key == curses.KEY_MOUSE: #dont do any input for mouse event
-        return
+        return (prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str)
     if key==127: #delete key
         if prompt_x_coord-1 <= 0:
             delete_x = 1
@@ -331,7 +345,7 @@ def update_input(prompt_window, key):
         prompt_x_coord = width-2
         prompt_y_coord = height-2
         status_str = "char limit reached"
-        return
+        return (prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str)
         # for i in range(1, height-1):
         #     prompt_window.addstr(i, prompt_x_coord, " " * (width-1))
     if key==10: #enter key
@@ -354,6 +368,8 @@ def update_input(prompt_window, key):
     prompt_window.border()
     prompt_window.addch(prompt_y_coord, 0, '>') #indicate line youre on
 
+    return (prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str)
+
 
 # dP                                        dP              oo                              dP   
 # 88                                        88                                              88   
@@ -363,12 +379,13 @@ def update_input(prompt_window, key):
 # 88Y8888' `88888P' `88888P8 dP       `88888P8              dP dP    dP 88Y888P' `88888P'   dP   
 #                                              oooooooooooo             88                       
 #                                                                       dP                       
-def board_input(screen, key, screen_width, screen_height):
-    global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str, board_square_coord, mouse_pressed, floating_piece, floating
+def board_input(screen, key, screen_width, screen_height, board_square_coord, mouse_pressed, floating_piece, floating):
+    #global board_square_coord, mouse_pressed, floating_piece, floating
     height, width = screen.getmaxyx()
 
     if key != curses.KEY_MOUSE: #input needs to be mouse input
-        return
+        print("1")
+        return (mouse_pressed, floating_piece, floating)
     
     try:
         _, mouse_x, mouse_y, _, button_state =  curses.getmouse()
@@ -397,8 +414,14 @@ def board_input(screen, key, screen_width, screen_height):
             screen.addstr(mouse_y, mouse_x, floating_piece[1]+" ")
             screen.attron(curses.color_pair(color_pair))
             screen.attron(curses.A_BOLD)
+        print("2")
+        return (mouse_pressed, floating_piece, floating)
     except:
         screen.addstr(7, 2, "error")
+        print("3")
+        return (mouse_pressed, floating_piece, floating)
+
+    
     
 
 
@@ -417,10 +440,13 @@ def board_input(screen, key, screen_width, screen_height):
 # Y8b d88P                                                      Y8b d88P
 #  "Y88P"                                                        "Y88P"
 
-def game_logic(board_window):
-    global inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle
+def game_logic( board_window, inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle, 
+                board_square_coord, pieces, 
+                legal_move_str, san_move_str,
+                outcome_tuple):
+    #global inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle
     inputted_str = inputted_str.strip(' ').strip('\0').strip('^@')
-    legal_moves = generate_legal_moves()
+    legal_moves = generate_legal_moves(legal_move_str, san_move_str, board)
     legal_moves_san = legal_moves[0] 
     legal_moves_san_lowercase = legal_moves[1]
     legal_moves_uci = legal_moves[2]
@@ -449,15 +475,18 @@ def game_logic(board_window):
                     curses.flash()
                     curses.beep()
 
-                game_outcome_enum = game_outcome()
+                game_outcome_enum = game_outcome(board, game_outcome_enum)
                 if game_outcome_enum != 0:
                     status_str = outcome_tuple[game_outcome_enum]
                     final_position = board.board_fen()
                     post_screen_toggle = True
 
     #draw board
-    draw_board(board_window, board.board_fen())
-    legal_moves = generate_legal_moves()
+    board_square_coord = draw_board(board_window, board.board_fen(), board_square_coord, pieces)
+    legal_moves = generate_legal_moves(legal_move_str, san_move_str, board)
+
+
+    return (inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle, board_square_coord, legal_move_str, san_move_str)
 
 #      888 d8b                   888                            d8b           .d888
 #      888 Y8P                   888                            Y8P          d88P"
@@ -471,8 +500,8 @@ def game_logic(board_window):
 #                       888                   Y8b d88P
 #                       888                    "Y88P"
 
-def display_info(info_window):
-    global last_move_str, status_str, inputted_str, legal_move_str, san_move_str
+def display_info(board, info_window, last_move_str, status_str, inputted_str, legal_move_str, san_move_str):
+    #global last_move_str, status_str, inputted_str, legal_move_str, san_move_str
     height, width = info_window.getmaxyx()
 
     info_window.attron(curses.color_pair(3))
@@ -501,6 +530,7 @@ def display_info(info_window):
     #info_window.addstr(5, 1, "{}: {}".format("legal moves (san)", san_move_str))
 
     wrap_y = 0
+    temp = san_move_str
     san_move_str = "{}: {}".format("legal moves (san)", san_move_str)
     for y in range(5, height-1):
         wrap_y = y
@@ -510,7 +540,8 @@ def display_info(info_window):
         else:
             info_window.addstr(y, 1, san_move_str)
             break
-
+    san_move_str = temp
+    temp = legal_move_str
     legal_move_str = "{}: {}".format("legal moves (uci)", legal_move_str)
     for y in range(wrap_y+2, height-1):
         if len(legal_move_str) > width-2:
@@ -519,11 +550,13 @@ def display_info(info_window):
         else:
             info_window.addstr(y, 1, legal_move_str)
             break
-
+    legal_move_str = temp
     #info_window.addstr(7, 1, "{}: {}".format("legal moves (uci)", legal_move_str))
     info_window.attroff(curses.color_pair(8))
 
     status_str = ""
+
+    return (board, last_move_str, status_str, inputted_str, legal_move_str, san_move_str)
 
 
 
@@ -537,8 +570,8 @@ def display_info(info_window):
 #  `"8bbdP"Y8  88  `"YbbdP"'  88`YbbdP"'   88  `"8bbdP"Y8      Y88'               88       88  88  `"YbbdP"'    "Y888  `"YbbdP"'   88              Y88'
 #                             88                               d8'                                                                                 d8'
 #                             88                              d8'     888888888888                                                                d8'
-def display_history(history_window):
-    global history_arr, move_amount
+def display_history(history_window, history_arr, move_amount, pieces):
+    #global history_arr, move_amount
     height, width = history_window.getmaxyx()
 
     history_str_i = 0
@@ -560,6 +593,8 @@ def display_history(history_window):
         else:
             history_window.addstr(y, 1, hist_str)
         history_str_i += 1
+    
+    return (history_arr, move_amount)
 
 #      888                                       888                                    888
 #      888                                       888                                    888
@@ -569,8 +604,8 @@ def display_history(history_window):
 # 888  888 888    .d888888 888  888  888         888  888 888  888 .d888888 888    888  888
 # Y88b 888 888    888  888 Y88b 888 d88P         888 d88P Y88..88P 888  888 888    Y88b 888
 #  "Y88888 888    "Y888888  "Y8888888P" 88888888 88888P"   "Y88P"  "Y888888 888     "Y88888
-def draw_board(board_window, board_FEN):
-    global board_square_coord
+def draw_board(board_window, board_FEN, board_square_coord, pieces):
+    #global board_square_coord
     height, width = board_window.getmaxyx()
     board_square_coord = {}
     x_notation_string = 'abcdefgh'
@@ -650,6 +685,8 @@ def draw_board(board_window, board_FEN):
         board_window.addch(og_ycoord+8*y_inc+1, og_xcoord+x_inc*i, x_notation_string[i])
         board_window.addch(og_ycoord+y_inc*i, og_xcoord-x_inc-1, y_notation_string[i])
         board_window.addch(og_ycoord+y_inc*i, og_xcoord+8*x_inc+1, y_notation_string[i])
+    
+    return board_square_coord
 
 #                                                     888                    888                            888
 #                                                     888                    888                            888
@@ -662,8 +699,8 @@ def draw_board(board_window, board_FEN):
 #      888                                                                                     888
 # Y8b d88P                                                                                Y8b d88P
 #  "Y88P"                                                                                  "Y88P"
-def generate_legal_moves():
-    global legal_move_str, san_move_str, board
+def generate_legal_moves(legal_move_str, san_move_str, board):
+    #global legal_move_str, san_move_str, board
     legal_moves = [[],[],[]]
     legal_moves_san = []
     legal_moves_san_lowercase = []
@@ -702,8 +739,8 @@ def generate_legal_moves():
 #░░██████  ████ █████░░██████  ██████  ██████  █████████ █████     ░░████████ █████░░██████  ██████
 # ░░░░░░  ░░░░ ░░░░░  ░░░░░░  ░░░░░░  ░░░░░░  ░░░░░░░░░ ░░░░░       ░░░░░░░░ ░░░░░  ░░░░░░  ░░░░░░
 
-def game_outcome():
-    global game_outcome_enum
+def game_outcome(board, game_outcome_enum):
+    #global game_outcome_enum
 
     if board.is_checkmate():
         game_outcome_enum = 1
@@ -730,8 +767,8 @@ def game_outcome():
 
 
 
-def welcome_screen(screen):
-    global quit_game, user_input_string, inputted_str, entered_move
+def welcome_screen(screen, quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str):
+    #global quit_game, user_input_string, inputted_str, entered_move
     height, width = screen.getmaxyx()
     key = 0
 
@@ -782,7 +819,7 @@ def welcome_screen(screen):
         screen.addstr(start_y + 3, (width // 2) - 2, '-' * 4)
         screen.addstr(start_y + 5, start_x_keystr, keystr)
 
-        update_input(prompt_welcome_window, key)
+        update_input(prompt_welcome_window, key, prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str)
 
         prompt_welcome_window.border()
         screen.refresh()
@@ -793,6 +830,8 @@ def welcome_screen(screen):
     user_input_string = ""
     inputted_str = ""
     entered_move = ""
+
+    return (quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str)
 
 
 
@@ -809,8 +848,8 @@ def welcome_screen(screen):
 #  888                                                                                                          
 # o888o                                                                                                         
 #########################################################################################################################                                                                    
-def post_screen(screen1):
-    global quit_game, user_input_string, inputted_str, entered_move, history_arr, final_position
+def post_screen(screen1, quit_game, user_input_string, inputted_str, entered_move, history_arr, final_position, prompt_x_coord, prompt_y_coord, status_str, board_square_coord, pieces):
+    #global quit_game, user_input_string, inputted_str, entered_move, history_arr, final_position
 
     screen1.clear()
     screen1.refresh()
@@ -862,9 +901,9 @@ def post_screen(screen1):
         board_post_window.addstr(start_y + 3, math.floor((width/2) - (len(history)/2)), history)
 
         board_post_window.addstr(start_y + 5, start_x_final_history_str, final_history_str)
-        draw_board(board_post_window, final_position)
+        draw_board(board_post_window, final_position, board_square_coord, pieces)
 
-        update_input(prompt_post_window, key)
+        update_input(prompt_post_window, key, prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str)
 
         prompt_post_window.border()
         board_post_window.border()
@@ -876,7 +915,11 @@ def post_screen(screen1):
     #reset global strings that may have been set in the prompt window
     user_input_string = ""
     inputted_str = ""
-    entered_move = "" 
+    entered_move = ""
+
+    return (quit_game, user_input_string, inputted_str, entered_move, history_arr, final_position, prompt_x_coord, prompt_y_coord, status_str)
+
+
 
 
 
