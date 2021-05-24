@@ -28,8 +28,6 @@ post_screen_toggle = False
 def main():
     curses.wrapper(draw_screen)
 
-
-
 #      888
 #      888
 #      888
@@ -128,11 +126,11 @@ def draw_screen(stdscr):
     curses.echo()
     curses.curs_set(0);
     curses.start_color()
+
     #curses.use_default_colors()
     curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)
     curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
     curses.init_pair(3, curses.COLOR_BLACK, curses.COLOR_WHITE)
-
 
     #piece and square colors
     if curses.can_change_color():
@@ -253,7 +251,9 @@ def draw_screen(stdscr):
 
         #update_input updates the game screen prompt window and returns what the user is currently typing
         prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str = update_input(prompt_window, key, prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str)
-        
+         #update the board window mouse input
+        mouse_pressed, floating_piece, floating = board_window_mouse_input(board_window, key, width, height, board_square_coord, mouse_pressed, floating_piece, floating)
+       
         #game_logic determines if an inputted move is legal and manages the gamestate
         inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle, board_square_coord, legal_move_str, san_move_str = game_logic(board_window, inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle, board_square_coord, pieces, legal_move_str, san_move_str, outcome_tuple)
         
@@ -273,11 +273,9 @@ def draw_screen(stdscr):
         #windows for the game screen
 
         #display game information
-        board, last_move_str, status_str, inputted_str, legal_move_str, san_move_str = display_info(board, info_window, last_move_str, status_str, inputted_str, legal_move_str, san_move_str)
+        status_str, legal_move_str, san_move_str = display_info(board, info_window, last_move_str, status_str, inputted_str, legal_move_str, san_move_str)
         #display move history
-        history_arr, move_amount = display_history(history_window, history_arr, move_amount, pieces)
-        #update the board window mouse input
-        mouse_pressed, floating_piece, floating = board_window_mouse_input(board_window, key, width, height, board_square_coord, mouse_pressed, floating_piece, floating)
+        display_history(history_window, history_arr, move_amount, pieces)
 
         #end of external function call section 
 

@@ -89,15 +89,17 @@ def board_window_mouse_input(screen, key, screen_width, screen_height, board_squ
     height, width = screen.getmaxyx()
 
     if key != curses.KEY_MOUSE: #input needs to be mouse input
-        print("1")
         return (mouse_pressed, floating_piece, floating)
     
-    try:
+    #try except block for getmouse() errors
+    try: 
         _, mouse_x, mouse_y, _, button_state =  curses.getmouse()
         bs_str = "none"
+        
         if button_state & curses.BUTTON1_PRESSED != 0:
             bs_str = "b1 pressed"
             mouse_pressed = True
+        
         if button_state & curses.BUTTON1_RELEASED != 0:
             bs_str = "b1 released"
             mouse_pressed = False
@@ -105,6 +107,7 @@ def board_window_mouse_input(screen, key, screen_width, screen_height, board_squ
     
         screen.addstr(2, 2, "mouse_x: {} mouse_y: {} button_state: {}".format( str(mouse_x), str(mouse_y), bs_str))
         key_tuple = (mouse_x, mouse_y)
+        
         if key_tuple in board_square_coord.keys() and mouse_pressed:
             screen.addstr(6, 2, "has key")
             piece_str = board_square_coord[key_tuple][1]
@@ -112,6 +115,7 @@ def board_window_mouse_input(screen, key, screen_width, screen_height, board_squ
                 floating = True
                 floating_piece = board_square_coord[key_tuple]
                 screen.addstr(5, 2, "piece is {}".format(piece_str ))
+            
         if mouse_pressed:
             color_pair = floating_piece[0]
             screen.attron(curses.color_pair(color_pair))
@@ -119,9 +123,8 @@ def board_window_mouse_input(screen, key, screen_width, screen_height, board_squ
             screen.addstr(mouse_y, mouse_x, floating_piece[1]+" ")
             screen.attron(curses.color_pair(color_pair))
             screen.attron(curses.A_BOLD)
-        print("2")
         return (mouse_pressed, floating_piece, floating)
+
     except:
         screen.addstr(7, 2, "error")
-        print("3")
         return (mouse_pressed, floating_piece, floating)
