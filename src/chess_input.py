@@ -24,7 +24,7 @@ def update_input(prompt_window, key, prompt_x_coord, prompt_y_coord, user_input_
     plus_sign = 43 # + key
     delete_key = 127
     
-    input_keys = set(octothorpe, plus_sign, space) #set of valid input keys that are not alphanumeric
+    input_keys = set((octothorpe, plus_sign, space)) #set of valid input keys that are not alphanumeric
 
     up_arrow = 259
     down_arrow = 258
