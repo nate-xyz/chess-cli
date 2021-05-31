@@ -1,4 +1,5 @@
-import sys, os, traceback, random, curses, chess, math, enum, itertools
+import sys, os, traceback, random, curses, chess, math, enum, itertools, \
+       stockfish
 
 from chess_input import *
 from chess_display import *
@@ -6,7 +7,7 @@ from game_logic import *
 
 ## GLOBAL VARS ##
 #set to true to skip welcome screen
-dev_mode = True
+dev_mode = False
 
 #Set true to disable post screen
 post_screen_toggle = False
@@ -164,10 +165,14 @@ def draw_screen(stdscr):
         quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str = welcome_screen(stdscr, quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str)
     
     #start windows
-    board_window = curses.newwin( math.floor((height/4)*3), math.floor(width/2), 0, 0)
-    prompt_window = curses.newwin( math.floor((height)/4)-1 , math.floor(width/2),  math.floor((height/4)*3), 0)
-    info_window = curses.newwin(math.floor(height/2), math.floor(width/2), 0, math.floor(width/2))
-    history_window = curses.newwin( math.floor(height/2)-1, math.floor(width/2), math.floor(height/2), math.floor(width/2))
+    board_window = curses.newwin( math.floor((height/4)*3), \
+                   math.floor(width/2), 0, 0)
+    prompt_window = curses.newwin( math.floor((height)/4)-1 , \
+                    math.floor(width/2),  math.floor((height/4)*3), 0)
+    info_window = curses.newwin(math.floor(height/2), math.floor(width/2), 0, \
+                  math.floor(width/2))
+    history_window = curses.newwin( math.floor(height/2)-1, \
+                     math.floor(width/2), math.floor(height/2), math.floor(width/2))
 
     windows_array = [board_window, info_window, prompt_window, history_window]
 
@@ -192,7 +197,8 @@ def draw_screen(stdscr):
 
             #resize windows based on new dimensions
             board_window.resize(math.floor((height/4)*3), math.floor(width/2))
-            prompt_window.resize(math.floor((height)/4)-1 , math.floor(width/2))
+            prompt_window.resize(math.floor((height)/4)-1 , \
+            math.floor(width/2))
             info_window.resize(math.floor(height/2), math.floor(width/2))
             history_window.resize(math.floor(height/2)-1, math.floor(width/2))
 
@@ -240,7 +246,8 @@ def draw_screen(stdscr):
         # Render status bar
         stdscr.attron(curses.color_pair(3))
         stdscr.addstr(height-1, 0, statusbarfull)
-        stdscr.addstr(height-1, len(statusbarfull), " " * (width - len(statusbarfull) - 1))
+        stdscr.addstr(height-1, len(statusbarfull), " " * \
+        (width - len(statusbarfull) - 1))
         stdscr.attroff(curses.color_pair(3))
 
         for i in range(len(windows_array)):
@@ -250,30 +257,50 @@ def draw_screen(stdscr):
         #external function calls
 
         #update_input updates the game screen prompt window and returns what the user is currently typing
-        prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str = update_input(prompt_window, key, prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str)
+        prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, \
+        entered_move, status_str = update_input(prompt_window, key, \
+        prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, \
+        entered_move, status_str)
          #update the board window mouse input
         #mouse_pressed, floating_piece, floating = board_window_mouse_input(board_window, key, width, height, board_square_coord, mouse_pressed, floating_piece, floating)
        
         #game_logic determines if an inputted move is legal and manages the gamestate
-        inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle, board_square_coord, legal_move_str, san_move_str = game_logic(board_window, inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle, board_square_coord, pieces, legal_move_str, san_move_str, outcome_tuple)
+        inputted_str, board, status_str, entered_move, last_move_str, \
+        history_arr, game_outcome_enum, move_amount, final_position, \
+        post_screen_toggle, board_square_coord, legal_move_str, \
+        san_move_str = game_logic(board_window, inputted_str, board, \
+        status_str, entered_move, last_move_str, history_arr, \
+        game_outcome_enum, move_amount, final_position, post_screen_toggle, \
+        board_square_coord, pieces, legal_move_str, san_move_str, \
+        outcome_tuple)
         
         
         if post_screen_toggle: #check if post_screen is enabled
             post_screen_toggle = False
 
             #post_screen displays after the win condition has been met
-            quit_game, user_input_string, inputted_str, entered_move, history_arr, final_position, prompt_x_coord, prompt_y_coord, status_str = post_screen(stdscr, quit_game, user_input_string, inputted_str, entered_move, history_arr, final_position, prompt_x_coord, prompt_y_coord, status_str, board_square_coord, pieces)
+            quit_game, user_input_string, inputted_str, entered_move, \
+            history_arr, final_position, prompt_x_coord, prompt_y_coord, \
+            status_str = post_screen(stdscr, quit_game, user_input_string, \
+            inputted_str, entered_move, history_arr, final_position, \
+            prompt_x_coord, prompt_y_coord, status_str, board_square_coord, \
+            pieces)
             if quit_game:
                 break
 
             #return to the welcome screen
-            quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str = welcome_screen(stdscr, quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str)
+            quit_game, user_input_string, inputted_str, entered_move, \
+            prompt_x_coord, prompt_y_coord, status_str = \
+            welcome_screen(stdscr, quit_game, user_input_string, inputted_str, \
+            entered_move, prompt_x_coord, prompt_y_coord, status_str)
             continue
         
         #windows for the game screen
 
         #display game information
-        status_str, legal_move_str, san_move_str = display_info(board, info_window, last_move_str, status_str, inputted_str, legal_move_str, san_move_str)
+        status_str, legal_move_str, san_move_str = display_info(board, \
+        info_window, last_move_str, status_str, inputted_str, legal_move_str, \
+        san_move_str)
         #display move history
         display_history(history_window, history_arr, move_amount, pieces)
 

@@ -1,4 +1,4 @@
-import sys, os, traceback, random, curses, chess, math, enum, itertools
+import sys, os, traceback, random, curses, chess, math, enum, itertools, stockfish
 
 from chess_input import *
 from game_logic import *
@@ -130,12 +130,14 @@ def display_history(history_window, history_arr, move_amount, pieces):
 # "Y8888888P"   "Y8888  888  "Y8888P "Y88P"  888  888  888  "Y8888 88888888 88888P'  "Y8888P 888     "Y8888   "Y8888  888  888
 
 #welcome screen that displays before the game screen 
-def welcome_screen(screen, quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str):
+def welcome_screen(screen, quit_game, user_input_string, inputted_str, \
+    entered_move, prompt_x_coord, prompt_y_coord, status_str):
     #global quit_game, user_input_string, inputted_str, entered_move
     height, width = screen.getmaxyx()
     key = 0
 
-    prompt_welcome_window = curses.newwin( math.floor((height)/4)-1 , width,  math.floor((height/4)*3), 0)
+    prompt_welcome_window = curses.newwin( math.floor((height)/4)-1 , width, \
+                            math.floor((height/4)*3), 0)
 
     while (key != 12): # while not quitting
         if key == 15:
@@ -144,11 +146,13 @@ def welcome_screen(screen, quit_game, user_input_string, inputted_str, entered_m
 
         screen.clear()
 
-        # Declaration of strings
+        # Declaration of strings ctrl p =16
         title = "chess-cli"[:width-1]
-        subtitle = "play locally with a friend, against stockfish, or online with lichess!"[:width-1]
+        subtitle = "play locally with a friend, against stockfish, or " + \
+            "online with lichess!"[:width-1]
         keystr = "Last key pressed: {}".format(key)[:width-1]
-        statusbarstr = "Press 'Ctrl-l' to skip to local | Press 'Ctrl-o' to quit"
+        statusbarstr = "Press 'Ctrl-l' to skip to local |" + \
+                        "'Ctrl-p to play Stockfish | Press 'Ctrl-o' to quit"
 
         # Centering calculations
         start_x_title = int((width // 2) - (len(title) // 2) - len(title) % 2)
@@ -182,7 +186,9 @@ def welcome_screen(screen, quit_game, user_input_string, inputted_str, entered_m
         screen.addstr(start_y + 3, (width // 2) - 2, '-' * 4)
         screen.addstr(start_y + 5, start_x_keystr, keystr)
 
-        update_input(prompt_welcome_window, key, prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str)
+        update_input(prompt_welcome_window, key, prompt_x_coord, \
+                    prompt_y_coord, user_input_string, inputted_str, \
+                    entered_move, status_str)
 
         prompt_welcome_window.border()
         screen.refresh()
@@ -194,7 +200,8 @@ def welcome_screen(screen, quit_game, user_input_string, inputted_str, entered_m
     inputted_str = ""
     entered_move = ""
 
-    return (quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str)
+    return (quit_game, user_input_string, inputted_str, entered_move, \
+            prompt_x_coord, prompt_y_coord, status_str)
 
 
 
@@ -213,7 +220,9 @@ def welcome_screen(screen, quit_game, user_input_string, inputted_str, entered_m
 #########################################################################################################################                                                                    
 
 #post game screen that displays after the game has reached a win condition
-def post_screen(screen1, quit_game, user_input_string, inputted_str, entered_move, history_arr, final_position, prompt_x_coord, prompt_y_coord, status_str, board_square_coord, pieces):
+def post_screen(screen1, quit_game, user_input_string, inputted_str, \
+                entered_move, history_arr, final_position, prompt_x_coord, \
+                prompt_y_coord, status_str, board_square_coord, pieces):
     #global quit_game, user_input_string, inputted_str, entered_move, history_arr, final_position
 
     screen1.clear()
@@ -222,8 +231,10 @@ def post_screen(screen1, quit_game, user_input_string, inputted_str, entered_mov
     height, width = screen1.getmaxyx()
     key = 0
 
-    prompt_post_window = curses.newwin( math.floor((height)/4)-1 , width,  math.floor((height/4)*3), 0)
-    board_post_window = curses.newwin( math.floor((height)-(height/3)), math.floor(width),  0, 0)
+    prompt_post_window = curses.newwin( math.floor((height)/4)-1 , width,  \
+                         math.floor((height/4)*3), 0)
+    board_post_window = curses.newwin( math.floor((height)-(height/3)), \
+                        math.floor(width),  0, 0)
    
     while (key != 12): # while not quitting ctrl-l
         if key == 15: #ctrl-o
@@ -239,14 +250,17 @@ def post_screen(screen1, quit_game, user_input_string, inputted_str, entered_mov
 
         # Centering calculations
         start_x_title = int((width // 2) - (len(title) // 2) - len(title) % 2)
-        start_x_final_position_str = int((width // 2) - (len(final_position_str) // 2) - len(final_position_str) % 2)
-        start_x_final_history_str = int((width // 2) - (len(final_history_str) // 2) - len(final_history_str) % 2)
+        start_x_final_position_str = int((width // 2) \
+             - (len(final_position_str) // 2) - len(final_position_str) % 2)
+        start_x_final_history_str = int((width // 2) - \
+            (len(final_history_str) // 2) - len(final_history_str) % 2)
         start_y = int((height // 2) - 2)
 
         # Render status bar
         screen1.attron(curses.color_pair(3))
         screen1.addstr(height-1, 0, statusbarstr)
-        screen1.addstr(height-1, len(statusbarstr), " " * (width - len(statusbarstr) - 1))
+        screen1.addstr(height-1, len(statusbarstr), " " * (width \
+            - len(statusbarstr) - 1))
         screen1.attroff(curses.color_pair(3))
 
         # Turning on attributes for title
@@ -261,14 +275,20 @@ def post_screen(screen1, quit_game, user_input_string, inputted_str, entered_mov
         screen1.attroff(curses.A_BOLD)
 
         # Print rest of text
-        board_post_window.addstr(start_y + 1, start_x_final_position_str, final_position_str)
-        history = " -> ".join([str(elem) for elem in [ele for ele in reversed(history_arr)][1:]])[:width-2]
-        board_post_window.addstr(start_y + 3, math.floor((width/2) - (len(history)/2)), history)
+        board_post_window.addstr(start_y + 1, start_x_final_position_str, \
+            final_position_str)
+        history = " -> ".join([str(elem) for elem in [ele for ele in \
+            reversed(history_arr)][1:]])[:width-2]
+        board_post_window.addstr(start_y + 3, math.floor((width/2) - \
+            (len(history)/2)), history)
 
-        board_post_window.addstr(start_y + 5, start_x_final_history_str, final_history_str)
-        draw_board(board_post_window, final_position, board_square_coord, pieces)
+        board_post_window.addstr(start_y + 5, start_x_final_history_str, \
+            final_history_str)
+        draw_board(board_post_window, final_position, board_square_coord, \
+            pieces)
 
-        update_input(prompt_post_window, key, prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str)
+        update_input(prompt_post_window, key, prompt_x_coord, prompt_y_coord, \
+            user_input_string, inputted_str, entered_move, status_str)
 
         prompt_post_window.border()
         board_post_window.border()
@@ -282,6 +302,7 @@ def post_screen(screen1, quit_game, user_input_string, inputted_str, entered_mov
     inputted_str = ""
     entered_move = ""
 
-    return (quit_game, user_input_string, inputted_str, entered_move, history_arr, final_position, prompt_x_coord, prompt_y_coord, status_str)
+    return (quit_game, user_input_string, inputted_str, entered_move, \
+            history_arr, final_position, prompt_x_coord, prompt_y_coord, status_str)
 
 

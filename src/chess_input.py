@@ -1,4 +1,5 @@
-import sys, os, traceback, random, curses, chess, math, enum, itertools
+import sys, os, traceback, random, curses, chess, math, enum, itertools, \
+       stockfish
 
 #                        888          888                    d8b                            888
 #                        888          888                    Y8P                            888
@@ -13,7 +14,8 @@ import sys, os, traceback, random, curses, chess, math, enum, itertools
 #          888                                                            888
 
 #update_input updates the game screen prompt window and returns what the user is currently typing
-def update_input(prompt_window, key, prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str):
+def update_input(prompt_window, key, prompt_x_coord, prompt_y_coord, \
+                 user_input_string, inputted_str, entered_move, status_str):
     #global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str
     height, width = prompt_window.getmaxyx()
 
@@ -32,7 +34,8 @@ def update_input(prompt_window, key, prompt_x_coord, prompt_y_coord, user_input_
     right_arrow = 261
 
     if key == curses.KEY_MOUSE: #dont do any input for mouse event
-        return (prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str)
+        return (prompt_x_coord, prompt_y_coord, user_input_string, \
+                inputted_str, entered_move, status_str)
 
     if key == delete_key: 
         if prompt_x_coord-1 <= 0:
@@ -63,7 +66,8 @@ def update_input(prompt_window, key, prompt_x_coord, prompt_y_coord, user_input_
         prompt_x_coord = width-2
         prompt_y_coord = height-2
         status_str = "char limit reached"
-        return (prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str)
+        return (prompt_x_coord, prompt_y_coord, user_input_string, \
+                inputted_str, entered_move, status_str)
         # for i in range(1, height-1):
         #     prompt_window.addstr(i, prompt_x_coord, " " * (width-1))
     
@@ -80,14 +84,16 @@ def update_input(prompt_window, key, prompt_x_coord, prompt_y_coord, user_input_
             prompt_window.addstr(i, prompt_x_coord, " " * (width-1))
     
     #add to the current input buffer
-    if key != enter_key and key != delete_key and (chr(key).isalnum() or key in input_keys): #not enter and not delete
+    if key != enter_key and key != delete_key and (chr(key).isalnum() \
+              or key in input_keys): #not enter and not delete
         user_input_string += chr(key)
 
     #redraw border in case it was painted over
     prompt_window.border()
     prompt_window.addch(prompt_y_coord, 0, '>') #indicate line youre on
 
-    return (prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str)
+    return (prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, \
+            entered_move, status_str)
 
 
 # dP                                        dP              oo                              dP   
