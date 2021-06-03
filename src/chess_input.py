@@ -108,12 +108,12 @@ def update_input(prompt_window, key, \
 #                                                                       dP                       
 
 # #checks board window for mouse movement and handles mouse input
-# def board_window_mouse_input(screen, key, screen_width, screen_height, board_square_coord, mouse_pressed_bool, is_floating_bool_piece_str, is_floating_bool):
-#     #global board_square_coord, mouse_pressed_bool, is_floating_bool_piece_str, is_floating_bool
+# def board_window_mouse_input(screen, key, screen_width, screen_height, board_square_coord, mouse_pressed_bool, floating_piece_str, is_floating_bool):
+#     #global board_square_coord, mouse_pressed_bool, floating_piece_str, is_floating_bool
 #     height, width = screen.getmaxyx()
 
 #     if key != curses.KEY_MOUSE: #input needs to be mouse input
-#         return (mouse_pressed_bool, is_floating_bool_piece_str, is_floating_bool)
+#         return (mouse_pressed_bool, floating_piece_str, is_floating_bool)
     
 #     #try except block for getmouse() errors
 #     try: 
@@ -137,18 +137,18 @@ def update_input(prompt_window, key, \
 #             piece_str = board_square_coord[key_tuple][1]
 #             if piece_str != None and not is_floating_bool:
 #                 is_floating_bool = True
-#                 is_floating_bool_piece_str = board_square_coord[key_tuple]
+#                 floating_piece_str = board_square_coord[key_tuple]
 #                 screen.addstr(5, 2, "piece is {}".format(piece_str ))
             
 #         if mouse_pressed_bool:
-#             color_pair = is_floating_bool_piece_str[0]
+#             color_pair = floating_piece_str[0]
 #             screen.attron(curses.color_pair(color_pair))
 #             screen.attron(curses.A_BOLD)
-#             screen.addstr(mouse_y, mouse_x, is_floating_bool_piece_str[1]+" ")
+#             screen.addstr(mouse_y, mouse_x, floating_piece_str[1]+" ")
 #             screen.attron(curses.color_pair(color_pair))
 #             screen.attron(curses.A_BOLD)
-#         return (mouse_pressed_bool, is_floating_bool_piece_str, is_floating_bool)
+#         return (mouse_pressed_bool, floating_piece_str, is_floating_bool)
 
 #     except:
 #         screen.addstr(7, 2, "error")
-#         return (mouse_pressed_bool, is_floating_bool_piece_str, is_floating_bool)
+#         return (mouse_pressed_bool, floating_piece_str, is_floating_bool)

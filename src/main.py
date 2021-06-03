@@ -61,7 +61,7 @@ def draw_screen(stdscr):
     legal_move_str = ""
     san_move_str = ""
     final_position_str = ""
-    is_floating_bool_piece_str = ""
+    floating_piece_str = ""
 
     #booleans
     entered_move_bool = False #true if user hits enter key
@@ -269,7 +269,7 @@ def draw_screen(stdscr):
             update_input(prompt_window, key, input_buffer_str, move_str, \
         entered_move_bool, status_str)
          #update the board window mouse input
-        #mouse_pressed_bool, is_floating_bool_piece_str, is_floating_bool = board_window_mouse_input(board_window, key, width, height, board_square_coord, mouse_pressed_bool, is_floating_bool_piece_str, is_floating_bool)
+        #mouse_pressed_bool, floating_piece_str, is_floating_bool = board_window_mouse_input(board_window, key, width, height, board_square_coord, mouse_pressed_bool, floating_piece_str, is_floating_bool)
        
         #game_logic determines if an inputted move is legal and manages the gamestate
 
