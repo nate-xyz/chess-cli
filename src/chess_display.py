@@ -1,5 +1,5 @@
 import sys, os, traceback, random, curses, chess, math, enum, itertools, stockfish
-import play_stockfish
+from play_ai import *
 from chess_input import *
 from game_logic import *
 
@@ -141,7 +141,7 @@ def welcome_screen(screen, quit_game, user_input_string, inputted_str, \
 #ctrl p = 16
     while (key != 12): # while not quitting
         if key == 16:
-            play_stockfish
+            play_ai
         if key == 15:
             quit_game = True
             break
