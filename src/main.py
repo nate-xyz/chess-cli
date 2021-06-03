@@ -54,22 +54,23 @@ def draw_screen(stdscr):
     key = 0
 
     #strings
-    last_move_str = "no move yet"
-    user_input_string = ""
-    inputted_str = ""
+    #last_move_str = "no move yet"
+    input_buffer_str = ""
+    move_str = ""
     status_str = ""
     legal_move_str = ""
     san_move_str = ""
-    history_arr = ["init"]
-    final_position = ""
-    floating_piece = ""
+    final_position_str = ""
+    is_floating_bool_piece_str = ""
 
     #booleans
-    entered_move = False #true if user hits enter key
-    quit_game = False
-    mouse_pressed = False
-    floating = False
-    ai_game = False
+    entered_move_bool = False #true if user hits enter key
+    quit_game_bool = False
+    mouse_pressed_bool = False
+    is_floating_bool = False
+    ai_game_bool = False
+
+    history_arr = ["init"]
 
     outcome_tuple = (
         'Good luck.', #[0]
@@ -149,7 +150,7 @@ def draw_screen(stdscr):
         curses.init_pair(6, dark_piece, light_square)
         curses.init_pair(7, dark_piece, dark_square)
 
-        #floating piece colors
+        #is_floating_bool piece colors
         curses.init_pair(10, light_piece, dark_piece)
         curses.init_pair(11, dark_piece, light_piece)
     else:
@@ -166,10 +167,10 @@ def draw_screen(stdscr):
 
     if not skip_welcome:
         #welcome screen
-        quit_game, user_input_string, inputted_str, entered_move, status_str, ai_game = \
-            welcome_screen( stdscr, quit_game, user_input_string, inputted_str, entered_move, status_str, ai_game ) 
+        quit_game_bool, input_buffer_str, move_str, entered_move_bool, status_str, ai_game_bool = \
+            welcome_screen( stdscr, quit_game_bool, input_buffer_str, move_str, entered_move_bool, status_str, ai_game_bool ) 
             
-    if ai_game:
+    if ai_game_bool:
         stockfish_obj = Stockfish(parameters={"Threads": 2, "Minimum Thinking Time": 30})
     #start windows
     board_window = curses.newwin( math.floor((height/4)*3), \
@@ -185,7 +186,7 @@ def draw_screen(stdscr):
 
     # Loop where key is the last character pressed
     while (key != 15): # while not quitting (ctrl+o)
-        if quit_game:
+        if quit_game_bool:
             break
         # Initialization
         stdscr.clear()
@@ -264,33 +265,33 @@ def draw_screen(stdscr):
         #external function calls
 
         #update_input updates the game screen prompt window and returns what the user is currently typing
-        user_input_string, inputted_str, entered_move, status_str = \
-            update_input(prompt_window, key, user_input_string, inputted_str, \
-        entered_move, status_str)
+        input_buffer_str, move_str, entered_move_bool, status_str = \
+            update_input(prompt_window, key, input_buffer_str, move_str, \
+        entered_move_bool, status_str)
          #update the board window mouse input
-        #mouse_pressed, floating_piece, floating = board_window_mouse_input(board_window, key, width, height, board_square_coord, mouse_pressed, floating_piece, floating)
+        #mouse_pressed_bool, is_floating_bool_piece_str, is_floating_bool = board_window_mouse_input(board_window, key, width, height, board_square_coord, mouse_pressed_bool, is_floating_bool_piece_str, is_floating_bool)
        
         #game_logic determines if an inputted move is legal and manages the gamestate
 
-        if ai_game:
+        if ai_game_bool:
             #call play_stockfish
-            inputted_str, board, status_str, entered_move, last_move_str, \
-            history_arr, move_amount, final_position,\
+            move_str, board, status_str, entered_move_bool, last_move_str, \
+            history_arr, move_amount, final_position_str,\
             post_screen_toggle, board_square_coord, legal_move_str, san_move_str, stockfish_obj = \
-                stockfish_logic( board_window, inputted_str, board, 
-            status_str, entered_move, last_move_str, history_arr, \
-            move_amount, final_position, \
+                stockfish_logic( board_window, move_str, board, 
+            status_str, entered_move_bool, history_arr, \
+            move_amount, final_position_str, \
             post_screen_toggle, board_square_coord, pieces, \
             legal_move_str, san_move_str, outcome_tuple, stockfish_obj)
 
         else:
             #call local_game_logic
-            inputted_str, board, status_str, entered_move, last_move_str, \
-            history_arr, move_amount, final_position, \
+            move_str, board, status_str, entered_move_bool, last_move_str, \
+            history_arr, move_amount, final_position_str, \
             post_screen_toggle, board_square_coord, legal_move_str, san_move_str = \
-                local_game_logic(board_window, inputted_str, board, \
-            status_str, entered_move, last_move_str, history_arr, \
-             move_amount, final_position, \
+                local_game_logic(board_window, move_str, board, \
+            status_str, entered_move_bool, history_arr, \
+             move_amount, final_position_str, \
             post_screen_toggle, board_square_coord, pieces, \
             legal_move_str, san_move_str, outcome_tuple)
         
@@ -298,27 +299,27 @@ def draw_screen(stdscr):
             post_screen_toggle = False
 
             #post_screen displays after the win condition has been met
-            quit_game, user_input_string, inputted_str, entered_move, \
-            history_arr, final_position, \
-            status_str = post_screen(stdscr, quit_game, user_input_string, \
-            inputted_str, entered_move, history_arr, final_position, \
+            quit_game_bool, input_buffer_str, move_str, entered_move_bool, \
+            history_arr, final_position_str, \
+            status_str = post_screen(stdscr, quit_game_bool, input_buffer_str, \
+            move_str, entered_move_bool, history_arr, final_position_str, \
             status_str, board_square_coord, \
             pieces)
-            if quit_game:
+            if quit_game_bool:
                 break
 
             #return to the welcome screen
-            quit_game, user_input_string, inputted_str, entered_move, \
+            quit_game_bool, input_buffer_str, move_str, entered_move_bool, \
              status_str = \
-            welcome_screen(stdscr, quit_game, user_input_string, inputted_str, \
-            entered_move, status_str)
+            welcome_screen(stdscr, quit_game_bool, input_buffer_str, move_str, \
+            entered_move_bool, status_str)
             continue
         
         #windows for the game screen
 
         #display game information
         status_str, legal_move_str, san_move_str = \
-            display_info(board, info_window, last_move_str, status_str, inputted_str, legal_move_str, san_move_str)
+            display_info(board, info_window, last_move_str, status_str, move_str, legal_move_str, san_move_str)
         #display move history
         display_history(history_window, history_arr, move_amount, pieces)
 

@@ -18,8 +18,8 @@ from game_logic import *
 #                       888                   Y8b d88P
 #                       888                    "Y88P"
 #display game information window for the game screen
-def display_info(board, info_window, last_move_str, status_str, inputted_str, legal_move_str, san_move_str):
-    #global last_move_str, status_str, inputted_str, legal_move_str, san_move_str
+def display_info(board, info_window, last_move_str, status_str, move_str, legal_move_str, san_move_str):
+    #global last_move_str, status_str, move_str, legal_move_str, san_move_str
     height, width = info_window.getmaxyx()
 
     info_window.attron(curses.color_pair(3))
@@ -41,7 +41,7 @@ def display_info(board, info_window, last_move_str, status_str, inputted_str, le
     info_window.addstr(3, 1, status_str)
     info_window.attroff(curses.color_pair(text_colour))
 
-    info_window.addstr(4, 1, "{}: {}".format("input",inputted_str))
+    info_window.addstr(4, 1, "{}: {}".format("input",move_str))
 
     info_window.attron(curses.color_pair(8))
 
@@ -130,9 +130,9 @@ def display_history(history_window, history_arr, move_amount, pieces):
 # "Y8888888P"   "Y8888  888  "Y8888P "Y88P"  888  888  888  "Y8888 88888888 88888P'  "Y8888P 888     "Y8888   "Y8888  888  888
 
 #welcome screen that displays before the game screen 
-def welcome_screen(screen, quit_game, user_input_string, inputted_str, \
-    entered_move, status_str, ai_game):
-    #global quit_game, user_input_string, inputted_str, entered_move
+def welcome_screen(screen, quit_game_bool, input_buffer_str, move_str, \
+    entered_move_bool, status_str, ai_game_bool):
+    #global quit_game_bool, input_buffer_str, move_str, entered_move_bool
     height, width = screen.getmaxyx()
     key = 0
 
@@ -141,10 +141,10 @@ def welcome_screen(screen, quit_game, user_input_string, inputted_str, \
 #ctrl p = 16
     while (key != 12): # while not quitting
         if key == 16:
-            ai_game = True
+            ai_game_bool = True
             break
         if key == 15:
-            quit_game = True
+            quit_game_bool = True
             break
 
         screen.clear()
@@ -189,8 +189,8 @@ def welcome_screen(screen, quit_game, user_input_string, inputted_str, \
         screen.addstr(start_y + 3, (width // 2) - 2, '-' * 4)
         screen.addstr(start_y + 5, start_x_keystr, keystr)
 
-        update_input(prompt_welcome_window, key, user_input_string, inputted_str, \
-                    entered_move, status_str)
+        update_input(prompt_welcome_window, key, input_buffer_str, move_str, \
+                    entered_move_bool, status_str)
 
         prompt_welcome_window.border()
         screen.refresh()
@@ -198,11 +198,11 @@ def welcome_screen(screen, quit_game, user_input_string, inputted_str, \
         key = screen.getch()
 
     #reset global strings that may have been set in the prompt window
-    user_input_string = ""
-    inputted_str = ""
-    entered_move = ""
+    input_buffer_str = ""
+    move_str = ""
+    entered_move_bool = ""
 
-    return (quit_game, user_input_string, inputted_str, entered_move, status_str, ai_game)
+    return (quit_game_bool, input_buffer_str, move_str, entered_move_bool, status_str, ai_game_bool)
 
 
 
@@ -221,9 +221,9 @@ def welcome_screen(screen, quit_game, user_input_string, inputted_str, \
 #########################################################################################################################                                                                    
 
 #post game screen that displays after the game has reached a win condition
-def post_screen(screen1, quit_game, user_input_string, inputted_str, \
-                entered_move, history_arr, final_position, status_str, board_square_coord, pieces):
-    #global quit_game, user_input_string, inputted_str, entered_move, history_arr, final_position
+def post_screen(screen1, quit_game_bool, input_buffer_str, move_str, \
+                entered_move_bool, history_arr, final_position_str, status_str, board_square_coord, pieces):
+    #global quit_game_bool, input_buffer_str, move_str, entered_move_bool, history_arr, final_position_str
 
     screen1.clear()
     screen1.refresh()
@@ -238,20 +238,20 @@ def post_screen(screen1, quit_game, user_input_string, inputted_str, \
    
     while (key != 12): # while not quitting ctrl-l
         if key == 15: #ctrl-o
-            quit_game = True
+            quit_game_bool = True
             break
         screen1.clear()
 
         # Declaration of strings
         title = "Game has ended."[:width-1]
-        final_position_str = "Final position: "[:width-1]
+        final_position_str_str = "Final position: "[:width-1]
         final_history_str = "Last key pressed: {}".format(key)[:width-1]
         statusbarstr = "Press 'Ctrl-l' to play again | Press 'Ctrl-o' to quit"
 
         # Centering calculations
         start_x_title = int((width // 2) - (len(title) // 2) - len(title) % 2)
-        start_x_final_position_str = int((width // 2) \
-             - (len(final_position_str) // 2) - len(final_position_str) % 2)
+        start_x_final_position_str_str = int((width // 2) \
+             - (len(final_position_str_str) // 2) - len(final_position_str_str) % 2)
         start_x_final_history_str = int((width // 2) - \
             (len(final_history_str) // 2) - len(final_history_str) % 2)
         start_y = int((height // 2) - 2)
@@ -275,8 +275,8 @@ def post_screen(screen1, quit_game, user_input_string, inputted_str, \
         screen1.attroff(curses.A_BOLD)
 
         # Print rest of text
-        board_post_window.addstr(start_y + 1, start_x_final_position_str, \
-            final_position_str)
+        board_post_window.addstr(start_y + 1, start_x_final_position_str_str, \
+            final_position_str_str)
         history = " -> ".join([str(elem) for elem in [ele for ele in \
             reversed(history_arr)][1:]])[:width-2]
         board_post_window.addstr(start_y + 3, math.floor((width/2) - \
@@ -284,10 +284,10 @@ def post_screen(screen1, quit_game, user_input_string, inputted_str, \
 
         board_post_window.addstr(start_y + 5, start_x_final_history_str, \
             final_history_str)
-        draw_board(board_post_window, final_position, board_square_coord, \
+        draw_board(board_post_window, final_position_str, board_square_coord, \
             pieces)
 
-        update_input(prompt_post_window, key, user_input_string, inputted_str, entered_move, status_str)
+        update_input(prompt_post_window, key, input_buffer_str, move_str, entered_move_bool, status_str)
 
         prompt_post_window.border()
         board_post_window.border()
@@ -297,11 +297,11 @@ def post_screen(screen1, quit_game, user_input_string, inputted_str, \
         key = screen1.getch()
 
     #reset global strings that may have been set in the prompt window
-    user_input_string = ""
-    inputted_str = ""
-    entered_move = ""
+    input_buffer_str = ""
+    move_str = ""
+    entered_move_bool = ""
 
-    return (quit_game, user_input_string, inputted_str, entered_move, \
-            history_arr, final_position, status_str)
+    return (quit_game_bool, input_buffer_str, move_str, entered_move_bool, \
+            history_arr, final_position_str, status_str)
 
 

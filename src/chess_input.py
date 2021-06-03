@@ -16,8 +16,8 @@ prompt_y_coord = 1
 
 #update_input updates the game screen prompt window and returns what the user is currently typing
 def update_input(prompt_window, key, \
-                 user_input_string, inputted_str, entered_move, status_str):
-    #global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str
+                 input_buffer_str, move_str, entered_move_bool, status_str):
+    #global prompt_x_coord, prompt_y_coord, input_buffer_str, move_str, entered_move_bool, status_str
     global prompt_x_coord, prompt_y_coord
     height, width = prompt_window.getmaxyx()
 
@@ -36,8 +36,8 @@ def update_input(prompt_window, key, \
     right_arrow = 261
 
     if key == curses.KEY_MOUSE: #dont do any input for mouse event
-        return (prompt_x_coord, prompt_y_coord, user_input_string, \
-                inputted_str, entered_move, status_str)
+        return (prompt_x_coord, prompt_y_coord, input_buffer_str, \
+                move_str, entered_move_bool, status_str)
 
     if key == delete_key: 
         if prompt_x_coord-1 <= 0:
@@ -47,7 +47,7 @@ def update_input(prompt_window, key, \
         prompt_window.addch(prompt_y_coord, delete_x, chr(8248)) #clear last char pointer
         prompt_window.addch(prompt_y_coord, delete_x+1, ' ') #clear last char printed
         prompt_x_coord -= 1 #decrement char position
-        user_input_string = user_input_string[:-1]
+        input_buffer_str = input_buffer_str[:-1]
     elif chr(key).isalnum() or key in input_keys:
         prompt_window.addch(prompt_y_coord, prompt_x_coord+1, chr(8248)) #indicate char youre on
         prompt_window.addch(prompt_y_coord, prompt_x_coord, key)
@@ -68,15 +68,15 @@ def update_input(prompt_window, key, \
         prompt_x_coord = width-2
         prompt_y_coord = height-2
         status_str = "char limit reached"
-        return (prompt_x_coord, prompt_y_coord, user_input_string, \
-                inputted_str, entered_move, status_str)
+        return (prompt_x_coord, prompt_y_coord, input_buffer_str, \
+                move_str, entered_move_bool, status_str)
         # for i in range(1, height-1):
         #     prompt_window.addstr(i, prompt_x_coord, " " * (width-1))
     
     if key == enter_key: 
-        entered_move = True 
-        inputted_str = user_input_string #set global string to check if move is legal
-        user_input_string = "" #reset input buffer
+        entered_move_bool = True 
+        move_str = input_buffer_str #set global string to check if move is legal
+        input_buffer_str = "" #reset input buffer
         prompt_x_coord = 1 #reset char coordinates
         prompt_y_coord = 1#reset char coordinates
         #prompt_window.addch(prompt_y_coord, 0, '|')
@@ -88,14 +88,14 @@ def update_input(prompt_window, key, \
     #add to the current input buffer
     if key != enter_key and key != delete_key and (chr(key).isalnum() \
               or key in input_keys): #not enter and not delete
-        user_input_string += chr(key)
+        input_buffer_str += chr(key)
 
     #redraw border in case it was painted over
     prompt_window.border()
     prompt_window.addch(prompt_y_coord, 0, '>') #indicate line youre on
 
-    return ( user_input_string, inputted_str, \
-            entered_move, status_str)
+    return ( input_buffer_str, move_str, \
+            entered_move_bool, status_str)
 
 
 # dP                                        dP              oo                              dP   
@@ -108,12 +108,12 @@ def update_input(prompt_window, key, \
 #                                                                       dP                       
 
 # #checks board window for mouse movement and handles mouse input
-# def board_window_mouse_input(screen, key, screen_width, screen_height, board_square_coord, mouse_pressed, floating_piece, floating):
-#     #global board_square_coord, mouse_pressed, floating_piece, floating
+# def board_window_mouse_input(screen, key, screen_width, screen_height, board_square_coord, mouse_pressed_bool, is_floating_bool_piece_str, is_floating_bool):
+#     #global board_square_coord, mouse_pressed_bool, is_floating_bool_piece_str, is_floating_bool
 #     height, width = screen.getmaxyx()
 
 #     if key != curses.KEY_MOUSE: #input needs to be mouse input
-#         return (mouse_pressed, floating_piece, floating)
+#         return (mouse_pressed_bool, is_floating_bool_piece_str, is_floating_bool)
     
 #     #try except block for getmouse() errors
 #     try: 
@@ -122,33 +122,33 @@ def update_input(prompt_window, key, \
         
 #         if button_state & curses.BUTTON1_PRESSED != 0:
 #             bs_str = "b1 pressed"
-#             mouse_pressed = True
+#             mouse_pressed_bool = True
         
 #         if button_state & curses.BUTTON1_RELEASED != 0:
 #             bs_str = "b1 released"
-#             mouse_pressed = False
-#             floating = False
+#             mouse_pressed_bool = False
+#             is_floating_bool = False
     
 #         screen.addstr(2, 2, "mouse_x: {} mouse_y: {} button_state: {}".format( str(mouse_x), str(mouse_y), bs_str))
 #         key_tuple = (mouse_x, mouse_y)
         
-#         if key_tuple in board_square_coord.keys() and mouse_pressed:
+#         if key_tuple in board_square_coord.keys() and mouse_pressed_bool:
 #             screen.addstr(6, 2, "has key")
 #             piece_str = board_square_coord[key_tuple][1]
-#             if piece_str != None and not floating:
-#                 floating = True
-#                 floating_piece = board_square_coord[key_tuple]
+#             if piece_str != None and not is_floating_bool:
+#                 is_floating_bool = True
+#                 is_floating_bool_piece_str = board_square_coord[key_tuple]
 #                 screen.addstr(5, 2, "piece is {}".format(piece_str ))
             
-#         if mouse_pressed:
-#             color_pair = floating_piece[0]
+#         if mouse_pressed_bool:
+#             color_pair = is_floating_bool_piece_str[0]
 #             screen.attron(curses.color_pair(color_pair))
 #             screen.attron(curses.A_BOLD)
-#             screen.addstr(mouse_y, mouse_x, floating_piece[1]+" ")
+#             screen.addstr(mouse_y, mouse_x, is_floating_bool_piece_str[1]+" ")
 #             screen.attron(curses.color_pair(color_pair))
 #             screen.attron(curses.A_BOLD)
-#         return (mouse_pressed, floating_piece, floating)
+#         return (mouse_pressed_bool, is_floating_bool_piece_str, is_floating_bool)
 
 #     except:
 #         screen.addstr(7, 2, "error")
-#         return (mouse_pressed, floating_piece, floating)
+#         return (mouse_pressed_bool, is_floating_bool_piece_str, is_floating_bool)

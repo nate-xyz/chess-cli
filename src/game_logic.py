@@ -1,5 +1,5 @@
 import sys, os, traceback, random, curses, chess, math, enum, itertools, stockfish
-
+last_move_str = "no move yet"
 #                                                  888                   d8b
 #                                                  888                   Y8P
 #                                                  888
@@ -13,14 +13,15 @@ import sys, os, traceback, random, curses, chess, math, enum, itertools, stockfi
 #  "Y88P"                                                        "Y88P"
 
 #game_logic determines if an inputted move is legal and manages the gamestate
-def local_game_logic( board_window, inputted_str, board, status_str, entered_move, \
-                last_move_str, history_arr, \
-                move_amount, final_position, post_screen_toggle, 
+def local_game_logic( board_window, move_str, board, status_str, entered_move_bool, \
+                 history_arr, \
+                move_amount, final_position_str, post_screen_toggle, 
                 board_square_coord, pieces, 
                 legal_move_str, san_move_str,
                 outcome_tuple):
-    #global inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle
-    inputted_str = inputted_str.strip(' ').strip('\0').strip('^@')
+    #global move_str, board, status_str, entered_move_bool, last_move_str, history_arr, game_outcome_enum, move_amount, final_position_str, post_screen_toggle
+    global last_move_str
+    move_str = move_str.strip(' ').strip('\0').strip('^@')
     legal_moves = generate_legal_moves(legal_move_str, san_move_str, board)
     legal_moves_san = legal_moves[0] 
     legal_moves_san_lowercase = legal_moves[1]
@@ -29,23 +30,23 @@ def local_game_logic( board_window, inputted_str, board, status_str, entered_mov
     legal_moves = list(itertools.chain.from_iterable(legal_moves))
 
 
-    if entered_move:
-        entered_move = False
-        if inputted_str == 'undo':
+    if entered_move_bool:
+        entered_move_bool = False
+        if move_str == 'undo':
             board.pop()
         else:
-            if inputted_str not in legal_moves:
+            if move_str not in legal_moves:
                 status_str = "last input is invalid"
             else:
                 status_str = "move is legal!"
 
-                if inputted_str in legal_moves_san_lowercase:
-                    inputted_str = legal_moves_san[legal_moves_san_lowercase.index(inputted_str)] #get the equivalent string with proper case
+                if move_str in legal_moves_san_lowercase:
+                    move_str = legal_moves_san[legal_moves_san_lowercase.index(move_str)] #get the equivalent string with proper case
   
-                if board.is_legal(board.parse_san(inputted_str)):
-                    board.push_san(inputted_str) #make the actual move with the chess module
-                    last_move_str = inputted_str #set the last move string to be displayed in the info window
-                    history_arr.insert(0, inputted_str) #push to the front of the history stack for the history window
+                if board.is_legal(board.parse_san(move_str)):
+                    board.push_san(move_str) #make the actual move with the chess module
+                    last_move_str = move_str #set the last move string to be displayed in the info window
+                    history_arr.insert(0, move_str) #push to the front of the history stack for the history window
                     move_amount+=1 #increment the global move amount for the history window
                     curses.flash()
                     curses.beep()
@@ -53,7 +54,7 @@ def local_game_logic( board_window, inputted_str, board, status_str, entered_mov
                 game_outcome_enum = game_outcome(board)
                 if game_outcome_enum != 0:
                     status_str = outcome_tuple[game_outcome_enum]
-                    final_position = board.board_fen()
+                    final_position_str = board.board_fen()
                     post_screen_toggle = True
 
     #draw board
@@ -62,8 +63,8 @@ def local_game_logic( board_window, inputted_str, board, status_str, entered_mov
     legal_moves = generate_legal_moves(legal_move_str, san_move_str, board)
 
 
-    return (inputted_str, board, status_str, entered_move, last_move_str, \
-            history_arr, move_amount, final_position,\
+    return (move_str, board, status_str, entered_move_bool, last_move_str, \
+            history_arr, move_amount, final_position_str,\
             post_screen_toggle, board_square_coord, legal_move_str, \
             san_move_str)
 
@@ -127,13 +128,13 @@ def draw_board(board_window, board_FEN, board_square_coord, pieces):
         elif not current_piece.isdigit():
             #determine proper color pair
             if current_piece.isupper():
-                floating_color = 10
+                is_floating_bool_color = 10
                 if square_count%2 == 0:
                     color_pair = 4
                 else:
                     color_pair = 5
             else:
-                floating_color = 11
+                is_floating_bool_color = 11
                 if square_count%2 == 0:
                     color_pair = 6
                 else:
@@ -145,7 +146,7 @@ def draw_board(board_window, board_FEN, board_square_coord, pieces):
             board_window.addstr(y_coord, x_coord, pieces[current_piece.upper()]+" ")
             
             board_square_coord[key_tuple] = \
-                (floating_color, pieces[current_piece.upper()])
+                (is_floating_bool_color, pieces[current_piece.upper()])
 
             board_window.attroff(curses.color_pair(color_pair))
             board_window.attroff(curses.A_BOLD)
