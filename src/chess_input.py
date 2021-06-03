@@ -1,5 +1,4 @@
-import sys, os, traceback, random, curses, chess, math, enum, itertools, \
-       stockfish
+import sys, os, traceback, random, curses, chess, math, enum, itertools, stockfish
 
 #                        888          888                    d8b                            888
 #                        888          888                    Y8P                            888

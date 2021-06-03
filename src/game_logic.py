@@ -1,5 +1,4 @@
-import sys, os, traceback, random, curses, chess, math, enum, itertools, \
-       stockfish
+import sys, os, traceback, random, curses, chess, math, enum, itertools, stockfish
 
 
 #                                                  888                   d8b
@@ -15,7 +14,7 @@ import sys, os, traceback, random, curses, chess, math, enum, itertools, \
 #  "Y88P"                                                        "Y88P"
 
 #game_logic determines if an inputted move is legal and manages the gamestate
-def game_logic( board_window, inputted_str, board, status_str, entered_move, \
+def local_game_logic( board_window, inputted_str, board, status_str, entered_move, \
                 last_move_str, history_arr, game_outcome_enum, \
                 move_amount, final_position, post_screen_toggle, 
                 board_square_coord, pieces, 

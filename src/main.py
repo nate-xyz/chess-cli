@@ -1,9 +1,9 @@
-import sys, os, traceback, random, curses, chess, math, enum, itertools, \
-       stockfish
+import sys, os, traceback, random, curses, chess, math, enum, itertools, stockfish
 
 from chess_input import *
 from chess_display import *
 from game_logic import *
+from play_ai import *
 
 ## GLOBAL VARS ##
 #set to true to skip welcome screen
@@ -65,7 +65,7 @@ def draw_screen(stdscr):
     mouse_pressed = False
     floating_piece = ""
     floating = False
-
+    ai_game = False
 
     outcome_tuple = (
         'Good luck.', #[0]
@@ -162,8 +162,10 @@ def draw_screen(stdscr):
 
     if not dev_mode:
         #welcome screen
-        quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str = welcome_screen(stdscr, quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str)
-    
+        quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str, ai_game = \
+            welcome_screen( stdscr, quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str, ai_game ) 
+            
+
     #start windows
     board_window = curses.newwin( math.floor((height/4)*3), \
                    math.floor(width/2), 0, 0)
@@ -265,15 +267,28 @@ def draw_screen(stdscr):
         #mouse_pressed, floating_piece, floating = board_window_mouse_input(board_window, key, width, height, board_square_coord, mouse_pressed, floating_piece, floating)
        
         #game_logic determines if an inputted move is legal and manages the gamestate
-        inputted_str, board, status_str, entered_move, last_move_str, \
-        history_arr, game_outcome_enum, move_amount, final_position, \
-        post_screen_toggle, board_square_coord, legal_move_str, \
-        san_move_str = game_logic(board_window, inputted_str, board, \
-        status_str, entered_move, last_move_str, history_arr, \
-        game_outcome_enum, move_amount, final_position, post_screen_toggle, \
-        board_square_coord, pieces, legal_move_str, san_move_str, \
-        outcome_tuple)
-        
+
+        if ai_game:
+            #call play_stockfish
+            inputted_str, board, status_str, entered_move, last_move_str, \
+            history_arr, game_outcome_enum, move_amount, final_position,\
+            post_screen_toggle, board_square_coord, legal_move_str, san_move_str = \
+                stockfish_logic( board_window, inputted_str, board, 
+            status_str, entered_move, last_move_str, history_arr, \
+            game_outcome_enum, move_amount, final_position, \
+            post_screen_toggle, board_square_coord, pieces, \
+            legal_move_str, san_move_str, outcome_tuple, stockfish)
+
+        else:
+            #call local_game_logic
+            inputted_str, board, status_str, entered_move, last_move_str, \
+            history_arr, game_outcome_enum, move_amount, final_position, \
+            post_screen_toggle, board_square_coord, legal_move_str, san_move_str = \
+                local_game_logic(board_window, inputted_str, board, \
+            status_str, entered_move, last_move_str, history_arr, \
+            game_outcome_enum, move_amount, final_position, \
+            post_screen_toggle, board_square_coord, pieces, \
+            legal_move_str, san_move_str, outcome_tuple)
         
         if post_screen_toggle: #check if post_screen is enabled
             post_screen_toggle = False

@@ -131,7 +131,7 @@ def display_history(history_window, history_arr, move_amount, pieces):
 
 #welcome screen that displays before the game screen 
 def welcome_screen(screen, quit_game, user_input_string, inputted_str, \
-    entered_move, prompt_x_coord, prompt_y_coord, status_str):
+    entered_move, prompt_x_coord, prompt_y_coord, status_str, ai_game):
     #global quit_game, user_input_string, inputted_str, entered_move
     height, width = screen.getmaxyx()
     key = 0
@@ -141,7 +141,8 @@ def welcome_screen(screen, quit_game, user_input_string, inputted_str, \
 #ctrl p = 16
     while (key != 12): # while not quitting
         if key == 16:
-            play_ai
+            ai_game = True
+            break
         if key == 15:
             quit_game = True
             break
@@ -203,7 +204,7 @@ def welcome_screen(screen, quit_game, user_input_string, inputted_str, \
     entered_move = ""
 
     return (quit_game, user_input_string, inputted_str, entered_move, \
-            prompt_x_coord, prompt_y_coord, status_str)
+            prompt_x_coord, prompt_y_coord, status_str, ai_game)
 
 
 
