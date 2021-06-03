@@ -1,5 +1,4 @@
-import sys, os, traceback, random, curses, chess, math, enum, itertools, \
-       stockfish
+import sys, os, traceback, random, curses, chess, math, enum, itertools, stockfish
 
                                                                                                                                                                                                                       
 #                                             88           ad88  88             88                                                                                        88                            88              
@@ -13,11 +12,12 @@ import sys, os, traceback, random, curses, chess, math, enum, itertools, \
 #                                                                                                       aa,    ,88                                                                          aa,    ,88                  
 #                                                                                          888888888888  "Y8bbdP"                                             888888888888                   "Y8bbdP"                          
 
+
 def play_stockfish( board_window, inputted_str, board, status_str, \
                     entered_move, last_move_str, history_arr, \
                     game_outcome_enum, move_amount, final_position, \
                     post_screen_toggle, board_square_coord, pieces, \
-                    legal_move_str, san_move_str, outcome_tuple):
+                    legal_move_str, san_move_str, outcome_tuple, stockfish):
     #global inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle
     inputted_str = inputted_str.strip(' ').strip('\0').strip('^@')
     legal_moves = generate_legal_moves(legal_move_str, san_move_str, board)
@@ -27,14 +27,14 @@ def play_stockfish( board_window, inputted_str, board, status_str, \
 
     legal_moves = list(itertools.chain.from_iterable(legal_moves))
 
+    stockfish.set_elo_rating(1350) #implement user choice later
+    key = 0
+
     player_color = random.randint (1, 2)
     if player_color == 1:
         player_control = chess.WHITE
     else:
         player_control = not chess.WHITE
-
-    stockfish.set_elo_rating(1350) #implement user choice later
-
     while (key != 15): #while not quitting
         if player_control == True:
             if entered_move:
@@ -66,8 +66,8 @@ def play_stockfish( board_window, inputted_str, board, status_str, \
                 status_str = "last input is invalid"
             else:
                 status_str = "move is legal!"
-                if board.is_legal(from_uci(inputted_str)):
-                    board.push(inputted_str) #make the actual move with the chess module
+                if board.is_legal(inputted_str):
+                    board.push_uci(inputted_str) #make the actual move with the chess module
                     last_move_str = (board.parse_san(inputted_str)) #set stockfish move to san for history
                     history_arr.insert(0, last_move_str) #push to the front of the history stack for the history window
                     move_amount+=1 #increment the global move amount for the history window
