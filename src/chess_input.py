@@ -1,5 +1,7 @@
 import sys, os, traceback, random, curses, chess, math, enum, itertools, stockfish
 
+prompt_x_coord = 1
+prompt_y_coord = 1
 #                        888          888                    d8b                            888
 #                        888          888                    Y8P                            888
 #                        888          888                                                   888
@@ -13,9 +15,10 @@ import sys, os, traceback, random, curses, chess, math, enum, itertools, stockfi
 #          888                                                            888
 
 #update_input updates the game screen prompt window and returns what the user is currently typing
-def update_input(prompt_window, key, prompt_x_coord, prompt_y_coord, \
+def update_input(prompt_window, key, \
                  user_input_string, inputted_str, entered_move, status_str):
     #global prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, entered_move, status_str
+    global prompt_x_coord, prompt_y_coord
     height, width = prompt_window.getmaxyx()
 
     #ascii key codes
@@ -91,7 +94,7 @@ def update_input(prompt_window, key, prompt_x_coord, prompt_y_coord, \
     prompt_window.border()
     prompt_window.addch(prompt_y_coord, 0, '>') #indicate line youre on
 
-    return (prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, \
+    return ( user_input_string, inputted_str, \
             entered_move, status_str)
 
 

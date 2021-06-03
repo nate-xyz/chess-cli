@@ -1,6 +1,5 @@
 import sys, os, traceback, random, curses, chess, math, enum, itertools, stockfish
 
-
 #                                                  888                   d8b
 #                                                  888                   Y8P
 #                                                  888
@@ -15,7 +14,7 @@ import sys, os, traceback, random, curses, chess, math, enum, itertools, stockfi
 
 #game_logic determines if an inputted move is legal and manages the gamestate
 def local_game_logic( board_window, inputted_str, board, status_str, entered_move, \
-                last_move_str, history_arr, game_outcome_enum, \
+                last_move_str, history_arr, \
                 move_amount, final_position, post_screen_toggle, 
                 board_square_coord, pieces, 
                 legal_move_str, san_move_str,
@@ -51,7 +50,7 @@ def local_game_logic( board_window, inputted_str, board, status_str, entered_mov
                     curses.flash()
                     curses.beep()
 
-                game_outcome_enum = game_outcome(board, game_outcome_enum)
+                game_outcome_enum = game_outcome(board)
                 if game_outcome_enum != 0:
                     status_str = outcome_tuple[game_outcome_enum]
                     final_position = board.board_fen()
@@ -64,7 +63,7 @@ def local_game_logic( board_window, inputted_str, board, status_str, entered_mov
 
 
     return (inputted_str, board, status_str, entered_move, last_move_str, \
-            history_arr, game_outcome_enum, move_amount, final_position,\
+            history_arr, move_amount, final_position,\
             post_screen_toggle, board_square_coord, legal_move_str, \
             san_move_str)
 
@@ -226,9 +225,8 @@ def generate_legal_moves(legal_move_str, san_move_str, board):
 # ░░░░░░  ░░░░ ░░░░░  ░░░░░░  ░░░░░░  ░░░░░░  ░░░░░░░░░ ░░░░░       ░░░░░░░░ ░░░░░  ░░░░░░  ░░░░░░
 
 #returns an enumerated type based on the current game outcome
-def game_outcome(board, game_outcome_enum):
-    #global game_outcome_enum
-
+def game_outcome(board):
+    game_outcome_enum = 0
     if board.is_checkmate():
         game_outcome_enum = 1
     if board.is_stalemate():

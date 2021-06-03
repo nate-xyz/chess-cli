@@ -131,7 +131,7 @@ def display_history(history_window, history_arr, move_amount, pieces):
 
 #welcome screen that displays before the game screen 
 def welcome_screen(screen, quit_game, user_input_string, inputted_str, \
-    entered_move, prompt_x_coord, prompt_y_coord, status_str, ai_game):
+    entered_move, status_str, ai_game):
     #global quit_game, user_input_string, inputted_str, entered_move
     height, width = screen.getmaxyx()
     key = 0
@@ -189,8 +189,7 @@ def welcome_screen(screen, quit_game, user_input_string, inputted_str, \
         screen.addstr(start_y + 3, (width // 2) - 2, '-' * 4)
         screen.addstr(start_y + 5, start_x_keystr, keystr)
 
-        update_input(prompt_welcome_window, key, prompt_x_coord, \
-                    prompt_y_coord, user_input_string, inputted_str, \
+        update_input(prompt_welcome_window, key, user_input_string, inputted_str, \
                     entered_move, status_str)
 
         prompt_welcome_window.border()
@@ -203,8 +202,7 @@ def welcome_screen(screen, quit_game, user_input_string, inputted_str, \
     inputted_str = ""
     entered_move = ""
 
-    return (quit_game, user_input_string, inputted_str, entered_move, \
-            prompt_x_coord, prompt_y_coord, status_str, ai_game)
+    return (quit_game, user_input_string, inputted_str, entered_move, status_str, ai_game)
 
 
 
@@ -224,8 +222,7 @@ def welcome_screen(screen, quit_game, user_input_string, inputted_str, \
 
 #post game screen that displays after the game has reached a win condition
 def post_screen(screen1, quit_game, user_input_string, inputted_str, \
-                entered_move, history_arr, final_position, prompt_x_coord, \
-                prompt_y_coord, status_str, board_square_coord, pieces):
+                entered_move, history_arr, final_position, status_str, board_square_coord, pieces):
     #global quit_game, user_input_string, inputted_str, entered_move, history_arr, final_position
 
     screen1.clear()
@@ -290,8 +287,7 @@ def post_screen(screen1, quit_game, user_input_string, inputted_str, \
         draw_board(board_post_window, final_position, board_square_coord, \
             pieces)
 
-        update_input(prompt_post_window, key, prompt_x_coord, prompt_y_coord, \
-            user_input_string, inputted_str, entered_move, status_str)
+        update_input(prompt_post_window, key, user_input_string, inputted_str, entered_move, status_str)
 
         prompt_post_window.border()
         board_post_window.border()
@@ -306,6 +302,6 @@ def post_screen(screen1, quit_game, user_input_string, inputted_str, \
     entered_move = ""
 
     return (quit_game, user_input_string, inputted_str, entered_move, \
-            history_arr, final_position, prompt_x_coord, prompt_y_coord, status_str)
+            history_arr, final_position, status_str)
 
 

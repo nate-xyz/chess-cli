@@ -16,7 +16,7 @@ from game_logic import *
 
 def stockfish_logic( board_window, inputted_str, board, status_str, \
                     entered_move, last_move_str, history_arr, \
-                    game_outcome_enum, move_amount, final_position, \
+                    move_amount, final_position, \
                     post_screen_toggle, board_square_coord, pieces, \
                     legal_move_str, san_move_str, outcome_tuple, stockfish_obj):
     #global inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle
@@ -76,7 +76,7 @@ def stockfish_logic( board_window, inputted_str, board, status_str, \
                     curses.beep()
 
 
-        game_outcome_enum = game_outcome(board, game_outcome_enum)
+        game_outcome_enum = game_outcome(board)
         if game_outcome_enum != 0:
             status_str = outcome_tuple[game_outcome_enum]
             final_position = board.board_fen()
@@ -89,7 +89,7 @@ def stockfish_logic( board_window, inputted_str, board, status_str, \
 
 
     return (inputted_str, board, status_str, entered_move, last_move_str, \
-            history_arr, game_outcome_enum, move_amount, final_position,\
+            history_arr, move_amount, final_position,\
             post_screen_toggle, board_square_coord, legal_move_str, \
             san_move_str, stockfish_obj)
 

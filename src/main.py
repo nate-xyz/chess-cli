@@ -9,7 +9,7 @@ from play_ai import *
 
 ## GLOBAL VARS ##
 #set to true to skip welcome screen
-dev_mode = False
+skip_welcome = False
 
 #Set true to disable post screen
 post_screen_toggle = False
@@ -41,14 +41,19 @@ def main():
 #  "Y88888 888    "Y888888  "Y8888888P" 88888888 88888P'  "Y8888P 888     "Y8888   "Y8888  888  888
 
 def draw_screen(stdscr):
-    global dev_mode, post_screen_toggle
+    global skip_welcome, post_screen_toggle
 
     board = chess.Board()
     #prompt vars
-    prompt_x_coord = 1
-    prompt_y_coord = 1
+    # prompt_x_coord = 1
+    # prompt_y_coord = 1
 
-    #global strings
+
+    move_amount = 0
+    #@game_outcome_enum = 0
+    key = 0
+
+    #strings
     last_move_str = "no move yet"
     user_input_string = ""
     inputted_str = ""
@@ -57,15 +62,12 @@ def draw_screen(stdscr):
     san_move_str = ""
     history_arr = ["init"]
     final_position = ""
+    floating_piece = ""
 
-    move_amount = 0
-    game_outcome_enum = 0
-
-    #true if user hits enter key
-    entered_move = False
+    #booleans
+    entered_move = False #true if user hits enter key
     quit_game = False
     mouse_pressed = False
-    floating_piece = ""
     floating = False
     ai_game = False
 
@@ -110,7 +112,7 @@ def draw_screen(stdscr):
 
     board_square_coord = dict()
 
-    key = 0
+    
     #cursor_x = 0
     #cursor_y = 0
     stdscr = curses.initscr()
@@ -162,10 +164,10 @@ def draw_screen(stdscr):
 
 
 
-    if not dev_mode:
+    if not skip_welcome:
         #welcome screen
-        quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str, ai_game = \
-            welcome_screen( stdscr, quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str, ai_game ) 
+        quit_game, user_input_string, inputted_str, entered_move, status_str, ai_game = \
+            welcome_screen( stdscr, quit_game, user_input_string, inputted_str, entered_move, status_str, ai_game ) 
             
     if ai_game:
         stockfish_obj = Stockfish(parameters={"Threads": 2, "Minimum Thinking Time": 30})
@@ -262,9 +264,8 @@ def draw_screen(stdscr):
         #external function calls
 
         #update_input updates the game screen prompt window and returns what the user is currently typing
-        prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, \
-        entered_move, status_str = update_input(prompt_window, key, \
-        prompt_x_coord, prompt_y_coord, user_input_string, inputted_str, \
+        user_input_string, inputted_str, entered_move, status_str = \
+            update_input(prompt_window, key, user_input_string, inputted_str, \
         entered_move, status_str)
          #update the board window mouse input
         #mouse_pressed, floating_piece, floating = board_window_mouse_input(board_window, key, width, height, board_square_coord, mouse_pressed, floating_piece, floating)
@@ -274,22 +275,22 @@ def draw_screen(stdscr):
         if ai_game:
             #call play_stockfish
             inputted_str, board, status_str, entered_move, last_move_str, \
-            history_arr, game_outcome_enum, move_amount, final_position,\
+            history_arr, move_amount, final_position,\
             post_screen_toggle, board_square_coord, legal_move_str, san_move_str, stockfish_obj = \
                 stockfish_logic( board_window, inputted_str, board, 
             status_str, entered_move, last_move_str, history_arr, \
-            game_outcome_enum, move_amount, final_position, \
+            move_amount, final_position, \
             post_screen_toggle, board_square_coord, pieces, \
             legal_move_str, san_move_str, outcome_tuple, stockfish_obj)
 
         else:
             #call local_game_logic
             inputted_str, board, status_str, entered_move, last_move_str, \
-            history_arr, game_outcome_enum, move_amount, final_position, \
+            history_arr, move_amount, final_position, \
             post_screen_toggle, board_square_coord, legal_move_str, san_move_str = \
                 local_game_logic(board_window, inputted_str, board, \
             status_str, entered_move, last_move_str, history_arr, \
-            game_outcome_enum, move_amount, final_position, \
+             move_amount, final_position, \
             post_screen_toggle, board_square_coord, pieces, \
             legal_move_str, san_move_str, outcome_tuple)
         
@@ -298,27 +299,26 @@ def draw_screen(stdscr):
 
             #post_screen displays after the win condition has been met
             quit_game, user_input_string, inputted_str, entered_move, \
-            history_arr, final_position, prompt_x_coord, prompt_y_coord, \
+            history_arr, final_position, \
             status_str = post_screen(stdscr, quit_game, user_input_string, \
             inputted_str, entered_move, history_arr, final_position, \
-            prompt_x_coord, prompt_y_coord, status_str, board_square_coord, \
+            status_str, board_square_coord, \
             pieces)
             if quit_game:
                 break
 
             #return to the welcome screen
             quit_game, user_input_string, inputted_str, entered_move, \
-            prompt_x_coord, prompt_y_coord, status_str = \
+             status_str = \
             welcome_screen(stdscr, quit_game, user_input_string, inputted_str, \
-            entered_move, prompt_x_coord, prompt_y_coord, status_str)
+            entered_move, status_str)
             continue
         
         #windows for the game screen
 
         #display game information
-        status_str, legal_move_str, san_move_str = display_info(board, \
-        info_window, last_move_str, status_str, inputted_str, legal_move_str, \
-        san_move_str)
+        status_str, legal_move_str, san_move_str = \
+            display_info(board, info_window, last_move_str, status_str, inputted_str, legal_move_str, san_move_str)
         #display move history
         display_history(history_window, history_arr, move_amount, pieces)
 
