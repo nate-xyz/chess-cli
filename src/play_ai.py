@@ -18,7 +18,7 @@ def stockfish_logic( board_window, inputted_str, board, status_str, \
                     entered_move, last_move_str, history_arr, \
                     game_outcome_enum, move_amount, final_position, \
                     post_screen_toggle, board_square_coord, pieces, \
-                    legal_move_str, san_move_str, outcome_tuple, stockfish):
+                    legal_move_str, san_move_str, outcome_tuple, stockfish_obj):
     #global inputted_str, board, status_str, entered_move, last_move_str, history_arr, game_outcome_enum, move_amount, final_position, post_screen_toggle
     inputted_str = inputted_str.strip(' ').strip('\0').strip('^@')
     legal_moves = generate_legal_moves(legal_move_str, san_move_str, board)
@@ -28,7 +28,7 @@ def stockfish_logic( board_window, inputted_str, board, status_str, \
 
     legal_moves = list(itertools.chain.from_iterable(legal_moves))
 
-    stockfish.set_elo_rating(1350) #implement user choice later
+    stockfish_obj.set_elo_rating(1350) #implement user choice later
     key = 0
 
     player_color = random.randint (1, 2)
@@ -61,7 +61,7 @@ def stockfish_logic( board_window, inputted_str, board, status_str, \
 
                  
         else:
-            inputted_str = stockfish.get_best_move_time(1000) 
+            inputted_str = stockfish_obj.get_best_move_time(1000) 
             #take 1 second to think, set to inputted_str. stockfish will format like a2a3, e2e4 etc (uci)
             if inputted_str not in legal_moves:
                 status_str = "last input is invalid"
@@ -91,7 +91,7 @@ def stockfish_logic( board_window, inputted_str, board, status_str, \
     return (inputted_str, board, status_str, entered_move, last_move_str, \
             history_arr, game_outcome_enum, move_amount, final_position,\
             post_screen_toggle, board_square_coord, legal_move_str, \
-            san_move_str)
+            san_move_str, stockfish_obj)
 
 
 

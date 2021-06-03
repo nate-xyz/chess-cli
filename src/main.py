@@ -1,5 +1,7 @@
-import sys, os, traceback, random, curses, chess, math, enum, itertools, stockfish
+import sys, os, traceback, random, curses, chess, math, enum, itertools
 
+
+from stockfish import Stockfish
 from chess_input import *
 from chess_display import *
 from game_logic import *
@@ -165,7 +167,8 @@ def draw_screen(stdscr):
         quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str, ai_game = \
             welcome_screen( stdscr, quit_game, user_input_string, inputted_str, entered_move, prompt_x_coord, prompt_y_coord, status_str, ai_game ) 
             
-
+    if ai_game:
+        stockfish_obj = Stockfish(parameters={"Threads": 2, "Minimum Thinking Time": 30})
     #start windows
     board_window = curses.newwin( math.floor((height/4)*3), \
                    math.floor(width/2), 0, 0)
@@ -272,12 +275,12 @@ def draw_screen(stdscr):
             #call play_stockfish
             inputted_str, board, status_str, entered_move, last_move_str, \
             history_arr, game_outcome_enum, move_amount, final_position,\
-            post_screen_toggle, board_square_coord, legal_move_str, san_move_str = \
+            post_screen_toggle, board_square_coord, legal_move_str, san_move_str, stockfish_obj = \
                 stockfish_logic( board_window, inputted_str, board, 
             status_str, entered_move, last_move_str, history_arr, \
             game_outcome_enum, move_amount, final_position, \
             post_screen_toggle, board_square_coord, pieces, \
-            legal_move_str, san_move_str, outcome_tuple, stockfish)
+            legal_move_str, san_move_str, outcome_tuple, stockfish_obj)
 
         else:
             #call local_game_logic
