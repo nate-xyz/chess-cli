@@ -109,8 +109,8 @@ def draw_screen(stdscr):
     board_square_coord = dict()
 
     key = 0
-    cursor_x = 0
-    cursor_y = 0
+    #cursor_x = 0
+    #cursor_y = 0
     stdscr = curses.initscr()
     height, width = stdscr.getmaxyx()
 
@@ -119,9 +119,9 @@ def draw_screen(stdscr):
     stdscr.refresh()
 
     #necessary for mouse input, start keypad, read all mouse events
-    stdscr.keypad(1)
-    curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
-    print("\033[?1003h")
+    #stdscr.keypad(1)
+    #curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
+    #print("\033[?1003h")
 
     # allow input, Start colors in curses
     curses.echo()
@@ -221,11 +221,11 @@ def draw_screen(stdscr):
         history_window_height, history_window_width = history_window.getmaxyx()
 
         #get mouse location
-        cursor_x = max(0, cursor_x)
-        cursor_x = min(width-1, cursor_x)
+        #cursor_x = max(0, cursor_x)
+        #cursor_x = min(width-1, cursor_x)
 
-        cursor_y = max(0, cursor_y)
-        cursor_y = min(height-1, cursor_y)
+        #cursor_y = max(0, cursor_y)
+        #cursor_y = min(height-1, cursor_y)
 
         # Declaration of strings
         board_title = "board"[:width-1]
