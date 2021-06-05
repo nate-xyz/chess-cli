@@ -171,7 +171,8 @@ def draw_screen(stdscr):
             welcome_screen( stdscr, quit_game_bool, input_buffer_str, move_str, entered_move_bool, status_str, ai_game_bool ) 
             
     if ai_game_bool:
-        stockfish_obj = Stockfish(parameters={"Threads": 2, "Minimum Thinking Time": 30})
+        stockfish_obj = Stockfish("/home/arch/Stockfish/stockfish_13_linux_x64_bmi2/sf_13/src/stockfish")
+        #point stockfish obj to path where you make stockfish engine
     #start windows
     board_window = curses.newwin( math.floor((height/4)*3), \
                    math.floor(width/2), 0, 0)
