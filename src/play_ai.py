@@ -1,6 +1,10 @@
-import sys, os, traceback, random, curses, chess, math, enum, itertools, stockfish
+import sys, os, traceback, random, curses, chess, math, enum, itertools
 
 from game_logic import *
+from main import *
+from chess_display import *
+from chess_input import *
+from stockfish import Stockfish
                                                                                                                                                                                                                       
 #                                             88           ad88  88             88                                                                                        88                            88              
 #              ,d                             88          d8"    ""             88                                                                                        88                            ""              
@@ -14,12 +18,20 @@ from game_logic import *
 #                                                                                          888888888888  "Y8bbdP"                                             888888888888                   "Y8bbdP"                          
 
 
-def stockfish_logic( board_window, move_str, board, status_str, \
+
+
+
+
+def stockfish_logic(board_window, move_str, board, status_str, \
                     entered_move_bool, last_move_str, history_arr, \
                     move_amount, final_position_str, \
                     post_screen_toggle, board_square_coord, pieces, \
                     legal_move_str, san_move_str, outcome_tuple, stockfish_obj):
     #global move_str, board, status_str, entered_move_bool, last_move_str, history_arr, game_outcome_enum, move_amount, final_position_str, post_screen_toggle
+    
+    
+    stockfish_obj = Stockfish("/home/arch/Stockfish/stockfish_13_linux_x64_bmi2/sf_13/src/stockfish")
+    
     move_str = move_str.strip(' ').strip('\0').strip('^@')
     legal_moves = generate_legal_moves(legal_move_str, san_move_str, board)
     legal_moves_san = legal_moves[0] 
@@ -27,7 +39,6 @@ def stockfish_logic( board_window, move_str, board, status_str, \
     legal_moves_uci = legal_moves[2]
 
     legal_moves = list(itertools.chain.from_iterable(legal_moves))
-
     stockfish_obj.set_elo_rating(1350) #implement user choice later
     key = 0
 
