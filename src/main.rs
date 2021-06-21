@@ -1,5 +1,6 @@
 extern crate ncurses;
 extern crate libm;
+extern crate chess;
 
 use libm::floor;
 use ncurses::*;
@@ -88,4 +89,12 @@ fn main() {
         key = getch()
     }
     endwin();
+
+//chess display
+fn chess_display() {
+
+    //let (mut height, mut width): (f64, f64) = info_window.getmaxyx();
+
+
+}
 }

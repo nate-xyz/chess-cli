@@ -14,6 +14,8 @@ skip_welcome = False
 #Set true to disable post screen
 post_screen_toggle = False
 
+#global stockfish_obj
+
 #quick game to get to post screen:
 #f3 e5 g4 Qh4#
 
@@ -171,7 +173,7 @@ def draw_screen(stdscr):
             welcome_screen( stdscr, quit_game_bool, input_buffer_str, move_str, entered_move_bool, status_str, ai_game_bool ) 
             
     if ai_game_bool:
-        stockfish_obj = Stockfish("/home/arch/Stockfish/stockfish_13_linux_x64_bmi2/sf_13/src/stockfish")
+        stockfish_obj = Stockfish("/home/arch/Stockfish/stockfish_13_linux_x64_bmi2/stockfish_13_linux_x64_bmi2")
         #point stockfish obj to path where you make stockfish engine
     #start windows
     board_window = curses.newwin( math.floor((height/4)*3), \
@@ -276,14 +278,13 @@ def draw_screen(stdscr):
 
         if ai_game_bool:
             #call play_stockfish
-            move_str, board, status_str, entered_move_bool, last_move_str, \
-            history_arr, move_amount, final_position_str,\
-            post_screen_toggle, board_square_coord, legal_move_str, san_move_str, stockfish_obj = \
-                stockfish_logic( board_window, move_str, board, 
+            
+            
+            stockfish_logic(board_window, move_str, board, 
             status_str, entered_move_bool, history_arr, \
             move_amount, final_position_str, \
             post_screen_toggle, board_square_coord, pieces, \
-            legal_move_str, san_move_str, outcome_tuple, stockfish_obj)
+            legal_move_str, san_move_str, outcome_tuple)
 
         else:
             #call local_game_logic
