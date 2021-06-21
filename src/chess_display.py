@@ -243,7 +243,7 @@ def post_screen(screen1, quit_game_bool, input_buffer_str, move_str, \
         screen1.clear()
 
         # Declaration of strings
-        title = "Game has ended."[:width-1]
+        title = "Game has ended by " + status_str[:width-1]
         final_position_str_str = "Final position: "[:width-1]
         final_history_str = "Last key pressed: {}".format(key)[:width-1]
         statusbarstr = "Press 'Ctrl-l' to play again | Press 'Ctrl-o' to quit"
@@ -268,7 +268,7 @@ def post_screen(screen1, quit_game_bool, input_buffer_str, move_str, \
         board_post_window.attron(curses.A_BOLD)
 
         # Rendering title
-        board_post_window.addstr(start_y, start_x_title, title)
+        board_post_window.addstr(((start_y//2)-2), start_x_title, title)
 
         # Turning off attributes for title
         screen1.attroff(curses.color_pair(2))
