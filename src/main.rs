@@ -1,11 +1,40 @@
+#![forbid(unsafe_code)]
+
+
 extern crate ncurses;
 extern crate libm;
 extern crate chess;
 
+use chess::Board;
 use libm::floor;
 use ncurses::*;
+use std::*;
+use std::collections::HashMap;
+use std::iter::Iterator;
 
 fn main() {
+
+    fn Pieces_hash() {
+         let mut pieces_hash = HashMap::new();
+         pieces_hash.insert("K", vec!["♔"]);
+         pieces_hash.insert("Q", vec!["♕"]);
+         pieces_hash.insert("R", vec!["♖"]);
+         pieces_hash.insert("B", vec!["♗"]);
+         pieces_hash.insert("N", vec!["♘"]);
+         pieces_hash.insert("P", vec!["♙"]);
+         pieces_hash.insert("k", vec!["♚"]);
+         pieces_hash.insert("q", vec!["♛"]);
+         pieces_hash.insert("r", vec!["♜"]);
+         pieces_hash.insert("b", vec!["♝"]);
+         pieces_hash.insert("n", vec!["♞"]);
+         //pieces_hash.insert("p", vec!["♟︎"]);
+         pieces_hash.insert("p", vec!["♙"]);
+    }
+
+
+    let mut board = Board::default();
+
+
     initscr();
 
     let mut height = 0; 
@@ -258,10 +287,10 @@ fn main() {
     endwin();
 
 //chess display
-fn chess_display() {
+//fn chess_display(board, info_window: i32, last_move_str: str, status_str, move_str, legal_move_str, san_move_str) {
 
-    //let (mut height, mut width): (f64, f64) = info_window.getmaxyx();
+//    getmaxyx(info_window, &mut info_window_height, &mut info_window_width);
 
 
-}
+//}
 }
