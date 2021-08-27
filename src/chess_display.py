@@ -2,6 +2,7 @@ import sys, os, traceback, random, curses, chess, math, enum, itertools, stockfi
 from play_ai import *
 from chess_input import *
 from game_logic import *
+from lichess_web import *
 
 #GAME SCREEN WINDOWS 
 
@@ -49,7 +50,7 @@ def display_info(board, info_window, last_move_str, status_str, move_str, legal_
 
     wrap_y = 0
     temp = san_move_str
-    san_move_str = "{}: {}".format("legal moves (san)", san_move_str)
+    san_move_str = "{}: {}".format("legal moves (san)", read_token())
     for y in range(5, height-1):
         wrap_y = y
         if len(san_move_str) > width-2:
