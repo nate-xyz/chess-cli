@@ -1,4 +1,4 @@
-# chess-cli
+# chess-cli ♟️
 
 more on this later...
 
