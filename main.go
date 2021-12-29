@@ -73,6 +73,7 @@ func main() {
 	local_game_screen(stdscr)
 	goncurses.FlushInput()
 	goncurses.Echo(false) //turn off input
+	goncurses.End()
 }
 
 //
