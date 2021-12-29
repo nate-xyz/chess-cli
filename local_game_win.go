@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"unicode"
 
 	"github.com/nate-xyz/goncurses"
@@ -49,14 +50,11 @@ func display_info(info_window *goncurses.Window) {
 
 	info_window.AttrOn(goncurses.ColorPair(8))
 
-	//info_window.MovePrint(5, 1, "{}: {}".format("legal moves (san)", san_move_str))
-
-	wrap_y := 0
-	san_move_str := fmt.Sprintf("legal moves (san): %s", san_move_str)
-	// san_move_str = "{}: {}".format("", san_move_str)
+	//wrap_y := 0
+	san_move_str := fmt.Sprintf("legal moves: %s", strings.Join(legal_move_str_array[:], ", "))
 
 	for y := 5; y < height-1; y++ {
-		wrap_y = y
+		//wrap_y = y
 		if len(san_move_str) > width-2 {
 			info_window.MovePrint(y, 1, san_move_str[:width-2])
 			san_move_str = san_move_str[width-2:]
@@ -66,18 +64,17 @@ func display_info(info_window *goncurses.Window) {
 		}
 
 	}
-	legal_move_str := fmt.Sprintf("legal moves (uci): %s", legal_move_str)
-	// legal_move_str = "{}: {}".format("legal moves (uci)", legal_move_str)
+	// legal_move_str := fmt.Sprintf("legal moves (uci): %s", legal_move_str)
 
-	for y := wrap_y + 2; y < height-1; y++ {
-		if len(legal_move_str) > width-2 {
-			info_window.MovePrint(y, 1, legal_move_str[:width-2])
-			legal_move_str = legal_move_str[width-2:]
-		} else {
-			info_window.MovePrint(y, 1, legal_move_str)
-			break
-		}
-	}
+	// for y := wrap_y + 2; y < height-1; y++ {
+	// 	if len(legal_move_str) > width-2 {
+	// 		info_window.MovePrint(y, 1, legal_move_str[:width-2])
+	// 		legal_move_str = legal_move_str[width-2:]
+	// 	} else {
+	// 		info_window.MovePrint(y, 1, legal_move_str)
+	// 		break
+	// 	}
+	// }
 	//info_window.MovePrint(7, 1, "{}: {}".format("legal moves (uci)", legal_move_str))
 	info_window.AttrOff(goncurses.ColorPair(8))
 

@@ -144,7 +144,6 @@ func local_game_screen(stdscr *goncurses.Window) {
 				break
 			}
 			welcome_screen(stdscr)
-			//draw_screen(stdscr)
 			continue
 		}
 		display_info(info_window)

@@ -11,7 +11,7 @@ import (
 func update_input(prompt_window *goncurses.Window, key goncurses.Key) {
 	height, width := prompt_window.MaxYX()
 	padding := fmt.Sprintf("%s", strings.Repeat(" ", (width-1)))
-	var currentPoint goncurses.Char = goncurses.Char(rune(8248))
+	var currentPoint string = string(rune(8248))
 
 	if key == goncurses.KEY_MOUSE { //dont do any input for mouse event
 		prompt_window.MovePrint(1, 1, "mouse")
@@ -25,40 +25,15 @@ func update_input(prompt_window *goncurses.Window, key goncurses.Key) {
 			delete_x = prompt_x_coord - 1
 		}
 
-		prompt_window.MoveAddChar(prompt_y_coord, delete_x, currentPoint) //clear last char pointer
-		prompt_window.MoveAddChar(prompt_y_coord, delete_x+1, ' ')        //clear last char printed
-		prompt_x_coord--                                                  //decrement char position
-		user_input_string = user_input_string[:len(user_input_string)-2]
-		//if the key entered is an input char:
-	} else if unicode.IsLetter(rune(key)) || unicode.IsDigit(rune(key)) || key == octothorpe || key == plus_sign {
-		prompt_window.MoveAddChar(prompt_y_coord, prompt_x_coord+1, currentPoint) //indicate char youre on
-		prompt_window.MoveAddChar(prompt_y_coord, prompt_x_coord, goncurses.Char(key))
-		prompt_x_coord++ //increment char position
-	}
-	//adjust coordinates
-	if prompt_x_coord <= 0 {
-		prompt_window.MoveAddChar(prompt_y_coord, 1, ' ') //clear last char pointer
-		prompt_x_coord = width - 2
-		prompt_y_coord--
-	}
+		prompt_window.MovePrint(prompt_y_coord, delete_x, currentPoint)
+		prompt_window.MoveAddChar(prompt_y_coord, delete_x+1, ' ') //clear last char printed
+		prompt_x_coord--                                           //decrement char position
 
-	if prompt_y_coord <= 0 {
-		prompt_x_coord = 1
-		prompt_y_coord = 1
-	}
+		if len(user_input_string) >= 3 {
+			user_input_string = user_input_string[:len(user_input_string)-2]
+		}
 
-	if prompt_x_coord >= width-1 {
-		prompt_x_coord = 1
-		prompt_y_coord++
 	}
-
-	if prompt_y_coord >= height-1 {
-		prompt_x_coord = width - 2
-		prompt_y_coord = height - 2
-		status_str = "char limit reached"
-		return
-	}
-
 	if key == enter_key { //enter key
 		entered_move = true
 		inputted_str = user_input_string //set global string to check if move is legal
@@ -71,6 +46,33 @@ func update_input(prompt_window *goncurses.Window, key goncurses.Key) {
 		for i := 1; i < height-1; i++ { //clear window
 			prompt_window.MovePrint(i, prompt_x_coord, padding)
 		}
+		return
+	}
+	//if the key entered is an input char:
+	if unicode.IsLetter(rune(key)) || unicode.IsDigit(rune(key)) || key == octothorpe || key == plus_sign {
+		prompt_window.MovePrint(prompt_y_coord, prompt_x_coord+1, currentPoint) //indicate char youre on
+		prompt_window.MoveAddChar(prompt_y_coord, prompt_x_coord, goncurses.Char(key))
+		prompt_x_coord++ //increment char position
+	}
+
+	//adjust coordinates
+	if prompt_x_coord <= 0 {
+		prompt_window.MoveAddChar(prompt_y_coord, 1, ' ') //clear last char pointer
+		prompt_x_coord = width - 2
+		prompt_y_coord--
+	}
+	if prompt_y_coord <= 0 {
+		prompt_x_coord = 1
+		prompt_y_coord = 1
+	}
+	if prompt_x_coord >= width-1 {
+		prompt_x_coord = 1
+		prompt_y_coord++
+	}
+	if prompt_y_coord >= height-1 {
+		prompt_x_coord = width - 2
+		prompt_y_coord = height - 2
+		status_str = "char limit reached"
 		return
 	}
 
