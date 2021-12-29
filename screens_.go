@@ -103,7 +103,7 @@ func local_game_screen(stdscr *goncurses.Window) {
 
 		keystr := fmt.Sprintf("Last key pressed: %d\n", key)
 		//statusbarstr = "Press 'Ctrl+o' to exit | CHESS-CLI | Pos: {}, {}".format(cursor_x, cursor_y)
-		statusbarstr := "Press 'Ctrl+o' to exit | CHESS-TUI"
+		statusbarstr := "Press 'Ctrl+o' to exit | CHESS-CLI"
 
 		statusbarfull := fmt.Sprintf("%s | %s\n", statusbarstr, keystr)
 

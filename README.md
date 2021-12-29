@@ -1,4 +1,4 @@
-# chess-tui ♟️
+# chess-cli ♟️
 
 run with: go run .
 
