@@ -28,10 +28,7 @@ func update_input(prompt_window *goncurses.Window, key goncurses.Key) {
 		prompt_window.MovePrint(prompt_y_coord, delete_x, currentPoint)
 		prompt_window.MoveAddChar(prompt_y_coord, delete_x+1, ' ') //clear last char printed
 		prompt_x_coord--                                           //decrement char position
-
-		if len(user_input_string) >= 3 {
-			user_input_string = user_input_string[:len(user_input_string)-2]
-		}
+		user_input_string = removeLastRune(user_input_string)
 
 	}
 	if key == enter_key { //enter key
@@ -120,3 +117,11 @@ func update_input(prompt_window *goncurses.Window, key goncurses.Key) {
 //             screen.AttrOn(goncurses.A_BOLD)
 //     except:
 //         screen.MovePrint(7, 2, "error")
+
+func removeLastRune(s string) string {
+	if len(s) <= 0 {
+		return s
+	}
+	r := []rune(s)
+	return string(r[:len(r)-1])
+}

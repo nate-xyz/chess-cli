@@ -5,8 +5,7 @@ run with: go run .
 
 TODO: 
 
-    - fix prompt window breaking on delete
-    - fix legal move list on info window
+    - fix prompt window breaking in alacritty
     - get mouse input working in board window
     - get lichess requests working
     - get oauth working
