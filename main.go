@@ -93,6 +93,7 @@ func game_logic(board_window *goncurses.Window) {
 	inputted_str = strings.Trim(inputted_str, " ^@")
 	board_window.MovePrint(1, 1, inputted_str)
 	legal_moves := game.ValidMoves()
+	legal_move_str_array = []string{}
 
 	for _, move := range legal_moves {
 		legal_move_str_array = append(legal_move_str_array, move.String())
