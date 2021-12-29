@@ -1,7 +1,5 @@
-# chess-cli ♟️ 
+# chess-tui ♟️
 
-more on this later...
-
-watch this space!!!!!!!!
+run with: go run .
 
 ♞♞♞♞♞♞♞♞♞♞♞

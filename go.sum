@@ -1,0 +1,7 @@
+github.com/ajstarks/svgo v0.0.0-20200320125537-f189e35d30ca/go.mod h1:K08gAheRH3/J6wwsYMMT4xOr94bZjxIelGM0+d/wbFw=
+github.com/gbin/goncurses v0.0.0-20141106211150-34d9399fcea5 h1:1zsAMqM0C3Yjv9KWjh/68s/07bYeev6c0D4FwHkl13w=
+github.com/gbin/goncurses v0.0.0-20141106211150-34d9399fcea5/go.mod h1:dmRjyC3ZOQQ4EXWMOIAQi0TLaJPcg61LFsJ9mvhSGRE=
+github.com/nate-xyz/goncurses v0.0.0-20211229023527-2c2f26648929 h1:HbS3ax3CkeKGmXAHb53/JPbdcKQVFnELCRANteJERqg=
+github.com/nate-xyz/goncurses v0.0.0-20211229023527-2c2f26648929/go.mod h1:6ykFBY/ZxdjZwB+mlHy+VMmnps2ZpL+Qf/KvCz/8aoc=
+github.com/notnil/chess v1.7.1 h1:4Y+PL5vxuWhRo7DHBpFwUmkU7muMimo6tJHv2Y6EmFY=
+github.com/notnil/chess v1.7.1/go.mod h1:cRuJUIBFq9Xki05TWHJxHYkC+fFpq45IWwk94DdlCrA=
