@@ -14,10 +14,9 @@ func update_input(prompt_window *goncurses.Window, key goncurses.Key) {
 	var currentPoint string = string(rune(8248))
 
 	if key == goncurses.KEY_MOUSE { //dont do any input for mouse event
-		prompt_window.MovePrint(1, 1, "mouse")
 		return
 	}
-	if key == delete_key { //delete key
+	if key == delete_key || key == goncurses.KEY_BACKSPACE { //delete key
 		var delete_x int
 		if prompt_x_coord-1 <= 0 {
 			delete_x = 1
@@ -31,7 +30,7 @@ func update_input(prompt_window *goncurses.Window, key goncurses.Key) {
 		user_input_string = removeLastRune(user_input_string)
 
 	}
-	if key == enter_key { //enter key
+	if key == goncurses.KEY_ENTER || key == goncurses.KEY_RETURN || key == enter_key { //enter key
 		entered_move = true
 		inputted_str = user_input_string //set global string to check if move is legal
 		user_input_string = ""           //reset input buffer
@@ -74,7 +73,7 @@ func update_input(prompt_window *goncurses.Window, key goncurses.Key) {
 	}
 
 	//add to the current input buffer
-	if key != enter_key && key != delete_key && (unicode.IsLetter(rune(key)) || unicode.IsDigit(rune(key)) || key == octothorpe || key == plus_sign) { //not enter and not delete
+	if key != goncurses.KEY_ENTER && key != goncurses.KEY_RETURN && key != delete_key && (unicode.IsLetter(rune(key)) || unicode.IsDigit(rune(key)) || key == octothorpe || key == plus_sign) { //not enter and not delete
 		user_input_string += string(rune(key))
 	}
 	//redraw border in case it was painted over

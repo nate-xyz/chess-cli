@@ -2,11 +2,17 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/nate-xyz/goncurses"
 )
+
+type windowSizePos struct {
+	h int
+	w int
+	y int
+	x int
+}
 
 func local_game_screen(stdscr *goncurses.Window) {
 	var key goncurses.Key = 0
@@ -22,12 +28,18 @@ func local_game_screen(stdscr *goncurses.Window) {
 	stdscr.Refresh()
 
 	//start windows
-	board_window, _ := goncurses.NewWindow(int(math.Floor(float64((height/4)*3))), int(math.Floor(float64(width/2))), 0, 0)
-	prompt_window, _ := goncurses.NewWindow(int(math.Floor(float64((height/4)-1))), int(math.Floor(float64(width/2))), int(math.Floor(float64((height/4)*3))), 0)
-	info_window, _ := goncurses.NewWindow(int(math.Floor(float64((height / 2)))), int(math.Floor(float64(width/2))), 0, int(math.Floor(float64(width/2))))
-	history_window, _ := goncurses.NewWindow(int(math.Floor(float64((height/2)-1))), int(math.Floor(float64(width/2))), int(math.Floor(float64(height/2))), int(math.Floor(float64(width/2))))
+	bw_info := windowSizePos{(height / 4) * 3, width / 2, 0, 0}
+	pw_info := windowSizePos{(height / 4) - 1, width / 2, (height / 4) * 3, 0}
+	iw_info := windowSizePos{height / 2, width / 2, 0, width / 2}
+	hw_info := windowSizePos{(height / 2) - 1, width / 2, height / 2, width / 2}
+
+	board_window, _ := goncurses.NewWindow(bw_info.h, bw_info.w, bw_info.y, bw_info.x)
+	prompt_window, _ := goncurses.NewWindow(pw_info.h, pw_info.w, pw_info.y, pw_info.x)
+	info_window, _ := goncurses.NewWindow(iw_info.h, iw_info.w, iw_info.y, iw_info.x)
+	history_window, _ := goncurses.NewWindow(hw_info.h, hw_info.w, hw_info.y, hw_info.x)
 
 	windows_array := [4]*goncurses.Window{board_window, info_window, prompt_window, history_window}
+	windows_info_arr := [4]windowSizePos{bw_info, pw_info, iw_info, hw_info}
 
 	// Loop where key is the last character pressed
 	for key != 15 { // while not quitting (ctrl+o)
@@ -50,24 +62,11 @@ func local_game_screen(stdscr *goncurses.Window) {
 			stdscr.Clear()
 			stdscr.Refresh()
 
-			var height_float float64 = float64(height)
-			var width_float float64 = float64(width)
-
-			//Resize windows based on new dimensions
-			board_window.Resize(int(math.Floor(float64((height_float/4)*3))), int(math.Floor(float64(width_float/2))))
-			prompt_window.Resize(int(math.Floor(float64((height_float/4)-1))), int(math.Floor(float64(width_float/2))))
-			info_window.Resize(int(math.Floor(float64((height_float / 2)))), int(math.Floor(float64(width_float/2))))
-			history_window.Resize(int(math.Floor(float64((height_float/2)-1))), int(math.Floor(float64(width_float/2))))
-
-			//move windows to appropriate locations
-			board_window.MoveWindow(0, 0)
-			prompt_window.MoveWindow(int(math.Floor(float64((height_float/4)*3))), 0)
-			info_window.MoveWindow(0, int(math.Floor(float64(width_float/2))))
-			history_window.MoveWindow(int(math.Floor(float64(height_float/2))), int(math.Floor(float64(width_float/2))))
-
 			//Clear and refresh all windows
-			for _, win := range windows_array {
-				// win.Clear()
+			for i, win := range windows_array {
+				info := windows_info_arr[i]
+				win.Resize(info.h, info.w)     //Resize windows based on new dimensions
+				win.MoveWindow(info.y, info.x) //move windows to appropriate locations
 				win.Refresh()
 			}
 		}
@@ -101,11 +100,11 @@ func local_game_screen(stdscr *goncurses.Window) {
 			history_title = "move_history"[:width-1]
 		}
 
-		keystr := fmt.Sprintf("Last key pressed: %d\n", key)
+		keystr := fmt.Sprintf("Last key pressed: %v", key)
 		//statusbarstr = "Press 'Ctrl+o' to exit | CHESS-CLI | Pos: {}, {}".format(cursor_x, cursor_y)
 		statusbarstr := "Press 'Ctrl+o' to exit | CHESS-CLI"
 
-		statusbarfull := fmt.Sprintf("%s | %s\n", statusbarstr, keystr)
+		statusbarfull := fmt.Sprintf("%s | %s", statusbarstr, keystr)
 
 		if len(statusbarfull) >= width {
 			statusbarfull = statusbarfull[:width-1]
@@ -122,7 +121,7 @@ func local_game_screen(stdscr *goncurses.Window) {
 		// Render status bar
 		stdscr.AttrOn(goncurses.ColorPair(3))
 		stdscr.MovePrint(height-1, 0, statusbarfull)
-		padding := fmt.Sprintf("+%s", strings.Repeat(" ", (width-len(statusbarfull)-1)))
+		padding := fmt.Sprintf("%s", strings.Repeat(" ", (width-len(statusbarfull)-1)))
 		stdscr.MovePrint(height-1, len(statusbarfull), padding)
 		stdscr.AttrOff(goncurses.ColorPair(3))
 
