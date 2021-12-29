@@ -72,6 +72,7 @@ func main() {
 	}
 	local_game_screen(stdscr)
 	goncurses.FlushInput()
+	goncurses.End()
 }
 
 //
