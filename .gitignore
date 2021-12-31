@@ -168,3 +168,6 @@ cython_debug/
 
 # Go workspace file
 go.work
+
+#config files with json
+*.json
