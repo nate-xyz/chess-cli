@@ -67,13 +67,29 @@ func main() {
 	goncurses.InitPair(8, goncurses.C_BLACK, goncurses.C_GREEN)
 	goncurses.InitPair(9, goncurses.C_WHITE, goncurses.C_RED)
 
+	var key goncurses.Key = one_key
 	if !dev_mode {
-		welcome_screen(stdscr)
+		key = welcome_screen(stdscr)
 	}
-	local_game_screen(stdscr)
+	screenHandler(stdscr, key)
 	goncurses.FlushInput()
 	goncurses.Echo(false) //turn off input
 	goncurses.End()
+}
+
+func screenHandler(stdscr *goncurses.Window, key goncurses.Key) {
+	switch key {
+	case one_key:
+		key = local_game_screen(stdscr)
+		screenHandler(stdscr, key)
+	case two_key:
+		key = lichess_welcome(stdscr)
+		screenHandler(stdscr, key)
+	case three_key:
+		return
+	case control_o_key:
+		return
+	}
 }
 
 //

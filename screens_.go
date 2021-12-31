@@ -2,19 +2,13 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/nate-xyz/goncurses"
 )
 
-type windowSizePos struct {
-	h int
-	w int
-	y int
-	x int
-}
-
-func local_game_screen(stdscr *goncurses.Window) {
+func local_game_screen(stdscr *goncurses.Window) goncurses.Key {
 	var key goncurses.Key = 0
 	var mouse_event *goncurses.MouseEvent
 	_ = mouse_event
@@ -42,9 +36,9 @@ func local_game_screen(stdscr *goncurses.Window) {
 	windows_info_arr := [4]windowSizePos{bw_info, pw_info, iw_info, hw_info}
 
 	// Loop where key is the last character pressed
-	for key != 15 { // while not quitting (ctrl+o)
+	for key != control_o_key { // while not quitting (ctrl+o)
 		if quit_game {
-			break
+			return control_o_key
 		}
 
 		// Initialization
@@ -56,19 +50,26 @@ func local_game_screen(stdscr *goncurses.Window) {
 		//Resize everything if necessary
 		if goncurses.IsTermResized(height, width) {
 			height, width := stdscr.MaxYX() //get new height and width
-
-			//Resize the terminal and refresh
 			goncurses.ResizeTerm(height, width)
-			stdscr.Clear()
-			stdscr.Refresh()
+
+			pw_info = windowSizePos{(height / 4) - 1, width / 2, (height / 4) * 3, 0}
+			bw_info = windowSizePos{(height / 4) * 3, width / 2, 0, 0}
+			iw_info = windowSizePos{height / 2, width / 2, 0, width / 2}
+			hw_info = windowSizePos{(height / 2) - 1, width / 2, height / 2, width / 2}
+			//Resize the terminal and refresh
+
+			//
+			//stdscr.Clear()
+			stdscr.NoutRefresh()
 
 			//Clear and refresh all windows
 			for i, win := range windows_array {
 				info := windows_info_arr[i]
 				win.Resize(info.h, info.w)     //Resize windows based on new dimensions
 				win.MoveWindow(info.y, info.x) //move windows to appropriate locations
-				win.Refresh()
+				win.NoutRefresh()
 			}
+			//goncurses.Update()
 		}
 		//get window dimensions
 		height, width := stdscr.MaxYX()
@@ -168,10 +169,11 @@ func local_game_screen(stdscr *goncurses.Window) {
 		}
 
 		// Refresh the screen
-		stdscr.Refresh()
+		stdscr.NoutRefresh()
 		for _, win := range windows_array {
-			win.Refresh()
+			win.NoutRefresh()
 		}
+		goncurses.Update()
 		// Wait for next input
 		key = stdscr.GetChar()
 		if key == goncurses.KEY_MOUSE {
@@ -182,6 +184,7 @@ func local_game_screen(stdscr *goncurses.Window) {
 		mouse_event_bool = false
 
 	}
+	return control_o_key
 }
 
 // //                      888
@@ -193,24 +196,28 @@ func local_game_screen(stdscr *goncurses.Window) {
 // //Y88b 888 d88P Y8b.     888 Y88b.   Y88..88P 888  888  888 Y8b.                 X88 Y88b.    888    Y8b.     Y8b.     888  888
 // // "Y8888888P"   "Y8888  888  "Y8888P "Y88P"  888  888  888  "Y8888 88888888 88888P'  "Y8888P 888     "Y8888   "Y8888  888  888
 
-func welcome_screen(screen *goncurses.Window) {
+func welcome_screen(screen *goncurses.Window) goncurses.Key {
 	height, width := screen.MaxYX()
 	var key goncurses.Key
 
-	prompt_welcome_window, _ := goncurses.NewWindow(((height)/4)-1, width, ((height / 4) * 3), 0)
+	prompt_welcome_window, _ := goncurses.NewWindow(3, width, ((height / 10) * 9), 0)
 
-	for key != 12 { // while not quitting
-		if key == 15 {
-			quit_game = true
-			break
+	for key != control_o_key { // while not quitting
+		if key == control_o_key {
+			return control_o_key
+		}
+		if key >= one_key && key <= three_key {
+			return key
 		}
 		screen.Clear()
 
 		// Declaration of strings
-		title := "chess-tui"
+		title := "chess-cli"
 		subtitle := "play locally with a friend, against stockfish, or online with lichess!"
+		additional_info := []string{"<<press '1' to play locally>>", "<<press '2' to play online>>", "<<press '3' to play stockfish>>"}
 		keystr := fmt.Sprintf("Last key pressed: %v", key)
-		statusbarstr := "Press 'Ctrl-l' to skip to local | Press 'Ctrl-o' to quit"
+		//statusbarstr := "Press 'Ctrl-l' to skip to local | Press 'Ctrl-o' to quit"
+		statusbarstr := "WELCOME TO CHESS-CLI ! | Press 'Ctrl-o' to quit"
 
 		// Centering calculations
 		start_x_title := int((width / 2) - (len(title) / 2) - len(title)%2)
@@ -219,13 +226,13 @@ func welcome_screen(screen *goncurses.Window) {
 		start_y := int((height / 2) - 2)
 
 		// Rendering some text
-		whstr := fmt.Sprintf("Width: %v, Height: %v", width, height)
+		whstr := fmt.Sprintf("Width: %d, Height: %d\n", width, height)
 		screen.MovePrint(0, 0, whstr, goncurses.ColorPair(1))
 
 		// Render status bar
 		screen.AttrOn(goncurses.ColorPair(3))
 		screen.MovePrint(height-1, 0, statusbarstr)
-		padding := fmt.Sprintf("+%s", strings.Repeat(" ", (width-len(statusbarstr)-1)))
+		padding := fmt.Sprintf("%s", strings.Repeat(" ", (width-len(statusbarstr)-1)))
 		screen.MovePrint(height-1, len(statusbarstr), padding)
 		screen.AttrOff(goncurses.ColorPair(3))
 
@@ -243,7 +250,11 @@ func welcome_screen(screen *goncurses.Window) {
 		// Print rest of text
 		screen.MovePrint(start_y+1, start_x_subtitle, subtitle)
 		screen.MovePrint(start_y+3, (width/2)-2, "----")
-		screen.MovePrint(start_y+5, start_x_keystr, keystr)
+		for i, str := range additional_info {
+			screen.MovePrint(start_y+4+i, (width/2)-(len(str)/2), str)
+		}
+		screen.MovePrint(start_y+7, (width/2)-2, "----")
+		screen.MovePrint(start_y+9, start_x_keystr, keystr)
 
 		update_input(prompt_welcome_window, key)
 
@@ -256,6 +267,97 @@ func welcome_screen(screen *goncurses.Window) {
 	user_input_string = ""
 	inputted_str = ""
 	entered_move = false
+	return control_o_key
+}
+
+func lichess_welcome(screen *goncurses.Window) goncurses.Key {
+	height, width := screen.MaxYX()
+	var key goncurses.Key
+	do_oauth()
+	//prompt_welcome_window, _ := goncurses.NewWindow(((height)/4)-1, width, ((height / 4) * 3), 0)
+
+	for key != control_o_key { // while not quitting
+		if key == control_o_key {
+			return control_o_key
+		}
+		if UserInfo.ApiToken != "" {
+			err := GetEmail()
+			if err != nil {
+				os.Exit(1)
+			}
+		}
+		screen.Clear()
+
+		// Declaration of strings
+		title := "chess-cli: lichess client"
+		var subtitle string
+		var additional_info []string
+		if UserInfo.ApiToken == "" {
+			subtitle = fmt.Sprintf("not logged into lichess.")
+			additional_info = []string{"please login through your browser.", "press (ctrl-l) to login through lichess.org"}
+
+		} else {
+			subtitle = fmt.Sprintf("logged in as: %s", UserEmail)
+			additional_info = []string{"Press 1 to do x.", "Press 2 to do x", "etc"}
+		}
+		keystr := fmt.Sprintf("Last key pressed: %v", key)
+
+		var statusbarstr string
+		if UserInfo.ApiToken == "" {
+			statusbarstr = fmt.Sprintf("LICHESS CLIENT | Press 'Ctrl-l' to login | Press 'Ctrl-o' to quit")
+		} else {
+			statusbarstr = fmt.Sprintf("LICHESS CLIENT | Press 'Ctrl-o' to quit")
+		}
+
+		// Centering calculations
+		start_x_title := int((width / 2) - (len(title) / 2) - len(title)%2)
+		start_x_subtitle := int((width / 2) - (len(subtitle) / 2) - len(subtitle)%2)
+		start_x_keystr := int((width / 2) - (len(keystr) / 2) - len(keystr)%2)
+		start_y := int((height / 2) - 2)
+
+		// Rendering some text
+		whstr := fmt.Sprintf("Width: %d, Height: %d\n", width, height)
+		screen.MovePrint(0, 0, whstr, goncurses.ColorPair(1))
+
+		// Render status bar
+		screen.AttrOn(goncurses.ColorPair(3))
+		screen.MovePrint(height-1, 0, statusbarstr)
+		padding := fmt.Sprintf("%s", strings.Repeat(" ", (width-len(statusbarstr)-1)))
+		screen.MovePrint(height-1, len(statusbarstr), padding)
+		screen.AttrOff(goncurses.ColorPair(3))
+
+		// Turning on attributes for title
+		screen.AttrOn(goncurses.ColorPair(2))
+		screen.AttrOn(goncurses.A_BOLD)
+
+		// Rendering title
+		screen.MovePrint(start_y, start_x_title, title)
+
+		// Turning off attributes for title
+		screen.AttrOff(goncurses.ColorPair(2))
+		screen.AttrOff(goncurses.A_BOLD)
+
+		// Print rest of text
+		screen.MovePrint(start_y+1, start_x_subtitle, subtitle)
+		screen.MovePrint(start_y+3, (width/2)-2, "----")
+		for i, str := range additional_info {
+			screen.MovePrint(start_y+4+i, (width/2)-(len(str)/2), str)
+		}
+		screen.MovePrint(start_y+7, (width/2)-2, "----")
+		screen.MovePrint(start_y+9, start_x_keystr, keystr)
+
+		//update_input(prompt_welcome_window, key)
+
+		//prompt_welcome_window.Box('|', '-')
+		screen.Refresh()
+		//prompt_welcome_window.Refresh()
+		key = screen.GetChar()
+	}
+	//reset global strings that may have been set in the prompt window
+	user_input_string = ""
+	inputted_str = ""
+	entered_move = false
+	return control_o_key
 }
 
 // //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
