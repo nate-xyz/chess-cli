@@ -43,7 +43,7 @@ func GetEmail() error {
 
 func GetUsername() error {
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/account/", hostUrl), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/account", hostUrl), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
 	if err != nil {
 		return err
