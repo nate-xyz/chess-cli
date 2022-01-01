@@ -281,8 +281,10 @@ func lichess_welcome(screen *goncurses.Window) goncurses.Key {
 			return control_o_key
 		}
 		if UserInfo.ApiToken != "" {
-			err := GetEmail()
+			//err := GetEmail()
+			err := GetUsername()
 			if err != nil {
+				fmt.Printf("%s", err)
 				os.Exit(1)
 			}
 		}
@@ -297,7 +299,7 @@ func lichess_welcome(screen *goncurses.Window) goncurses.Key {
 			additional_info = []string{"please login through your browser.", "press (ctrl-l) to login through lichess.org"}
 
 		} else {
-			subtitle = fmt.Sprintf("logged in as: %s", UserEmail)
+			subtitle = fmt.Sprintf("logged in as: %s", Username)
 			additional_info = []string{"Press 1 to do x.", "Press 2 to do x", "etc"}
 		}
 		keystr := fmt.Sprintf("Last key pressed: %v", key)
@@ -352,6 +354,9 @@ func lichess_welcome(screen *goncurses.Window) goncurses.Key {
 		screen.Refresh()
 		//prompt_welcome_window.Refresh()
 		key = screen.GetChar()
+
+		//2 key
+
 	}
 	//reset global strings that may have been set in the prompt window
 	user_input_string = ""
