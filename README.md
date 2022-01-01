@@ -14,5 +14,10 @@ TODO:
 ♞♞♞♞♞♞♞♞♞♞♞
 
 DEV DOCS:
-https://lichess.org/api for lichess http
+https://lichess.org/api for lichess
+
 https://pkg.go.dev/github.com/notnil/chess?utm_source=godoc for go chess
+
+https://pkg.go.dev/github.com/rthornton128/goncurses for goncurses
+
+https://pkg.go.dev/net/http for http
