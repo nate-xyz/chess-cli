@@ -1,15 +1,22 @@
 # chess-cli ♟️
 
 run with: go run .
+if libraries are missing: go mod tidy
 
 
 TODO: 
 
     - fix prompt window breaking in alacritty x
     - get mouse input working in board window x
-    - get lichess requests working ✓
+    - get lichess requests working? wip
+      - get profile info
+      - get challenges / make challenges
+      - list of ongoing games
+      - game screen w/ working request loop and translation of move sequence into FEN string
     - get oauth working ✓
     - get stockfish working through lichess? wip
+    - screen handler at different depth? maybe a generic handler with functions passed as parameters
+
 
 ♞♞♞♞♞♞♞♞♞♞♞
 
