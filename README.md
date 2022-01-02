@@ -10,16 +10,17 @@ if libraries are missing: go mod tidy
 
 ## TODO: 
 
-    * [x] fix prompt window breaking in alacritty 
-    * [x] get mouse input working in board window 
-    * [] get lichess requests working? wip
-      - [] get profile info
+    - [] fix prompt window breaking in alacritty 
+    - [x] fix legal move list on info window ✓
+    - [] get mouse input working in board window 
+    - [] get lichess requests working? wip
+      - [x] get profile info ✓
       - [] get challenges / make challenges
       - [] list of ongoing games
       - [] game screen w/ working request loop and translation of move sequence into FEN string
-    * [] get oauth working ✓
-    * [] get stockfish working through lichess? wip
-    * screen handler at different depth? maybe a generic handler with functions passed as parameters
+    - [x] get oauth working ✓
+    - [] get stockfish working through lichess? wip
+    - screen handler at different depth? maybe a generic handler with functions passed as parameters
 
 
 ♞♞♞♞♞♞♞♞♞♞♞
