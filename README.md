@@ -1,6 +1,6 @@
 # chess-cli ♟️
 
-##tips
+## tips
 
 run with: go run .
 
