@@ -1,6 +1,7 @@
 # chess-cli ♟️
 
 run with: go run .
+
 if libraries are missing: go mod tidy
 
 
