@@ -12,6 +12,7 @@ import (
 var control_l_key goncurses.Key = 12
 var control_o_key goncurses.Key = 15
 var q_key goncurses.Key = 113
+var zero_key goncurses.Key = 48
 var one_key goncurses.Key = 49
 var two_key goncurses.Key = 50
 var three_key goncurses.Key = 51

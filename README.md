@@ -21,6 +21,8 @@ if libraries are missing: go mod tidy
 - [x] get oauth working ✓
 - [ ] get stockfish working through lichess? wip
 - [ ] screen handler at different depth? maybe a generic handler with functions passed as parameters
+  - [x] implemented lichess screen handler
+  - [ ] local game screen handler
 
 
 ♞♞♞♞♞♞♞♞♞♞♞

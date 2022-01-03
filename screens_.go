@@ -8,6 +8,81 @@ import (
 	"github.com/nate-xyz/goncurses"
 )
 
+func welcome_screen(screen *goncurses.Window) goncurses.Key {
+	height, width := screen.MaxYX()
+	var key goncurses.Key
+
+	prompt_welcome_window, _ := goncurses.NewWindow(3, width, ((height / 10) * 9), 0)
+
+	for key != control_o_key { // while not quitting
+		if key == control_o_key {
+			//return control_o_key
+			break
+		}
+		if key >= one_key && key <= three_key {
+			return key
+		}
+		screen.Clear()
+
+		// Declaration of strings
+		title := "chess-cli"
+		subtitle := "play locally with a friend, against stockfish, or online with lichess!"
+		additional_info := []string{"<<press '1' to play locally>>", "<<press '2' to play online>>", "<<press '3' to play stockfish>>"}
+		keystr := fmt.Sprintf("Last key pressed: %v", key)
+		//statusbarstr := "Press 'Ctrl-l' to skip to local | Press 'Ctrl-o' to quit"
+		statusbarstr := "WELCOME TO CHESS-CLI ! | Press 'Ctrl-o' to quit"
+
+		// Centering calculations
+		start_x_title := int((width / 2) - (len(title) / 2) - len(title)%2)
+		start_x_subtitle := int((width / 2) - (len(subtitle) / 2) - len(subtitle)%2)
+		start_x_keystr := int((width / 2) - (len(keystr) / 2) - len(keystr)%2)
+		start_y := int((height / 2) - 2)
+
+		// Rendering some text
+		whstr := fmt.Sprintf("Width: %d, Height: %d\n", width, height)
+		screen.MovePrint(0, 0, whstr, goncurses.ColorPair(1))
+
+		// Render status bar
+		screen.AttrOn(goncurses.ColorPair(3))
+		screen.MovePrint(height-1, 0, statusbarstr)
+		padding := fmt.Sprintf("%s", strings.Repeat(" ", (width-len(statusbarstr)-1)))
+		screen.MovePrint(height-1, len(statusbarstr), padding)
+		screen.AttrOff(goncurses.ColorPair(3))
+
+		// Turning on attributes for title
+		screen.AttrOn(goncurses.ColorPair(2))
+		screen.AttrOn(goncurses.A_BOLD)
+
+		// Rendering title
+		screen.MovePrint(start_y, start_x_title, title)
+
+		// Turning off attributes for title
+		screen.AttrOff(goncurses.ColorPair(2))
+		screen.AttrOff(goncurses.A_BOLD)
+
+		// Print rest of text
+		screen.MovePrint(start_y+1, start_x_subtitle, subtitle)
+		screen.MovePrint(start_y+3, (width/2)-2, "----")
+		for i, str := range additional_info {
+			screen.MovePrint(start_y+4+i, (width/2)-(len(str)/2), str)
+		}
+		screen.MovePrint(start_y+7, (width/2)-2, "----")
+		screen.MovePrint(start_y+9, start_x_keystr, keystr)
+
+		update_input(prompt_welcome_window, key)
+
+		prompt_welcome_window.Box('|', '-')
+		screen.Refresh()
+		prompt_welcome_window.Refresh()
+		key = screen.GetChar()
+	}
+	//reset global strings that may have been set in the prompt window
+	user_input_string = ""
+	inputted_str = ""
+	entered_move = false
+	return control_o_key
+}
+
 func local_game_screen(stdscr *goncurses.Window) goncurses.Key {
 	var key goncurses.Key = 0
 	var mouse_event *goncurses.MouseEvent
@@ -37,8 +112,11 @@ func local_game_screen(stdscr *goncurses.Window) goncurses.Key {
 
 	// Loop where key is the last character pressed
 	for key != control_o_key { // while not quitting (ctrl+o)
-		if quit_game {
-			return control_o_key
+		if quit_game || (key == control_o_key) {
+			break
+		}
+		if key == zero_key {
+			return zero_key
 		}
 
 		// Initialization
@@ -103,7 +181,7 @@ func local_game_screen(stdscr *goncurses.Window) goncurses.Key {
 
 		keystr := fmt.Sprintf("Last key pressed: %v", key)
 		//statusbarstr = "Press 'Ctrl+o' to exit | CHESS-CLI | Pos: {}, {}".format(cursor_x, cursor_y)
-		statusbarstr := "Press 'Ctrl+o' to exit | CHESS-CLI"
+		statusbarstr := "CHESS-CLI | Press '0' to return to main | Press 'Ctrl+o' to exit"
 
 		statusbarfull := fmt.Sprintf("%s | %s", statusbarstr, keystr)
 
@@ -187,89 +265,6 @@ func local_game_screen(stdscr *goncurses.Window) goncurses.Key {
 	return control_o_key
 }
 
-// //                      888
-// //                       888
-// //                       888
-// //888  888  888  .d88b.  888  .d8888b .d88b.  88888b.d88b.   .d88b.         .d8888b   .d8888b 888d888 .d88b.   .d88b.  88888b.
-// //888  888  888 d8P  Y8b 888 d88P"   d88""88b 888 "888 "88b d8P  Y8b        88K      d88P"    888P"  d8P  Y8b d8P  Y8b 888 "88b
-// //888  888  888 88888888 888 888     888  888 888  888  888 88888888        "Y8888b. 888      888    88888888 88888888 888  888
-// //Y88b 888 d88P Y8b.     888 Y88b.   Y88..88P 888  888  888 Y8b.                 X88 Y88b.    888    Y8b.     Y8b.     888  888
-// // "Y8888888P"   "Y8888  888  "Y8888P "Y88P"  888  888  888  "Y8888 88888888 88888P'  "Y8888P 888     "Y8888   "Y8888  888  888
-
-func welcome_screen(screen *goncurses.Window) goncurses.Key {
-	height, width := screen.MaxYX()
-	var key goncurses.Key
-
-	prompt_welcome_window, _ := goncurses.NewWindow(3, width, ((height / 10) * 9), 0)
-
-	for key != control_o_key { // while not quitting
-		if key == control_o_key {
-			return control_o_key
-		}
-		if key >= one_key && key <= three_key {
-			return key
-		}
-		screen.Clear()
-
-		// Declaration of strings
-		title := "chess-cli"
-		subtitle := "play locally with a friend, against stockfish, or online with lichess!"
-		additional_info := []string{"<<press '1' to play locally>>", "<<press '2' to play online>>", "<<press '3' to play stockfish>>"}
-		keystr := fmt.Sprintf("Last key pressed: %v", key)
-		//statusbarstr := "Press 'Ctrl-l' to skip to local | Press 'Ctrl-o' to quit"
-		statusbarstr := "WELCOME TO CHESS-CLI ! | Press 'Ctrl-o' to quit"
-
-		// Centering calculations
-		start_x_title := int((width / 2) - (len(title) / 2) - len(title)%2)
-		start_x_subtitle := int((width / 2) - (len(subtitle) / 2) - len(subtitle)%2)
-		start_x_keystr := int((width / 2) - (len(keystr) / 2) - len(keystr)%2)
-		start_y := int((height / 2) - 2)
-
-		// Rendering some text
-		whstr := fmt.Sprintf("Width: %d, Height: %d\n", width, height)
-		screen.MovePrint(0, 0, whstr, goncurses.ColorPair(1))
-
-		// Render status bar
-		screen.AttrOn(goncurses.ColorPair(3))
-		screen.MovePrint(height-1, 0, statusbarstr)
-		padding := fmt.Sprintf("%s", strings.Repeat(" ", (width-len(statusbarstr)-1)))
-		screen.MovePrint(height-1, len(statusbarstr), padding)
-		screen.AttrOff(goncurses.ColorPair(3))
-
-		// Turning on attributes for title
-		screen.AttrOn(goncurses.ColorPair(2))
-		screen.AttrOn(goncurses.A_BOLD)
-
-		// Rendering title
-		screen.MovePrint(start_y, start_x_title, title)
-
-		// Turning off attributes for title
-		screen.AttrOff(goncurses.ColorPair(2))
-		screen.AttrOff(goncurses.A_BOLD)
-
-		// Print rest of text
-		screen.MovePrint(start_y+1, start_x_subtitle, subtitle)
-		screen.MovePrint(start_y+3, (width/2)-2, "----")
-		for i, str := range additional_info {
-			screen.MovePrint(start_y+4+i, (width/2)-(len(str)/2), str)
-		}
-		screen.MovePrint(start_y+7, (width/2)-2, "----")
-		screen.MovePrint(start_y+9, start_x_keystr, keystr)
-
-		update_input(prompt_welcome_window, key)
-
-		prompt_welcome_window.Box('|', '-')
-		screen.Refresh()
-		prompt_welcome_window.Refresh()
-		key = screen.GetChar()
-	}
-	//reset global strings that may have been set in the prompt window
-	user_input_string = ""
-	inputted_str = ""
-	entered_move = false
-	return control_o_key
-}
-
 func lichess_welcome(screen *goncurses.Window) goncurses.Key {
 	height, width := screen.MaxYX()
 	var key goncurses.Key
@@ -278,11 +273,19 @@ func lichess_welcome(screen *goncurses.Window) goncurses.Key {
 
 	for key != control_o_key { // while not quitting
 		if key == control_o_key {
-			return control_o_key
+			//return control_o_key
+			break
+		}
+		if key >= one_key && key <= three_key {
+			return key
 		}
 		if UserInfo.ApiToken != "" {
-			//err := GetEmail()
-			err := GetUsername()
+			err := GetEmail()
+			if err != nil {
+				fmt.Printf("%s", err)
+				os.Exit(1)
+			}
+			err = GetUsername()
 			if err != nil {
 				fmt.Printf("%s", err)
 				os.Exit(1)
@@ -300,7 +303,7 @@ func lichess_welcome(screen *goncurses.Window) goncurses.Key {
 
 		} else {
 			subtitle = fmt.Sprintf("logged in as: %s", Username)
-			additional_info = []string{"Press 1 to do x.", "Press 2 to do x", "etc"}
+			additional_info = []string{"<<Press 1 to view / create challenges>>", "<<Press 2 to view / join ongoing games>>", "etc"}
 		}
 		keystr := fmt.Sprintf("Last key pressed: %v", key)
 
@@ -365,17 +368,85 @@ func lichess_welcome(screen *goncurses.Window) goncurses.Key {
 	return control_o_key
 }
 
-// //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// //                                 .
-// //                                .o8
-// // oo.ooooo.   .ooooo.   .oooo.o .o888oo              .oooo.o  .ooooo.  oooo d8b  .ooooo.   .ooooo.  ooo. .oo.
-// //  888' `88b d88' `88b d88(  "8   888               d88(  "8 d88' `"Y8 `888""8P d88' `88b d88' `88b `888P"Y88b
-// //  888   888 888   888 `"Y88b.    888               `"Y88b.  888        888     888ooo888 888ooo888  888   888
-// //  888   888 888   888 o.  )88b   888 .             o.  )88b 888   .o8  888     888    .o 888    .o  888   888
-// //  888bod8P' `Y8bod8P' 8""888P'   "888" ooooooooooo 8""888P' `Y8bod8P' d888b    `Y8bod8P' `Y8bod8P' o888o o888o
-// //  888
-// // o888o
-// //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+func lichess_challenges(screen *goncurses.Window) goncurses.Key {
+	height, width := screen.MaxYX()
+	var key goncurses.Key
+	do_oauth()
+	//prompt_welcome_window, _ := goncurses.NewWindow(((height)/4)-1, width, ((height / 4) * 3), 0)
+
+	for key != control_o_key { // while not quitting
+		if key == control_o_key {
+			//return control_o_key
+			break
+		}
+		// if UserInfo.ApiToken != "" {
+		// 	//err := GetEmail()
+		// 	err := GetUsername()
+		// 	if err != nil {
+		// 		fmt.Printf("%s", err)
+		// 		os.Exit(1)
+		// 	}
+		// }
+		screen.Clear()
+
+		// Declaration of strings
+		title := "lichess challenges"
+		var subtitle string
+		var additional_info []string
+		var statusbarstr string = fmt.Sprintf("CHESS-CLI | LICHESS CHALLENGES | Press 'Ctrl-o' to quit")
+
+		// Centering calculations
+		start_x_title := int((width / 2) - (len(title) / 2) - len(title)%2)
+		start_x_subtitle := int((width / 2) - (len(subtitle) / 2) - len(subtitle)%2)
+		start_y := int((height / 2) - 2)
+
+		// Rendering some text
+		whstr := fmt.Sprintf("Width: %d, Height: %d\n", width, height)
+		screen.MovePrint(0, 0, whstr, goncurses.ColorPair(1))
+
+		// Render status bar
+		screen.AttrOn(goncurses.ColorPair(3))
+		screen.MovePrint(height-1, 0, statusbarstr)
+		padding := fmt.Sprintf("%s", strings.Repeat(" ", (width-len(statusbarstr)-1)))
+		screen.MovePrint(height-1, len(statusbarstr), padding)
+		screen.AttrOff(goncurses.ColorPair(3))
+
+		// Turning on attributes for title
+		screen.AttrOn(goncurses.ColorPair(2))
+		screen.AttrOn(goncurses.A_BOLD)
+
+		// Rendering title
+		screen.MovePrint(start_y, start_x_title, title)
+
+		// Turning off attributes for title
+		screen.AttrOff(goncurses.ColorPair(2))
+		screen.AttrOff(goncurses.A_BOLD)
+
+		// Print rest of text
+		screen.MovePrint(start_y+1, start_x_subtitle, subtitle)
+		screen.MovePrint(start_y+3, (width/2)-2, "----")
+		for i, str := range additional_info {
+			screen.MovePrint(start_y+4+i, (width/2)-(len(str)/2), str)
+		}
+		screen.MovePrint(start_y+7, (width/2)-2, "----")
+
+		//update_input(prompt_welcome_window, key)
+
+		//prompt_welcome_window.Box('|', '-')
+		screen.Refresh()
+		//prompt_welcome_window.Refresh()
+		key = screen.GetChar()
+
+		//2 key
+
+	}
+	//reset global strings that may have been set in the prompt window
+	user_input_string = ""
+	inputted_str = ""
+	entered_move = false
+	return control_o_key
+}
+
 func post_screen(screen1 *goncurses.Window) {
 	screen1.Clear()
 	screen1.Refresh()

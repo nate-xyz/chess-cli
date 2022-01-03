@@ -69,27 +69,46 @@ func main() {
 
 	var key goncurses.Key = one_key
 	if !dev_mode {
-		key = welcome_screen(stdscr)
+		key = zero_key
 	}
-	screenHandler(stdscr, key)
+	mainScreenHandler(stdscr, key)
 	goncurses.FlushInput()
 	goncurses.Echo(false) //turn off input
 	goncurses.End()
 }
 
-func screenHandler(stdscr *goncurses.Window, key goncurses.Key) {
+//screen handlers
+func mainScreenHandler(stdscr *goncurses.Window, key goncurses.Key) {
 	switch key {
+	case zero_key:
+		key = welcome_screen(stdscr) //go back to welcome screen
 	case one_key:
-		key = local_game_screen(stdscr)
-		screenHandler(stdscr, key)
+		key = local_game_screen(stdscr) //go to local game screen, two player with chess lib
 	case two_key:
-		key = lichess_welcome(stdscr)
-		screenHandler(stdscr, key)
+		key = lichessScreenHandler(stdscr, lichess_welcome(stdscr)) //go to lichess welcome screen, login w oauth
 	case three_key:
-		return
+		return //go to stockfish ai screen, todo
 	case control_o_key:
-		return
+		return //quit game
 	}
+	mainScreenHandler(stdscr, key)
+}
+
+func lichessScreenHandler(stdscr *goncurses.Window, key goncurses.Key) goncurses.Key {
+	switch key {
+	case zero_key:
+		return key //go to welcome screen
+	case one_key:
+		key = lichess_challenges(stdscr) //go to challenge screen
+	case two_key:
+		return key
+		//key = lichess_games(stdscr) //see ongoing games
+	case three_key:
+		return key //puzzles?
+	case control_o_key:
+		return key //quit game
+	}
+	return lichessScreenHandler(stdscr, key)
 }
 
 //
