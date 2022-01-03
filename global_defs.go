@@ -111,6 +111,19 @@ var pieces = map[rune]rune{
 	'p': '♙',
 }
 
+var loader = map[int64]string{
+	0: "⠋",
+	1: "⠙",
+	2: "⠹",
+	3: "⠸",
+	4: "⠼",
+	5: "⠴",
+	6: "⠦",
+	7: "⠧",
+	8: "⠇",
+	9: "⠏",
+}
+
 var game *chess.Game = chess.NewGame()
 
 var alphanumeric *regexp.Regexp = regexp.MustCompile("^[a-zA-Z0-9]*$")

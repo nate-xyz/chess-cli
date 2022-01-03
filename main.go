@@ -14,6 +14,7 @@ import (
 )
 
 //#f3 e5 g4 Qh4#
+
 var sigs chan os.Signal
 
 func main() {
@@ -95,7 +96,7 @@ func mainScreenHandler(stdscr *ncurses.Window, key ncurses.Key) {
 	case one_key:
 		_, key = localGameHandler(stdscr, local_game_screen(stdscr)) //go to local game screen, two player with chess lib
 	case two_key:
-		key = lichessScreenHandler(stdscr, lichess_welcome(stdscr)) //go to lichess welcome screen, login w oauth
+		_, key = lichessScreenHandler(stdscr, lichess_welcome(stdscr)) //go to lichess welcome screen, login w oauth
 	case three_key:
 		return //go to stockfish ai screen, todo
 	case control_o_key:
@@ -118,23 +119,21 @@ func localGameHandler(stdscr *ncurses.Window, option int) (int, ncurses.Key) {
 	return localGameHandler(stdscr, option)
 }
 
-func lichessScreenHandler(stdscr *ncurses.Window, key ncurses.Key) ncurses.Key {
-	switch key {
-	case zero_key:
-		return key //go to welcome screen
-	case one_key:
-		key = lichess_welcome(stdscr)
-	case two_key:
-		key = lichess_challenges(stdscr) //go to challenge screen
-	case three_key:
-		return zero_key
-		//key = lichess_games(stdscr) //see ongoing games
-	case four_key:
-		return zero_key //puzzles?
-	case control_o_key:
-		return key //quit game
+func lichessScreenHandler(stdscr *ncurses.Window, option int) (int, ncurses.Key) {
+	switch option {
+	case 0:
+		return -1, zero_key //go back to welcome screen
+	case 1:
+		option = lichess_welcome(stdscr)
+	case 2:
+		option = lichess_challenges(stdscr) //go to challenge screen
+	case 3:
+		option = create_game(stdscr)
+	case 4:
+	case 5:
+		return -1, control_o_key //quit game
 	}
-	return lichessScreenHandler(stdscr, key)
+	return lichessScreenHandler(stdscr, option)
 }
 
 func game_logic(board_window *ncurses.Window) bool {
