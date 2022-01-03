@@ -160,15 +160,14 @@ func draw_lichess_welcome(screen *ncurses.Window, key ncurses.Key, windows_array
 	start_x_keystr := int((width / 2) - (len(keystr) / 2) - len(keystr)%2)
 	start_y := int((height / 2) - 2)
 
-	// Rendering some text
-	whstr := fmt.Sprintf("Width: %d, Height: %d\n", width, height)
-	screen.MovePrint(0, 0, whstr)
-
-	// Turning on attributes for title
-
+	//background
 	screen.AttrOn(ncurses.A_DIM)
 	screen.MovePrint(0, 0, lichess_bg)
 	screen.AttrOff(ncurses.A_DIM)
+
+	// Rendering some text
+	whstr := fmt.Sprintf("Width: %d, Height: %d\n", width, height)
+	screen.MovePrint(0, 0, whstr)
 
 	// Turning on attributes for title
 	screen.AttrOn(ncurses.ColorPair(2))
