@@ -77,12 +77,21 @@ func draw_welcome_screen(screen *ncurses.Window, key ncurses.Key, windows_array 
 
 	// Print rest of text
 	screen.MovePrint(start_y+1, start_x_subtitle, subtitle)
+
 	screen.MovePrint(start_y+3, (width/2)-2, "----")
 	for i, str := range additional_info {
 		screen.MovePrint(start_y+4+i, (width/2)-(len(str)/2), str)
 	}
 	screen.MovePrint(start_y+7, (width/2)-2, "----")
+	quote := GetRandomQuote()
+	x_quote := width/2 - (len(quote) / 2)
+	if x_quote < 0 {
+		x_quote = 0
+	}
+	screen.AttrOn(ncurses.ColorPair(1))
 
+	screen.MovePrint(start_y+11, x_quote, quote)
+	screen.AttrOff(ncurses.ColorPair(1))
 	//prompt_welcome_window.Box('|', '-')
 	screen.NoutRefresh()
 	for _, win := range windows_array {
