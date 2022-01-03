@@ -146,19 +146,19 @@ func welcome_screen(screen *ncurses.Window) ncurses.Key {
 func lichess_welcome(screen *ncurses.Window) ncurses.Key {
 	var key ncurses.Key
 	do_oauth()
-	draw_lichess_welcome(screen, key)
 	if UserInfo.ApiToken != "" {
 		err := GetEmail()
 		if err != nil {
-			fmt.Printf("%s", err)
+			fmt.Printf("%s\n", err)
 			os.Exit(1)
 		}
 		err = GetUsername()
 		if err != nil {
-			fmt.Printf("%s", err)
+			fmt.Printf("%s\n", err)
 			os.Exit(1)
 		}
 	}
+	draw_lichess_welcome(screen, key)
 	for {
 		select {
 		case <-sigs:
@@ -180,6 +180,13 @@ func lichess_welcome(screen *ncurses.Window) ncurses.Key {
 
 func lichess_challenges(screen *ncurses.Window) ncurses.Key {
 	var key ncurses.Key
+	if UserInfo.ApiToken != "" {
+		err := GetFriends()
+		if err != nil {
+			fmt.Printf("%s\n", err)
+			os.Exit(1)
+		}
+	}
 	draw_lichess_challenges(screen)
 	for {
 		select {

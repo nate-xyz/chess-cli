@@ -203,6 +203,8 @@ func getAccessToken(code string, codeVerifier string, RedirectURL string, Client
 		"redirect_uri":  {RedirectURL},
 		"client_id":     {ClientID},
 	}
+	//application/x-www-form-urlencoded
+
 	//fmt.Println(RedirectURL)
 
 	// create the request and execute it

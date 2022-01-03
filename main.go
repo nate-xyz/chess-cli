@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"os/signal"
 	"strings"
@@ -8,8 +9,6 @@ import (
 
 	ncurses "github.com/nate-xyz/goncurses"
 	"github.com/notnil/chess"
-
-	"log"
 )
 
 //#f3 e5 g4 Qh4#

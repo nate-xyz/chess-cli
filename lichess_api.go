@@ -4,13 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"strings"
 )
 
 var UserEmail string
 var Username string
 var UserProfile map[string]interface{}
 var UserFriends string
+var allFriends []string
 var FriendsMap map[string]bool
 
 var Challenge map[string]interface{}
@@ -27,6 +30,7 @@ func GetChallenges() error {
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/account/challenge", hostUrl), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
+
 	if err != nil {
 		return err
 	}
@@ -166,6 +170,7 @@ func GetFriends() error {
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/rel/following", hostUrl), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
+	req.Header.Add("Content-Type", "application/x-ndjson")
 	if err != nil {
 		return err
 	}
@@ -184,26 +189,32 @@ func GetFriends() error {
 	} else if err != nil {
 		return err
 	}
+
 	// unmarshal the json into a string map
-	var responseData map[string]interface{}
-	err = json.Unmarshal(body, &responseData)
+	//var responseData map[string]interface{}
+	//err = json.Unmarshal(body, &responseData)
+	d := json.NewDecoder(strings.NewReader(string(body)))
+	for {
+		var responseData map[string]interface{}
+		err := d.Decode(&responseData)
+		if err != nil {
+			if err != io.EOF {
+				log.Fatal(err)
+			}
+			break
+		}
+		//fmt.Printf("%v\n", responseData)
 
-	var FriendsString string
-	// retrieve the access token out of the map, and return to caller
-	if !isNil(responseData["username"]) {
-		FriendsString = responseData["username"].(string)
+		var FriendsString string
+		if !isNil(responseData["username"]) { // retrieve the username out of the map
+			FriendsString = responseData["username"].(string)
+			allFriends = append(allFriends, FriendsString)
+			//fmt.Printf("%v\n", FriendsString)
+		} else {
+			return fmt.Errorf("username response interface is nil")
+		}
+
 	}
-
-	var FriendsOnline bool
-	if !isNil(responseData["online"]) {
-		FriendsOnline = responseData["online"].(bool)
-
-		FriendsMap[FriendsString] = FriendsOnline
-
-		return nil
-
-	} else {
-		return fmt.Errorf("response interface is nil")
-	}
+	return nil
 
 }

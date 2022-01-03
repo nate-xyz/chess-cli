@@ -176,14 +176,8 @@ func draw_lichess_challenges(screen *ncurses.Window) {
 
 	// Print rest of text
 	screen.MovePrint(start_y+1, start_x_subtitle, subtitle)
-	for friend, status := range FriendsMap {
-
-		if status == false {
-			screen.MovePrint(start_y+3, (width/2)-2, "Friend: "+(friend)+"offline")
-		} else {
-			screen.MovePrint(start_y+3, (width/2)-2, "Friend: "+(friend)+"online")
-		}
-
+	for i, friend := range allFriends {
+		screen.MovePrint(start_y+3+i, (width/2)-2, "Friend: "+(friend))
 	}
 
 	for i, str := range additional_info {
