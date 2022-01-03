@@ -103,9 +103,9 @@ func GetChallenges() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(body))
-	res2B, _ := json.Marshal(JSONresult)
-	fmt.Println(string(res2B))
+	//fmt.Println(string(body))
+	//res2B, _ := json.Marshal(JSONresult)
+	//fmt.Println(string(res2B))
 	// retrieve the access token out of the map, and return to caller
 	if !isNil(JSONresult.In) {
 		IncomingChallenges = JSONresult.In

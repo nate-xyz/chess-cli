@@ -127,7 +127,7 @@ func welcome_screen(screen *ncurses.Window) ncurses.Key {
 	//start windows
 	//options := []string{"<<press '1' to play locally>>", "<<press '2' to play online>>", "<<press '3' to play stockfish>>", "<<quit>>"}
 
-	options := []string{"play locally", "play online", "play stockfish"}
+	options := []string{"play locally", "play online", "play stockfish", "quit"}
 	op_info := windowSizePos{(height / 2) - 4, width / 2, (height / 2) + 2, width / 4}
 	options_window, _ := ncurses.NewWindow(op_info.h, op_info.w, op_info.y, op_info.x)
 	windows_array := [1]*ncurses.Window{options_window}
@@ -298,9 +298,8 @@ func lichess_challenges(screen *ncurses.Window) ncurses.Key {
 				case 0:
 				case 1:
 				case 2:
-					key = one_key
 				case 3:
-
+					key = one_key
 				case 4:
 					key = control_o_key
 

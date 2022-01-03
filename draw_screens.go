@@ -52,7 +52,7 @@ func draw_welcome_screen(screen *ncurses.Window, key ncurses.Key, windows_array 
 	}
 
 	// Rendering some text
-	screen.MovePrint(0, 0, fmt.Sprintf("Width: %d, Height: %d\n", width, height), ncurses.ColorPair(1))
+	screen.MovePrint(0, 0, fmt.Sprintf("Width: %d, Height: %d\n", width, height))
 
 	// Render status bar
 	screen.AttrOn(ncurses.ColorPair(3))
@@ -141,8 +141,8 @@ func draw_lichess_welcome(screen *ncurses.Window, key ncurses.Key, windows_array
 		additional_info = []string{"please login through your browser.", "press (ctrl-l) to login through lichess.org"}
 
 	} else {
-		subtitle = fmt.Sprintf("logged in as: %s", Username)
-		additional_info = []string{"<<Press 0 to return to welcome screen>>", "<<Press 2 to view / create challenges>>", "<<Press 3 to view / join ongoing games>>", "etc"}
+		subtitle = fmt.Sprintf("logged in as: %s, %s", Username, UserEmail)
+		additional_info = []string{}
 	}
 	keystr := fmt.Sprintf("Last key pressed: %v", key)
 
@@ -162,17 +162,13 @@ func draw_lichess_welcome(screen *ncurses.Window, key ncurses.Key, windows_array
 
 	// Rendering some text
 	whstr := fmt.Sprintf("Width: %d, Height: %d\n", width, height)
-	screen.MovePrint(0, 0, whstr, ncurses.ColorPair(1))
+	screen.MovePrint(0, 0, whstr)
 
-	// Render status bar
-	screen.AttrOn(ncurses.ColorPair(3))
-	screen.MovePrint(height-1, 0, statusbarstr)
-	var padding string
-	if (width - len(statusbarstr) - 1) > 0 {
-		padding = fmt.Sprintf("%s", strings.Repeat(" ", (width-len(statusbarstr)-1)))
-	}
-	screen.MovePrint(height-1, len(statusbarstr), padding)
-	screen.AttrOff(ncurses.ColorPair(3))
+	// Turning on attributes for title
+
+	screen.AttrOn(ncurses.A_DIM)
+	screen.MovePrint(0, 0, lichess_bg)
+	screen.AttrOff(ncurses.A_DIM)
 
 	// Turning on attributes for title
 	screen.AttrOn(ncurses.ColorPair(2))
@@ -193,6 +189,17 @@ func draw_lichess_welcome(screen *ncurses.Window, key ncurses.Key, windows_array
 	}
 	screen.MovePrint(start_y+7, (width/2)-2, "----")
 	screen.MovePrint(start_y+9, start_x_keystr, keystr)
+
+	// Render status bar
+	screen.AttrOn(ncurses.ColorPair(3))
+	screen.MovePrint(height-1, 0, statusbarstr)
+	var padding string
+	if (width - len(statusbarstr) - 1) > 0 {
+		padding = fmt.Sprintf("%s", strings.Repeat(" ", (width-len(statusbarstr)-1)))
+	}
+	screen.MovePrint(height-1, len(statusbarstr), padding)
+	screen.AttrOff(ncurses.ColorPair(3))
+
 	screen.NoutRefresh()
 	for _, win := range windows_array {
 		win.Box('|', '-')
