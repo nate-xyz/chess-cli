@@ -11,26 +11,41 @@ import (
 func options_input(window *ncurses.Window, key ncurses.Key, options []string, selected_index int) (int, bool) {
 	_, width := window.MaxYX()
 
-	if key == ncurses.KEY_MOUSE || key == ncurses.KEY_RESIZE { //dont do any input for mouse event
+	//determine what option to choose based on input
+	switch key {
+	case ncurses.KEY_MOUSE, ncurses.KEY_RESIZE: //dont do any input for mouse event
 		return selected_index, false
-	}
-	if key == ncurses.KEY_ENTER || key == ncurses.KEY_RETURN {
+	case ncurses.KEY_ENTER, ncurses.KEY_RETURN, ncurses.KEY_RIGHT:
 		return selected_index, true
-	}
-
-	if key == ncurses.KEY_UP {
+	case ncurses.KEY_UP:
 		selected_index--
 		if selected_index < 0 {
 			selected_index = len(options) - 1
 		}
-	}
-	if key == ncurses.KEY_DOWN {
+	case ncurses.KEY_DOWN:
 		selected_index++
 		if selected_index >= len(options) {
 			selected_index = 0
 		}
+	case ncurses.KEY_LEFT:
+		if options[selected_index] == "back" || options[selected_index] == "quit" {
+			return selected_index, true
+		}
+		var quit_i int = -1
+		for i, str := range options {
+			if str == "back" {
+				return i, true
+			}
+			if str == "quit" {
+				quit_i = i
+			}
+		}
+		if quit_i != -1 {
+			return quit_i, true
+		}
 	}
 
+	//draw standout for currently selected option
 	for i, str := range options {
 		if i == selected_index {
 			window.AttrOn(ncurses.ColorPair(3))
