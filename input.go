@@ -52,22 +52,41 @@ func update_input(window *ncurses.Window, key ncurses.Key) {
 	padding := fmt.Sprintf("%s", strings.Repeat(" ", (width-1)))
 	var currentPoint string = string(rune(8248))
 
+	//adjust coordinates
+	if prompt_x_coord <= 0 {
+		window.MoveAddChar(prompt_y_coord, 1, ' ') //clear last char pointer
+		prompt_x_coord = width - 2
+		prompt_y_coord--
+	}
+	if prompt_y_coord <= 0 {
+		prompt_x_coord = 1
+		prompt_y_coord = 1
+	}
+	if prompt_x_coord >= width-1 {
+		prompt_x_coord = 1
+		prompt_y_coord++
+	}
+	if prompt_y_coord >= height-1 {
+		prompt_x_coord = width - 2
+		prompt_y_coord = height - 2
+		status_str = "char limit reached"
+	}
+
 	if key == ncurses.KEY_MOUSE || key == ncurses.KEY_RESIZE { //dont do any input for mouse event
 		return
 	}
+
 	if key == delete_key || key == ncurses.KEY_BACKSPACE { //delete key
-		var delete_x int
-		if prompt_x_coord-1 <= 0 {
-			delete_x = 1
-		} else {
-			delete_x = prompt_x_coord - 1
+		if prompt_x_coord <= 1 {
+			window.MoveAddChar(prompt_y_coord, prompt_x_coord-1, '|')
 		}
+		window.MoveAddChar(prompt_y_coord, prompt_x_coord+1, ' ') //clear last char printed
 
 		window.AttrOn(ncurses.A_BLINK)
-		window.MovePrint(prompt_y_coord, delete_x, currentPoint)
+		window.MovePrint(prompt_y_coord, prompt_x_coord, currentPoint)
 		window.AttrOff(ncurses.A_BLINK)
-		window.MoveAddChar(prompt_y_coord, delete_x+1, ' ') //clear last char printed
-		prompt_x_coord--                                    //decrement char position
+
+		prompt_x_coord-- //decrement char position
 		user_input_string = removeLastRune(user_input_string)
 
 	}
@@ -89,30 +108,17 @@ func update_input(window *ncurses.Window, key ncurses.Key) {
 	if !unicode.IsLetter(rune(key)) && !unicode.IsDigit(rune(key)) && key != octothorpe && key != plus_sign {
 		return
 	} else {
-		window.MovePrint(prompt_y_coord, prompt_x_coord+1, currentPoint) //indicate char youre on
 		window.MoveAddChar(prompt_y_coord, prompt_x_coord, ncurses.Char(key))
-		prompt_x_coord++ //increment char position
-	}
 
-	//adjust coordinates
-	if prompt_x_coord <= 0 {
-		window.MoveAddChar(prompt_y_coord, 1, ' ') //clear last char pointer
-		prompt_x_coord = width - 2
-		prompt_y_coord--
-	}
-	if prompt_y_coord <= 0 {
-		prompt_x_coord = 1
-		prompt_y_coord = 1
-	}
-	if prompt_x_coord >= width-1 {
-		prompt_x_coord = 1
-		prompt_y_coord++
-	}
-	if prompt_y_coord >= height-1 {
-		prompt_x_coord = width - 2
-		prompt_y_coord = height - 2
-		status_str = "char limit reached"
-		return
+		if prompt_x_coord+3 <= width {
+			window.AttrOn(ncurses.A_BLINK)
+			window.MovePrint(prompt_y_coord, prompt_x_coord+1, currentPoint) //indicate char youre on
+			window.AttrOff(ncurses.A_BLINK)
+			window.MoveAddChar(prompt_y_coord, 0, '>') //indicate the line that you're on.
+		} else {
+			window.MoveAddChar(prompt_y_coord, 0, '|')
+		}
+		prompt_x_coord++ //increment char position
 	}
 
 	//add to the current input buffer
@@ -121,7 +127,7 @@ func update_input(window *ncurses.Window, key ncurses.Key) {
 	}
 	//redraw border in case it was painted over
 	//window.Box('|', '-')
-	window.MoveAddChar(prompt_y_coord, 0, '>') //indicate the line that you're on.
+
 	window.NoutRefresh()
 }
 
