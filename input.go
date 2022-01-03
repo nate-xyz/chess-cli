@@ -8,6 +8,50 @@ import (
 	ncurses "github.com/nate-xyz/goncurses"
 )
 
+func options_input(window *ncurses.Window, key ncurses.Key, options []string, selected_index int) (int, bool) {
+	height, width := window.MaxYX()
+
+	if key == ncurses.KEY_MOUSE || key == ncurses.KEY_RESIZE { //dont do any input for mouse event
+		return selected_index, false
+	}
+	if key == ncurses.KEY_ENTER || key == ncurses.KEY_RETURN {
+		return selected_index, true
+	}
+
+	if key == ncurses.KEY_UP {
+		selected_index--
+		if selected_index < 0 {
+			selected_index = 0
+		}
+	}
+	if key == ncurses.KEY_DOWN {
+		selected_index++
+		if selected_index >= len(options) {
+			selected_index = 0
+		}
+	}
+
+	for i, str := range options {
+		if i == selected_index {
+			window.AttrOn(ncurses.ColorPair(3))
+			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
+			var padding string
+			if (width - len(str) - 1) > 0 {
+				padding = fmt.Sprintf("%s", strings.Repeat(" ", (width-len(str)-1)))
+			}
+			window.MovePrint(height-1, len(str), padding)
+			window.AttrOff(ncurses.ColorPair(3))
+		} else {
+			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
+		}
+	}
+
+	//redraw border in case it was painted over
+	window.Box('|', '-')
+	window.Refresh()
+	return selected_index, false
+}
+
 func update_input(prompt_window *ncurses.Window, key ncurses.Key) {
 	height, width := prompt_window.MaxYX()
 	padding := fmt.Sprintf("%s", strings.Repeat(" ", (width-1)))

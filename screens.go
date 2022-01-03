@@ -123,14 +123,39 @@ func post_screen(screen *ncurses.Window) int {
 
 func welcome_screen(screen *ncurses.Window) ncurses.Key {
 	var key ncurses.Key
-	draw_welcome_screen(screen)
+	height, width := screen.MaxYX()
+	//start windows
+	op_info := windowSizePos{(height / 2) + 2, (width / 2), (height / 2) - 2, width / 4}
+	options_window, _ := ncurses.NewWindow(op_info.h, op_info.w, op_info.y, op_info.x)
+	windows_array := [1]*ncurses.Window{options_window}
+	windows_info_arr := [1]windowSizePos{op_info}
+	options := []string{"<<press '1' to play locally>>", "<<press '2' to play online>>", "<<press '3' to play stockfish>>"}
+	var option_index int = 0
+	var selected bool
+	draw_welcome_screen(screen, key, windows_array, windows_info_arr)
 	for {
 		select {
 		case <-sigs:
 			tRow, tCol, _ := osTermSize()
 			ncurses.ResizeTerm(tRow, tCol)
-			draw_welcome_screen(screen)
+			draw_welcome_screen(screen, key, windows_array, windows_info_arr)
 		default: //normal character loop here
+			option_index, selected = options_input(options_window, key, options, option_index)
+			if selected {
+				user_input_string = ""
+				inputted_str = ""
+				entered_move = false
+				switch option_index {
+				case 0:
+					return one_key
+				case 1:
+					return two_key
+				case 2:
+					return three_key
+				case 3:
+					return control_o_key
+				}
+			}
 			key = screen.GetChar()
 			switch key {
 			case control_o_key, one_key, two_key, three_key:

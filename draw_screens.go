@@ -7,9 +7,21 @@ import (
 	ncurses "github.com/nate-xyz/goncurses"
 )
 
-func draw_welcome_screen(screen *ncurses.Window) {
+func draw_welcome_screen(screen *ncurses.Window, key ncurses.Key, windows_array [1]*ncurses.Window, windows_info_arr [1]windowSizePos) {
 	screen.Clear()
 	height, width := screen.MaxYX()
+
+	//update window dimensions
+	windows_info_arr[0] = windowSizePos{(height / 2) - 4, width, (height / 2) + 2, 0}
+
+	//Clear, refresh, update all windows
+	for i, win := range windows_array {
+		win.Clear()
+		info := windows_info_arr[i]
+		win.Resize(info.h, info.w)     //Resize windows based on new dimensions
+		win.MoveWindow(info.y, info.x) //move windows to appropriate locations
+		win.NoutRefresh()
+	}
 
 	// Declaration of strings
 	title := "chess-cli"
@@ -65,7 +77,12 @@ func draw_welcome_screen(screen *ncurses.Window) {
 	screen.MovePrint(start_y+7, (width/2)-2, "----")
 
 	//prompt_welcome_window.Box('|', '-')
-	screen.Refresh()
+	screen.NoutRefresh()
+	for _, win := range windows_array {
+		win.Box('|', '-')
+		win.NoutRefresh()
+	}
+	ncurses.Update()
 }
 
 func draw_lichess_welcome(screen *ncurses.Window, key ncurses.Key) {
