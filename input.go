@@ -21,7 +21,7 @@ func options_input(window *ncurses.Window, key ncurses.Key, options []string, se
 	if key == ncurses.KEY_UP {
 		selected_index--
 		if selected_index < 0 {
-			selected_index = 0
+			selected_index = len(options) - 1
 		}
 	}
 	if key == ncurses.KEY_DOWN {

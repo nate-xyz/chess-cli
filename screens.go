@@ -220,11 +220,11 @@ func lichess_welcome(screen *ncurses.Window) ncurses.Key {
 			option_index, selected = options_input(options_window, key, options, option_index)
 			if selected {
 				switch option_index {
-				case 0:
+				case 0: //return to welcome screen
 					key = zero_key
-				case 1:
+				case 1: //view / create challenges
 					key = one_key
-				case 2:
+				case 2: //view / join ongoing games
 					key = two_key
 				case 3:
 				case 4:
