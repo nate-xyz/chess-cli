@@ -166,10 +166,9 @@ func lichess_welcome(screen *ncurses.Window) ncurses.Key {
 			ncurses.ResizeTerm(tRow, tCol)
 			draw_lichess_welcome(screen, key)
 		default: //normal character loop here
-
 			key = screen.GetChar()
 			switch key {
-			case control_o_key, one_key, two_key, three_key:
+			case control_o_key, zero_key, one_key, two_key, three_key:
 				user_input_string = ""
 				inputted_str = ""
 				entered_move = false
@@ -191,7 +190,7 @@ func lichess_challenges(screen *ncurses.Window) ncurses.Key {
 		default: //normal character loop here
 			key = screen.GetChar()
 			switch key {
-			case control_o_key, one_key, two_key, three_key:
+			case control_o_key, zero_key, one_key, two_key, three_key:
 				user_input_string = ""
 				inputted_str = ""
 				entered_move = false
