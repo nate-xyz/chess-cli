@@ -65,7 +65,7 @@ func draw_welcome_screen(screen *ncurses.Window, key ncurses.Key, windows_array 
 	screen.AttrOff(ncurses.ColorPair(3))
 
 	// Turning on attributes for title
-	screen.AttrOn(ncurses.ColorPair(2))
+	screen.AttrOn(ncurses.ColorPair(15))
 	screen.AttrOn(ncurses.A_BOLD)
 	screen.AttrOn(ncurses.A_UNDERLINE)
 
@@ -74,12 +74,14 @@ func draw_welcome_screen(screen *ncurses.Window, key ncurses.Key, windows_array 
 
 	// Turning off attributes for title
 	screen.AttrOff(ncurses.A_UNDERLINE)
-	screen.AttrOff(ncurses.ColorPair(2))
+	screen.AttrOff(ncurses.ColorPair(15))
 	screen.AttrOff(ncurses.A_BOLD)
 
 	// Print rest of text
 	screen.AttrOn(ncurses.A_DIM)
+	screen.AttrOn(ncurses.ColorPair(17))
 	screen.MovePrint(start_y+1, start_x_subtitle, subtitle)
+	screen.AttrOff(ncurses.ColorPair(17))
 	screen.AttrOff(ncurses.A_DIM)
 
 	screen.MovePrint(start_y+3, (width/2)-2, "----")

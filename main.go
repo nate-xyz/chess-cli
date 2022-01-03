@@ -61,6 +61,12 @@ func main() {
 		//floating piece colors
 		ncurses.InitPair(10, light_piece, dark_piece)
 		ncurses.InitPair(11, dark_piece, light_piece)
+		ncurses.InitPair(12, ncurses.C_RED, ncurses.C_WHITE)
+		ncurses.InitPair(13, ncurses.C_RED, ncurses.C_BLACK)
+		ncurses.InitPair(14, ncurses.C_BLUE, ncurses.C_WHITE)
+		ncurses.InitPair(15, ncurses.C_BLUE, ncurses.C_BLACK)
+		ncurses.InitPair(16, dark_piece, ncurses.C_BLACK)
+		ncurses.InitPair(17, light_piece, ncurses.C_BLACK)
 	} else {
 		ncurses.InitPair(4, ncurses.C_RED, ncurses.C_WHITE)
 		ncurses.InitPair(5, ncurses.C_RED, ncurses.C_BLACK)
