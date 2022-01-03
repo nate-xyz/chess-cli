@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	ncurses "github.com/nate-xyz/goncurses"
 	"github.com/notnil/chess"
@@ -240,7 +241,10 @@ func GetRandomQuote() string {
 		56: "'I like chess.' - H.F. Witte",
 	}
 
-	rand_quote_int := rand.Intn(56)
+	rand.Seed(time.Now().UnixNano())
+	minrand := 0
+	maxrand := 56
+	rand_quote_int := rand.Intn(maxrand-minrand+1) + minrand
 
 	var rand_quote string = rand_quote_map[rand_quote_int]
 
