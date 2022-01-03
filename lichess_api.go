@@ -193,6 +193,7 @@ func GetFriends() error {
 	// unmarshal the json into a string map
 	//var responseData map[string]interface{}
 	//err = json.Unmarshal(body, &responseData)
+	allFriends = nil
 	d := json.NewDecoder(strings.NewReader(string(body)))
 	for {
 		var responseData map[string]interface{}
