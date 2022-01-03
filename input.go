@@ -86,7 +86,9 @@ func update_input(window *ncurses.Window, key ncurses.Key) {
 		return
 	}
 	//if the key entered is an input char:
-	if unicode.IsLetter(rune(key)) || unicode.IsDigit(rune(key)) || key == octothorpe || key == plus_sign {
+	if !unicode.IsLetter(rune(key)) && !unicode.IsDigit(rune(key)) && key != octothorpe && key != plus_sign {
+		return
+	} else {
 		window.MovePrint(prompt_y_coord, prompt_x_coord+1, currentPoint) //indicate char youre on
 		window.MoveAddChar(prompt_y_coord, prompt_x_coord, ncurses.Char(key))
 		prompt_x_coord++ //increment char position
