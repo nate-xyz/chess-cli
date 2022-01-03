@@ -19,11 +19,7 @@ func draw_welcome_screen(screen *ncurses.Window, key ncurses.Key, windows_array 
 		}
 
 	}
-	if max_len%2 == 0 {
-		windows_info_arr[0] = windowSizePos{len(op) + 2, max_len, (height / 2) + 2, (width / 2) - (max_len / 2)}
-	} else {
-		windows_info_arr[0] = windowSizePos{len(op) + 2, max_len + 1, (height / 2) + 2, (width / 2) - ((max_len + 1) / 2)}
-	}
+	windows_info_arr[0] = windowSizePos{len(op) + 2, max_len + 2, (height / 2) + 2, (width / 2) - ((max_len + 2) / 2)}
 
 	//Clear, refresh, update all windows
 	for i, win := range windows_array {
@@ -108,11 +104,7 @@ func draw_lichess_welcome(screen *ncurses.Window, key ncurses.Key, windows_array
 		}
 
 	}
-	if max_len%2 == 0 {
-		windows_info_arr[0] = windowSizePos{len(op) + 2, max_len, (height / 2) + 2, (width / 2) - (max_len / 2)}
-	} else {
-		windows_info_arr[0] = windowSizePos{len(op) + 2, max_len + 1, (height / 2) + 2, (width / 2) - ((max_len + 1) / 2)}
-	}
+	windows_info_arr[0] = windowSizePos{len(op) + 2, max_len + 2, (height / 2) + 2, (width / 2) - ((max_len + 2) / 2)}
 
 	//Clear, refresh, update all windows
 	for i, win := range windows_array {
@@ -192,9 +184,29 @@ func draw_lichess_welcome(screen *ncurses.Window, key ncurses.Key, windows_array
 	ncurses.Update()
 }
 
-func draw_lichess_challenges(screen *ncurses.Window) {
+func draw_lichess_challenges(screen *ncurses.Window, key ncurses.Key, windows_array [3]*ncurses.Window, windows_info_arr [3]windowSizePos, op []string) {
 	screen.Clear()
 	height, width := screen.MaxYX()
+
+	//update window dimensions
+	max_len := 0
+	for _, str := range op {
+		if max_len < len(str) {
+			max_len = len(str)
+		}
+	}
+	windows_info_arr[0] = windowSizePos{len(op) + 2, max_len + 2, 2, (width / 2) - ((max_len + 2) / 2)}
+	windows_info_arr[1] = windowSizePos{(height / 4) * 3, width / 2, (height / 4), 0}
+	windows_info_arr[2] = windowSizePos{(height / 4) * 3, width / 2, (height / 4), width / 2}
+
+	//Clear, refresh, update all windows
+	for i, win := range windows_array {
+		win.Clear()
+		info := windows_info_arr[i]
+		win.Resize(info.h, info.w)     //Resize windows based on new dimensions
+		win.MoveWindow(info.y, info.x) //move windows to appropriate locations
+		win.NoutRefresh()
+	}
 	// Declaration of strings
 	title := "lichess challenges"
 	var subtitle string
@@ -204,7 +216,8 @@ func draw_lichess_challenges(screen *ncurses.Window) {
 	// Centering calculations
 	start_x_title := int((width / 2) - (len(title) / 2) - len(title)%2)
 	start_x_subtitle := int((width / 2) - (len(subtitle) / 2) - len(subtitle)%2)
-	start_y := int((height / 2) - 2)
+	//start_y := int((height / 2) - 2)
+	start_y := 1
 
 	// Rendering some text
 	whstr := fmt.Sprintf("Width: %d, Height: %d\n", width, height)
@@ -241,7 +254,12 @@ func draw_lichess_challenges(screen *ncurses.Window) {
 		screen.MovePrint(start_y+4+i, (width/2)-(len(str)/2), str)
 	}
 	screen.MovePrint(start_y+7, (width/2)-2, "----")
-	screen.Refresh()
+	screen.NoutRefresh()
+	for _, win := range windows_array {
+		win.Box('|', '-')
+		win.NoutRefresh()
+	}
+	ncurses.Update()
 }
 
 func draw_local_game_screen(stdscr *ncurses.Window, key ncurses.Key, windows_array [4]*ncurses.Window, windows_info_arr [4]windowSizePos) {

@@ -257,6 +257,19 @@ func lichess_welcome(screen *ncurses.Window) ncurses.Key {
 
 func lichess_challenges(screen *ncurses.Window) ncurses.Key {
 	var key ncurses.Key
+	height, width := screen.MaxYX()
+	//start windows
+	options := []string{"create a new challenge", "accept a challenge", "back", "quit"}
+	op_info := windowSizePos{(height / 2) - 4, width / 2, (height / 2) + 2, width / 4}
+	in_info := windowSizePos{(height / 2) - 4, width / 2, (height / 2) + 2, width / 4}
+	out_info := windowSizePos{(height / 2) - 4, width / 2, (height / 2) + 2, width / 4}
+	options_window, _ := ncurses.NewWindow(op_info.h, op_info.w, op_info.y, op_info.x)
+	in_challenge, _ := ncurses.NewWindow(in_info.h, in_info.w, in_info.y, in_info.x)
+	out_challenge, _ := ncurses.NewWindow(out_info.h, out_info.w, out_info.y, out_info.x)
+	windows_array := [3]*ncurses.Window{options_window, in_challenge, out_challenge}
+	windows_info_arr := [3]windowSizePos{op_info, in_info, out_info}
+	var option_index int = 0
+	var selected bool
 	if UserInfo.ApiToken != "" {
 		err := GetFriends()
 		if err != nil {
@@ -264,20 +277,41 @@ func lichess_challenges(screen *ncurses.Window) ncurses.Key {
 			os.Exit(1)
 		}
 	}
-	draw_lichess_challenges(screen)
+	draw_lichess_challenges(screen, key, windows_array, windows_info_arr, options)
 	for {
 		select {
 		case <-sigs:
 			tRow, tCol, _ := osTermSize()
 			ncurses.ResizeTerm(tRow, tCol)
-			draw_lichess_challenges(screen)
+			draw_lichess_challenges(screen, key, windows_array, windows_info_arr, options)
 		default: //normal character loop here
 			key = screen.GetChar()
+			option_index, selected = options_input(options_window, key, options, option_index)
+			if selected {
+				switch option_index {
+				case 0:
+				case 1:
+				case 2:
+					key = one_key
+				case 3:
+					key = control_o_key
+				case 4:
+
+				}
+			}
 			switch key {
-			case control_o_key, zero_key, one_key, two_key, three_key:
-				user_input_string = ""
-				inputted_str = ""
-				entered_move = false
+			case zero_key:
+			case one_key:
+				if !selected {
+					_, _ = options_input(options_window, key, options, 1)
+				}
+				return key
+			case two_key:
+			case three_key:
+			case control_o_key:
+				if !selected {
+					_, _ = options_input(options_window, key, options, 4)
+				}
 				return key
 			}
 		}
