@@ -81,16 +81,17 @@ func draw_lichess_welcome(screen *ncurses.Window, key ncurses.Key) {
 
 	} else {
 		subtitle = fmt.Sprintf("logged in as: %s", Username)
-		additional_info = []string{"<<Press 1 to view / create challenges>>", "<<Press 2 to view / join ongoing games>>", "etc"}
+		additional_info = []string{"<<Press 0 to return to welcome screen>>", "<<Press 2 to view / create challenges>>", "<<Press 3 to view / join ongoing games>>", "etc"}
 	}
 	keystr := fmt.Sprintf("Last key pressed: %v", key)
 
 	var statusbarstr string
-	if UserInfo.ApiToken == "" {
-		statusbarstr = fmt.Sprintf("LICHESS CLIENT | Press 'Ctrl-l' to login | Press 'Ctrl-o' to quit")
-	} else {
-		statusbarstr = fmt.Sprintf("LICHESS CLIENT | Press 'Ctrl-o' to quit")
-	}
+	// if UserInfo.ApiToken == "" {
+	// 	statusbarstr = fmt.Sprintf("LICHESS CLIENT | Press 'Ctrl-l' to login | Press 'Ctrl-o' to quit")
+	// } else {
+	// 	statusbarstr = fmt.Sprintf("LICHESS CLIENT | Press 'Ctrl-o' to quit")
+	// }
+	statusbarstr = fmt.Sprintf("LICHESS CLIENT | Press '0' to return to main | Press 'Ctrl-o' to quit")
 
 	// Centering calculations
 	start_x_title := int((width / 2) - (len(title) / 2) - len(title)%2)
@@ -105,7 +106,10 @@ func draw_lichess_welcome(screen *ncurses.Window, key ncurses.Key) {
 	// Render status bar
 	screen.AttrOn(ncurses.ColorPair(3))
 	screen.MovePrint(height-1, 0, statusbarstr)
-	padding := fmt.Sprintf("%s", strings.Repeat(" ", (width-len(statusbarstr)-1)))
+	var padding string
+	if (width - len(statusbarstr) - 1) > 0 {
+		padding = fmt.Sprintf("%s", strings.Repeat(" ", (width-len(statusbarstr)-1)))
+	}
 	screen.MovePrint(height-1, len(statusbarstr), padding)
 	screen.AttrOff(ncurses.ColorPair(3))
 
@@ -138,7 +142,7 @@ func draw_lichess_challenges(screen *ncurses.Window) {
 	title := "lichess challenges"
 	var subtitle string
 	var additional_info []string
-	var statusbarstr string = fmt.Sprintf("CHESS-CLI | LICHESS CHALLENGES | Press 'Ctrl-o' to quit")
+	var statusbarstr string = fmt.Sprintf("LICHESS CHALLENGES | Press '0' to return to main | Press '1' to return to lichess main | Press 'Ctrl-o' to quit")
 
 	// Centering calculations
 	start_x_title := int((width / 2) - (len(title) / 2) - len(title)%2)
@@ -152,7 +156,10 @@ func draw_lichess_challenges(screen *ncurses.Window) {
 	// Render status bar
 	screen.AttrOn(ncurses.ColorPair(3))
 	screen.MovePrint(height-1, 0, statusbarstr)
-	padding := fmt.Sprintf("%s", strings.Repeat(" ", (width-len(statusbarstr)-1)))
+	var padding string
+	if (width - len(statusbarstr) - 1) > 0 {
+		padding = fmt.Sprintf("%s", strings.Repeat(" ", (width-len(statusbarstr)-1)))
+	}
 	screen.MovePrint(height-1, len(statusbarstr), padding)
 	screen.AttrOff(ncurses.ColorPair(3))
 

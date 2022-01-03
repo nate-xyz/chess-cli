@@ -115,12 +115,14 @@ func lichessScreenHandler(stdscr *ncurses.Window, key ncurses.Key) ncurses.Key {
 	case zero_key:
 		return key //go to welcome screen
 	case one_key:
-		key = lichess_challenges(stdscr) //go to challenge screen
+		key = lichess_welcome(stdscr)
 	case two_key:
-		return key
-		//key = lichess_games(stdscr) //see ongoing games
+		key = lichess_challenges(stdscr) //go to challenge screen
 	case three_key:
-		return key //puzzles?
+		return zero_key
+		//key = lichess_games(stdscr) //see ongoing games
+	case four_key:
+		return zero_key //puzzles?
 	case control_o_key:
 		return key //quit game
 	}

@@ -16,6 +16,7 @@ var zero_key ncurses.Key = 48
 var one_key ncurses.Key = 49
 var two_key ncurses.Key = 50
 var three_key ncurses.Key = 51
+var four_key ncurses.Key = 52
 
 // set to true to skip welcome screen
 var dev_mode bool = false
