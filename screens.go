@@ -151,7 +151,7 @@ func welcome_screen(screen *ncurses.Window) ncurses.Key {
 				case 1:
 					key = two_key
 				case 2:
-					key = three_key
+					// key = three_key
 				case 3:
 					key = control_o_key
 				}
@@ -200,7 +200,7 @@ func lichess_welcome(screen *ncurses.Window) ncurses.Key {
 	height, width := screen.MaxYX()
 	//start windows
 	//options := []string{"<<Press 0 to return to welcome screen>>", "<<Press 1 to view / create challenges>>", "<<Press 2 to view / join ongoing games>>", "etc", "quit"}
-	options := []string{"return to welcome screen", "view / create challenges", "view / join ongoing games", "etc", "quit"}
+	options := []string{"view / create challenges", "view / join ongoing games", "back", "quit"}
 
 	op_info := windowSizePos{(height / 2) - 4, width / 2, (height / 2) + 2, width / 4}
 	options_window, _ := ncurses.NewWindow(op_info.h, op_info.w, op_info.y, op_info.x)
@@ -220,15 +220,16 @@ func lichess_welcome(screen *ncurses.Window) ncurses.Key {
 			option_index, selected = options_input(options_window, key, options, option_index)
 			if selected {
 				switch option_index {
-				case 0: //return to welcome screen
-					key = zero_key
-				case 1: //view / create challenges
+				case 0: //view / create challenges
 					key = one_key
-				case 2: //view / join ongoing games
-					key = two_key
+				case 1: //view / join ongoing games
+					//key = two_key
+				case 2:
+					key = zero_key //return to welcome screen
 				case 3:
-				case 4:
 					key = control_o_key
+				case 4:
+
 				}
 			}
 			switch key {
@@ -295,9 +296,9 @@ func lichess_challenges(screen *ncurses.Window) ncurses.Key {
 			option_index, selected = options_input(options_window, key, options, option_index)
 			if selected {
 				switch option_index {
-				case 0:
-				case 1:
-				case 2:
+				case 0: //create a new challenge
+				case 1: //accept a challenge
+				case 2: //view a challenge
 				case 3:
 					key = one_key
 				case 4:
