@@ -10,6 +10,9 @@ import (
 var UserEmail string
 var Username string
 var UserProfile map[string]interface{}
+var UserFriends string
+var FriendsMap map[string]bool
+
 var Challenge map[string]interface{}
 
 var IncomingChallenges []map[string]interface{}
@@ -156,4 +159,51 @@ func GetProfile() error {
 		return err
 	}
 	return nil
+}
+
+//list of friends(and their online/offline status), to be displayed on challenge screen
+func GetFriends() error {
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/rel/following", hostUrl), nil)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
+	if err != nil {
+		return err
+	}
+
+	//do http request. must be done in this fashion so we can add the auth bear token headers above
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	//read resp body
+	body, err := io.ReadAll(resp.Body)
+	if resp.StatusCode != 200 {
+		return fmt.Errorf(string(body))
+	} else if err != nil {
+		return err
+	}
+	// unmarshal the json into a string map
+	var responseData map[string]interface{}
+	err = json.Unmarshal(body, &responseData)
+
+	var FriendsString string
+	// retrieve the access token out of the map, and return to caller
+	if !isNil(responseData["username"]) {
+		FriendsString = responseData["username"].(string)
+	}
+
+	var FriendsOnline bool
+	if !isNil(responseData["online"]) {
+		FriendsOnline = responseData["online"].(bool)
+
+		FriendsMap[FriendsString] = FriendsOnline
+
+		return nil
+
+	} else {
+		return fmt.Errorf("response interface is nil")
+	}
+
 }
