@@ -209,13 +209,20 @@ func draw_lichess_challenges(screen *ncurses.Window, key ncurses.Key, windows_ar
 	}
 	// Declaration of strings
 	title := "lichess challenges"
+	options_title := "options"
+	incoming_title := "incoming challenges"
+	outgoing_title := "outgoing challenges"
+
+	title_array := []string{options_title, incoming_title, outgoing_title}
+
 	var subtitle string
-	var additional_info []string
+	//var additional_info []string
 	var statusbarstr string = fmt.Sprintf("LICHESS CHALLENGES | Press '0' to return to main | Press '1' to return to lichess main | Press 'Ctrl-o' to quit")
 
 	// Centering calculations
 	start_x_title := int((width / 2) - (len(title) / 2) - len(title)%2)
 	start_x_subtitle := int((width / 2) - (len(subtitle) / 2) - len(subtitle)%2)
+	_ = start_x_subtitle
 	//start_y := int((height / 2) - 2)
 	start_y := 1
 
@@ -234,32 +241,51 @@ func draw_lichess_challenges(screen *ncurses.Window, key ncurses.Key, windows_ar
 	screen.AttrOff(ncurses.ColorPair(3))
 
 	// Turning on attributes for title
+	for i, win := range windows_array {
+		win.Box('|', '-')
+		// Rendering title
+		win.AttrOn(ncurses.ColorPair(2))
+		win.AttrOn(ncurses.A_BOLD)
+		win.MovePrint(0, 1, title_array[i])
+		win.AttrOff(ncurses.ColorPair(2))
+		win.AttrOff(ncurses.A_BOLD)
+	}
+
+	draw_challenge_windows(windows_array[1], windows_array[2])
+
+	// Turning on attributes for main title
 	screen.AttrOn(ncurses.ColorPair(2))
 	screen.AttrOn(ncurses.A_BOLD)
-
-	// Rendering title
-	screen.MovePrint(start_y, start_x_title, title)
-
-	// Turning off attributes for title
-	screen.AttrOff(ncurses.ColorPair(2))
+	screen.MovePrint(start_y, start_x_title, title) // Rendering title
+	screen.AttrOff(ncurses.ColorPair(2))            // Turning off attributes for title
 	screen.AttrOff(ncurses.A_BOLD)
 
 	// Print rest of text
-	screen.MovePrint(start_y+1, start_x_subtitle, subtitle)
-	for i, friend := range allFriends {
-		screen.MovePrint(start_y+3+i, (width/2)-2, "Friend: "+(friend))
-	}
+	// screen.MovePrint(start_y+1, start_x_subtitle, subtitle)
+	// for i, friend := range allFriends {
+	// 	screen.MovePrint(start_y+3+i, (width/2)-2, "Friend: "+(friend))
+	// }
 
-	for i, str := range additional_info {
-		screen.MovePrint(start_y+4+i, (width/2)-(len(str)/2), str)
-	}
-	screen.MovePrint(start_y+7, (width/2)-2, "----")
+	// for i, str := range additional_info {
+	// 	screen.MovePrint(start_y+4+i, (width/2)-(len(str)/2), str)
+	// }
+	//screen.MovePrint(start_y+7, (width/2)-2, "----")
 	screen.NoutRefresh()
 	for _, win := range windows_array {
-		win.Box('|', '-')
 		win.NoutRefresh()
 	}
 	ncurses.Update()
+}
+
+func draw_challenge_windows(inc *ncurses.Window, out *ncurses.Window) {
+	for i, challenge := range IncomingChallenges {
+		inc.MovePrint(i+1, 1, fmt.Sprintf("%s -> %s", challenge.Challenger.Id, challenge.DestUser.Id))
+
+	}
+	for i, challenge := range OutgoingChallenges {
+		out.MovePrint(i+1, 1, fmt.Sprintf("%s -> %s", challenge.Challenger.Id, challenge.DestUser.Id))
+	}
+
 }
 
 func draw_local_game_screen(stdscr *ncurses.Window, key ncurses.Key, windows_array [4]*ncurses.Window, windows_info_arr [4]windowSizePos) {

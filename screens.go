@@ -257,9 +257,12 @@ func lichess_welcome(screen *ncurses.Window) ncurses.Key {
 
 func lichess_challenges(screen *ncurses.Window) ncurses.Key {
 	var key ncurses.Key
+	var option_index int = 0
+	var selected bool
+	//var choosing_from_challenges bool
 	height, width := screen.MaxYX()
 	//start windows
-	options := []string{"create a new challenge", "accept a challenge", "back", "quit"}
+	options := []string{"create a new challenge", "accept a challenge", "view a challenge", "back", "quit"}
 	op_info := windowSizePos{(height / 2) - 4, width / 2, (height / 2) + 2, width / 4}
 	in_info := windowSizePos{(height / 2) - 4, width / 2, (height / 2) + 2, width / 4}
 	out_info := windowSizePos{(height / 2) - 4, width / 2, (height / 2) + 2, width / 4}
@@ -268,8 +271,7 @@ func lichess_challenges(screen *ncurses.Window) ncurses.Key {
 	out_challenge, _ := ncurses.NewWindow(out_info.h, out_info.w, out_info.y, out_info.x)
 	windows_array := [3]*ncurses.Window{options_window, in_challenge, out_challenge}
 	windows_info_arr := [3]windowSizePos{op_info, in_info, out_info}
-	var option_index int = 0
-	var selected bool
+	GetChallenges()
 	if UserInfo.ApiToken != "" {
 		err := GetFriends()
 		if err != nil {
@@ -294,8 +296,9 @@ func lichess_challenges(screen *ncurses.Window) ncurses.Key {
 				case 2:
 					key = one_key
 				case 3:
-					key = control_o_key
+
 				case 4:
+					key = control_o_key
 
 				}
 			}

@@ -15,6 +15,7 @@ import (
 var sigs chan os.Signal
 
 func main() {
+
 	sigs = make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGWINCH)
 	// Initialize ncurses. It's essential End() is called to ensure the

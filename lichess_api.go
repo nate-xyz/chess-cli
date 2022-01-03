@@ -16,10 +16,55 @@ var UserFriends string
 var allFriends []string
 var FriendsMap map[string]bool
 
-var Challenge map[string]interface{}
+//var Challenge map[string]interface{}
 
-var IncomingChallenges []map[string]interface{}
-var OutgoingChallenges []map[string]interface{}
+type TimeInfo struct {
+	Increment int    `json: "increment"`
+	Limit     int    `json: "limit"`
+	Show      string `json: "show"`
+	Type      string `json: "type"`
+}
+
+type VariantInfo struct {
+	Key   string `json: "key"`
+	Name  string `json: "name"`
+	Short string `json: "short"`
+}
+
+type ChallengerInfo struct {
+	Id     string `json: "id"`
+	Name   string `json: "name"`
+	Rating int    `json: "rating"`
+	Title  string `json: "title"`
+}
+
+type Perf_ struct {
+	Icon string `json: "icon"`
+	Name string `json: "name"`
+}
+
+type ChallengeInfo struct {
+	Id          string         `json: "id"`
+	URL         string         `json: "url"`
+	Color       string         `json: "color"`
+	Direction   string         `json: "direction"`
+	TimeControl TimeInfo       `json: "timeControl"`
+	Variant     VariantInfo    `json: "variant"`
+	Challenger  ChallengerInfo `json: "challenger"`
+	DestUser    ChallengerInfo `json: "destUser"`
+	Perf        Perf_          `json: "perf"`
+	Rated       bool           `json: "rated"`
+	Speed       string         `json: "speed"`
+	Status      string         `json: "status"`
+}
+
+var IncomingChallenges []ChallengeInfo
+var OutgoingChallenges []ChallengeInfo
+
+var JSONresult struct {
+	In  []ChallengeInfo `json: "in"`
+	Out []ChallengeInfo `json: "out"`
+}
 
 func GetChallenges() error {
 
@@ -28,8 +73,9 @@ func GetChallenges() error {
 	//var IncomingChallenges string = ""
 	//var OutgoingChallenges string = ""
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/account/challenge", hostUrl), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/challenge", hostUrl), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
+	//req.Header.Add("Content-Type", "application/json")
 
 	if err != nil {
 		return err
@@ -45,24 +91,44 @@ func GetChallenges() error {
 	//read resp body
 	body, err := io.ReadAll(resp.Body)
 	if resp.StatusCode != 200 {
-		return fmt.Errorf(string(body))
+		//return fmt.Errorf(string(body))
+		return fmt.Errorf("bad response")
 	} else if err != nil {
 		return err
 	}
 	// unmarshal the json into a string map
-	var responseData map[string]interface{}
-	err = json.Unmarshal(body, &responseData)
-
+	//var responseData map[string]interface{}
+	//var challengeList []interface{}
+	err = json.Unmarshal(body, &JSONresult)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(body))
+	res2B, _ := json.Marshal(JSONresult)
+	fmt.Println(string(res2B))
 	// retrieve the access token out of the map, and return to caller
-	if !isNil(responseData["in"]) {
-		IncomingChallenges = responseData["in"].([]map[string]interface{})
+	if !isNil(JSONresult.In) {
+		IncomingChallenges = JSONresult.In
+
+		// challengeList = responseData["in"].([]interface{})
+		// for _, challenge := range challengeList {
+		// 	challenge_ := challenge.(ChallengeInfo)
+		// 	fmt.Printf("%v", challenge_.UserID)
+		// }
+		//IncomingChallenges = responseData["out"].([]ChallengeInfo)
 		//json.Unmarshal([]byte(responseData["in"]), &IncomingChallenges)
 		//ChallengesArray = append(ChallengesArray, IncomingChallenges)
 	} else {
 		return fmt.Errorf("response interface is nil")
 	}
-	if !isNil(responseData["out"]) {
-		OutgoingChallenges = responseData["out"].([]map[string]interface{})
+	if !isNil(JSONresult.Out) {
+		OutgoingChallenges = JSONresult.Out
+		// challengeList := JSONresult["out"].([]interface{})
+		// for _, challenge := range challengeList {
+		// 	//challenge_ := challenge.(ChallengeInfo)
+		// 	fmt.Printf("%v", challenge.(map[string]interface{})["id"])
+		// }
+		//OutgoingChallenges = responseData["out"].([]ChallengeInfo)
 		//ChallengesArray = append(ChallengesArray, OutgoingChallenges)
 		return nil
 	}
