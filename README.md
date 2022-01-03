@@ -15,7 +15,7 @@ if libraries are missing: go mod tidy
 - [ ] get mouse input working in board window 
 - [ ] get lichess requests working? wip
   - [x] get profile info ✓
-  - [ ] get challenges 
+  - [x] get challenges 
   - [ ] make challenges
   - [ ] list of ongoing games
   - [ ] game screen w/ working request loop and translation of move sequence into FEN string
