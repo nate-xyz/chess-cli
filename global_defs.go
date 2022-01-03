@@ -3,19 +3,19 @@ package main
 import (
 	"regexp"
 
-	"github.com/nate-xyz/goncurses"
+	ncurses "github.com/nate-xyz/goncurses"
 	"github.com/notnil/chess"
 )
 
 // GLOBAL VARS
 
-var control_l_key goncurses.Key = 12
-var control_o_key goncurses.Key = 15
-var q_key goncurses.Key = 113
-var zero_key goncurses.Key = 48
-var one_key goncurses.Key = 49
-var two_key goncurses.Key = 50
-var three_key goncurses.Key = 51
+var control_l_key ncurses.Key = 12
+var control_o_key ncurses.Key = 15
+var q_key ncurses.Key = 113
+var zero_key ncurses.Key = 48
+var one_key ncurses.Key = 49
+var two_key ncurses.Key = 50
+var three_key ncurses.Key = 51
 
 // set to true to skip welcome screen
 var dev_mode bool = false
@@ -119,12 +119,12 @@ var isupper *regexp.Regexp = regexp.MustCompile("^[A-Z]*$")
 var isdigit *regexp.Regexp = regexp.MustCompile("^[0-9]*$")
 
 //ascii key codes
-var enter_key goncurses.Key = 10
-var space goncurses.Key = 32
-var octothorpe goncurses.Key = 35 // # key
-var plus_sign goncurses.Key = 43  // + key
-var delete_key goncurses.Key = 127
-var up_arrow goncurses.Key = 259
-var down_arrow goncurses.Key = 258
-var left_arrow goncurses.Key = 260
-var right_arrow goncurses.Key = 261
+var enter_key ncurses.Key = 10
+var space ncurses.Key = 32
+var octothorpe ncurses.Key = 35 // # key
+var plus_sign ncurses.Key = 43  // + key
+var delete_key ncurses.Key = 127
+var up_arrow ncurses.Key = 259
+var down_arrow ncurses.Key = 258
+var left_arrow ncurses.Key = 260
+var right_arrow ncurses.Key = 261

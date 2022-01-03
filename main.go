@@ -1,89 +1,91 @@
 package main
 
 import (
-	"fmt"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
-	"github.com/nate-xyz/goncurses"
+	ncurses "github.com/nate-xyz/goncurses"
 	"github.com/notnil/chess"
 
-	// "net/http"
 	"log"
-	// "io/ioutil"
-	// "reflect"
 )
 
 //#f3 e5 g4 Qh4#
+var sigs chan os.Signal
 
 func main() {
-
-	// Initialize goncurses. It's essential End() is called to ensure the
+	sigs = make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGWINCH)
+	// Initialize ncurses. It's essential End() is called to ensure the
 	// terminal isn't altered after the program ends
-	stdscr, err := goncurses.Init()
+	stdscr, err := ncurses.Init()
 	if err != nil {
 		log.Fatal("init", err)
 	}
 
-	defer goncurses.End()
+	defer ncurses.End()
+	stdscr.Timeout(0)
 
 	//necessary for mouse input, start keypad, read all mouse events
 	stdscr.Keypad(true)
-	mouse_int := goncurses.M_ALL | goncurses.M_POSITION
+	mouse_int := ncurses.M_ALL | ncurses.M_POSITION
 	_ = mouse_int
-	goncurses.MouseMask(mouse_int, nil)
-	fmt.Printf("\033[?1003h")
+	//ncurses.MouseMask(mouse_int, nil)
+	//fmt.Printf("\033[?1003h")
 
 	// allow input, Start colors in goncurses
-	goncurses.Echo(true)   //allow input
-	goncurses.Cursor(0)    //set cursor visibility to hidden
-	goncurses.StartColor() //allow color to be displayed
+	ncurses.Echo(true)   //allow input
+	ncurses.Cursor(0)    //set cursor visibility to hidden
+	ncurses.StartColor() //allow color to be displayed
 
-	//goncurses.use_default_colors()
-	goncurses.InitPair(1, goncurses.C_CYAN, goncurses.C_BLACK)
-	goncurses.InitPair(2, goncurses.C_RED, goncurses.C_BLACK)
-	goncurses.InitPair(3, goncurses.C_BLACK, goncurses.C_WHITE)
+	//ncurses.use_default_colors()
+	ncurses.InitPair(1, ncurses.C_CYAN, ncurses.C_BLACK)
+	ncurses.InitPair(2, ncurses.C_RED, ncurses.C_BLACK)
+	ncurses.InitPair(3, ncurses.C_BLACK, ncurses.C_WHITE)
 
 	//piece and square colors
-	if goncurses.CanChangeColor() {
+	if ncurses.CanChangeColor() {
 		var light_square int16 = 215 //SandyBrown
 		var dark_square int16 = 94   //Orange4
 		var light_piece int16 = 230  //Cornsilk1
 		var dark_piece int16 = 233   //Grey7
-		goncurses.InitPair(4, light_piece, light_square)
-		goncurses.InitPair(5, light_piece, dark_square)
-		goncurses.InitPair(6, dark_piece, light_square)
-		goncurses.InitPair(7, dark_piece, dark_square)
+		ncurses.InitPair(4, light_piece, light_square)
+		ncurses.InitPair(5, light_piece, dark_square)
+		ncurses.InitPair(6, dark_piece, light_square)
+		ncurses.InitPair(7, dark_piece, dark_square)
 
 		//floating piece colors
-		goncurses.InitPair(10, light_piece, dark_piece)
-		goncurses.InitPair(11, dark_piece, light_piece)
+		ncurses.InitPair(10, light_piece, dark_piece)
+		ncurses.InitPair(11, dark_piece, light_piece)
 	} else {
-		goncurses.InitPair(4, goncurses.C_RED, goncurses.C_WHITE)
-		goncurses.InitPair(5, goncurses.C_RED, goncurses.C_BLACK)
-		goncurses.InitPair(6, goncurses.C_BLUE, goncurses.C_WHITE)
-		goncurses.InitPair(7, goncurses.C_BLUE, goncurses.C_BLACK)
+		ncurses.InitPair(4, ncurses.C_RED, ncurses.C_WHITE)
+		ncurses.InitPair(5, ncurses.C_RED, ncurses.C_BLACK)
+		ncurses.InitPair(6, ncurses.C_BLUE, ncurses.C_WHITE)
+		ncurses.InitPair(7, ncurses.C_BLUE, ncurses.C_BLACK)
 	}
 	//move legality colors
-	goncurses.InitPair(8, goncurses.C_BLACK, goncurses.C_GREEN)
-	goncurses.InitPair(9, goncurses.C_WHITE, goncurses.C_RED)
+	ncurses.InitPair(8, ncurses.C_BLACK, ncurses.C_GREEN)
+	ncurses.InitPair(9, ncurses.C_WHITE, ncurses.C_RED)
 
-	var key goncurses.Key = one_key
+	var key ncurses.Key = one_key
 	if !dev_mode {
 		key = zero_key
 	}
 	mainScreenHandler(stdscr, key)
-	goncurses.FlushInput()
-	goncurses.Echo(false) //turn off input
-	goncurses.End()
+	ncurses.FlushInput()
+	ncurses.Echo(false) //turn off input
+	ncurses.End()
 }
 
 //screen handlers
-func mainScreenHandler(stdscr *goncurses.Window, key goncurses.Key) {
+func mainScreenHandler(stdscr *ncurses.Window, key ncurses.Key) {
 	switch key {
 	case zero_key:
 		key = welcome_screen(stdscr) //go back to welcome screen
 	case one_key:
-		key = local_game_screen(stdscr) //go to local game screen, two player with chess lib
+		_, key = localGameHandler(stdscr, local_game_screen(stdscr)) //go to local game screen, two player with chess lib
 	case two_key:
 		key = lichessScreenHandler(stdscr, lichess_welcome(stdscr)) //go to lichess welcome screen, login w oauth
 	case three_key:
@@ -94,7 +96,21 @@ func mainScreenHandler(stdscr *goncurses.Window, key goncurses.Key) {
 	mainScreenHandler(stdscr, key)
 }
 
-func lichessScreenHandler(stdscr *goncurses.Window, key goncurses.Key) goncurses.Key {
+func localGameHandler(stdscr *ncurses.Window, option int) (int, ncurses.Key) {
+	switch option {
+	case 0:
+		return -1, zero_key //go back to welcome screen
+	case 1:
+		option = local_game_screen(stdscr) //go to game screen
+	case 2:
+		option = post_screen(stdscr)
+	case 3:
+		return -1, control_o_key //quit game
+	}
+	return localGameHandler(stdscr, option)
+}
+
+func lichessScreenHandler(stdscr *ncurses.Window, key ncurses.Key) ncurses.Key {
 	switch key {
 	case zero_key:
 		return key //go to welcome screen
@@ -111,20 +127,7 @@ func lichessScreenHandler(stdscr *goncurses.Window, key goncurses.Key) goncurses
 	return lichessScreenHandler(stdscr, key)
 }
 
-//
-// //                                                  888                   d8b
-// //                                                  888                   Y8P
-// //                                                  888
-// //  .d88b.   8888b.  88888b.d88b.   .d88b.          888  .d88b.   .d88b.  888  .d8888b
-// // d88P"88b     "88b 888 "888 "88b d8P  Y8b         888 d88""88b d88P"88b 888 d88P"
-// // 888  888 .d888888 888  888  888 88888888         888 888  888 888  888 888 888
-// // Y88b 888 888  888 888  888  888 Y8b.             888 Y88..88P Y88b 888 888 Y88b.
-// //  "Y88888 "Y888888 888  888  888  "Y8888 88888888 888  "Y88P"   "Y88888 888  "Y8888P
-// //      888                                                           888
-// // Y8b d88P                                                      Y8b d88P
-// //  "Y88P"                                                        "Y88P"
-
-func game_logic(board_window *goncurses.Window) {
+func game_logic(board_window *ncurses.Window) bool {
 	//inputted_str = inputted_str.strip(' ').strip('\0').strip('^@')
 	inputted_str = strings.Trim(inputted_str, " ^@")
 	board_window.MovePrint(1, 1, inputted_str)
@@ -146,21 +149,20 @@ func game_logic(board_window *goncurses.Window) {
 			last_move_str = inputted_str //set the last move string to be displayed in the info window
 			history_arr = append([]string{inputted_str}, history_arr...)
 			move_amount++ //increment the global move amount for the history window
-			goncurses.Flash()
-			goncurses.Beep()
+			ncurses.Flash()
+			ncurses.Beep()
 
 			if game.Outcome() != chess.NoOutcome { //check if the game is over
 				status_str = game.Method().String()
 				final_position = game.Position().Board().Draw()
-				post_screen_toggle = true
+				return true
 			}
 		}
 
 	}
 
-	//draw board
-	draw_board(board_window)
 	legal_moves = game.ValidMoves()
+	return false
 }
 
 func contains(s []string, str string) bool {

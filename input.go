@@ -5,18 +5,18 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/nate-xyz/goncurses"
+	ncurses "github.com/nate-xyz/goncurses"
 )
 
-func update_input(prompt_window *goncurses.Window, key goncurses.Key) {
+func update_input(prompt_window *ncurses.Window, key ncurses.Key) {
 	height, width := prompt_window.MaxYX()
 	padding := fmt.Sprintf("%s", strings.Repeat(" ", (width-1)))
 	var currentPoint string = string(rune(8248))
 
-	if key == goncurses.KEY_MOUSE { //dont do any input for mouse event
+	if key == ncurses.KEY_MOUSE || key == ncurses.KEY_RESIZE { //dont do any input for mouse event
 		return
 	}
-	if key == delete_key || key == goncurses.KEY_BACKSPACE { //delete key
+	if key == delete_key || key == ncurses.KEY_BACKSPACE { //delete key
 		var delete_x int
 		if prompt_x_coord-1 <= 0 {
 			delete_x = 1
@@ -30,7 +30,7 @@ func update_input(prompt_window *goncurses.Window, key goncurses.Key) {
 		user_input_string = removeLastRune(user_input_string)
 
 	}
-	if key == goncurses.KEY_ENTER || key == goncurses.KEY_RETURN || key == enter_key { //enter key
+	if key == ncurses.KEY_ENTER || key == ncurses.KEY_RETURN || key == enter_key { //enter key
 		entered_move = true
 		inputted_str = user_input_string //set global string to check if move is legal
 		user_input_string = ""           //reset input buffer
@@ -47,7 +47,7 @@ func update_input(prompt_window *goncurses.Window, key goncurses.Key) {
 	//if the key entered is an input char:
 	if unicode.IsLetter(rune(key)) || unicode.IsDigit(rune(key)) || key == octothorpe || key == plus_sign {
 		prompt_window.MovePrint(prompt_y_coord, prompt_x_coord+1, currentPoint) //indicate char youre on
-		prompt_window.MoveAddChar(prompt_y_coord, prompt_x_coord, goncurses.Char(key))
+		prompt_window.MoveAddChar(prompt_y_coord, prompt_x_coord, ncurses.Char(key))
 		prompt_x_coord++ //increment char position
 	}
 
@@ -73,7 +73,7 @@ func update_input(prompt_window *goncurses.Window, key goncurses.Key) {
 	}
 
 	//add to the current input buffer
-	if key != goncurses.KEY_ENTER && key != goncurses.KEY_RETURN && key != delete_key && (unicode.IsLetter(rune(key)) || unicode.IsDigit(rune(key)) || key == octothorpe || key == plus_sign) { //not enter and not delete
+	if key != ncurses.KEY_ENTER && key != ncurses.KEY_RETURN && key != delete_key && (unicode.IsLetter(rune(key)) || unicode.IsDigit(rune(key)) || key == octothorpe || key == plus_sign) { //not enter and not delete
 		user_input_string += string(rune(key))
 	}
 	//redraw border in case it was painted over
@@ -84,16 +84,16 @@ func update_input(prompt_window *goncurses.Window, key goncurses.Key) {
 // func board_window_mouse_input(screen, key, screen_width, screen_height) {
 //     height, width = screen.MaxYX()
 
-//     if key != goncurses.KEY_MOUSE: //input needs to be mouse input
+//     if key != ncurses.KEY_MOUSE: //input needs to be mouse input
 //         return
 
 //     try:
-//         _, mouse_x, mouse_y, _, button_state =  goncurses.getmouse()
+//         _, mouse_x, mouse_y, _, button_state =  ncurses.getmouse()
 //         bs_str = "none"
-//         if button_state & goncurses.BUTTON1_PRESSED != 0:
+//         if button_state & ncurses.BUTTON1_PRESSED != 0:
 //             bs_str = "b1 pressed"
 //             mouse_pressed = True
-//         if button_state & goncurses.BUTTON1_RELEASED != 0:
+//         if button_state & ncurses.BUTTON1_RELEASED != 0:
 //             bs_str = "b1 released"
 //             mouse_pressed = False
 //             floating = False
@@ -109,11 +109,11 @@ func update_input(prompt_window *goncurses.Window, key goncurses.Key) {
 //                 screen.MovePrint(5, 2, "piece is {}".format(piece_str ))
 //         if mouse_pressed:
 //             color_pair = floating_piece[0]
-//             screen.AttrOn(goncurses.ColorPair(color_pair))
-//             screen.AttrOn(goncurses.A_BOLD)
+//             screen.AttrOn(ncurses.ColorPair(color_pair))
+//             screen.AttrOn(ncurses.A_BOLD)
 //             screen.MovePrint(mouse_y, mouse_x, floating_piece[1]+" ")
-//             screen.AttrOn(goncurses.ColorPair(color_pair))
-//             screen.AttrOn(goncurses.A_BOLD)
+//             screen.AttrOn(ncurses.ColorPair(color_pair))
+//             screen.AttrOn(ncurses.A_BOLD)
 //     except:
 //         screen.MovePrint(7, 2, "error")
 

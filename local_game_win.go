@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/nate-xyz/goncurses"
+	ncurses "github.com/nate-xyz/goncurses"
 	"github.com/notnil/chess"
 )
 
@@ -22,19 +22,19 @@ import (
 // //                       888                   Y8b d88P
 // //                       888                    "Y88P"
 
-func display_info(info_window *goncurses.Window) {
+func display_info(info_window *ncurses.Window) {
 	height, width := info_window.MaxYX()
 
-	info_window.AttrOn(goncurses.ColorPair(3))
+	info_window.AttrOn(ncurses.ColorPair(3))
 	if game.Position().Turn() == chess.White {
 		info_window.MovePrint(1, 1, "white to move")
 	} else if game.Position().Turn() == chess.Black {
-		//info_window.AttrOn(goncurses.A_REVERSE)
+		//info_window.AttrOn(ncurses.A_REVERSE)
 		info_window.MovePrint(1, 1, "black to move")
-		//info_window.AttrOff(goncurses.A_REVERSE)
+		//info_window.AttrOff(ncurses.A_REVERSE)
 	}
 	info_window.MovePrint(2, 1, fmt.Sprintf("last move: %s", last_move_str))
-	info_window.AttrOff(goncurses.ColorPair(3))
+	info_window.AttrOff(ncurses.ColorPair(3))
 
 	var text_colour int16
 	if status_str == "move is legal!" {
@@ -42,13 +42,13 @@ func display_info(info_window *goncurses.Window) {
 	} else {
 		text_colour = 9
 	}
-	info_window.AttrOn(goncurses.ColorPair(text_colour))
+	info_window.AttrOn(ncurses.ColorPair(text_colour))
 	info_window.MovePrint(3, 1, status_str)
-	info_window.AttrOff(goncurses.ColorPair(text_colour))
+	info_window.AttrOff(ncurses.ColorPair(text_colour))
 
 	info_window.MovePrint(4, 1, fmt.Sprintf("input: %s", inputted_str))
 
-	info_window.AttrOn(goncurses.ColorPair(8))
+	info_window.AttrOn(ncurses.ColorPair(8))
 
 	//wrap_y := 0
 	san_move_str := fmt.Sprintf("legal moves: %s", strings.Join(legal_move_str_array[:], ", "))
@@ -76,7 +76,7 @@ func display_info(info_window *goncurses.Window) {
 	// 	}
 	// }
 	//info_window.MovePrint(7, 1, "{}: {}".format("legal moves (uci)", legal_move_str))
-	info_window.AttrOff(goncurses.ColorPair(8))
+	info_window.AttrOff(ncurses.ColorPair(8))
 
 	status_str = ""
 }
@@ -91,7 +91,7 @@ func display_info(info_window *goncurses.Window) {
 // //  `"8bbdP"Y8  88  `"YbbdP"'  88`YbbdP"'   88  `"8bbdP"Y8      Y88'               88       88  88  `"YbbdP"'    "Y888  `"YbbdP"'   88              Y88'
 // //                             88                               d8'                                                                                 d8'
 // //                             88                              d8'     888888888888                                                                d8'
-func display_history(history_window *goncurses.Window) {
+func display_history(history_window *ncurses.Window) {
 	height, width := history_window.MaxYX()
 
 	history_str_i := 0
@@ -126,7 +126,7 @@ func display_history(history_window *goncurses.Window) {
 // // 888  888 888    .d888888 888  888  888         888  888 888  888 .d888888 888    888  888
 // // Y88b 888 888    888  888 Y88b 888 d88P         888 d88P Y88..88P 888  888 888    Y88b 888
 // //  "Y88888 888    "Y888888  "Y8888888P" 88888888 88888P"   "Y88P"  "Y888888 888     "Y88888
-func draw_board(board_window *goncurses.Window) {
+func draw_board(board_window *ncurses.Window) {
 	height, width := board_window.MaxYX()
 	board_FEN := game.Position().String()
 	// board_square_coord = {}
@@ -169,13 +169,13 @@ func draw_board(board_window *goncurses.Window) {
 				} else {
 					color_pair = 5
 				}
-				board_window.AttrOn(goncurses.ColorPair(color_pair))
+				board_window.AttrOn(ncurses.ColorPair(color_pair))
 				board_window.MovePrint(y_coord, x_coord, " \t") //add a space+tab character for an empty square
 				var pair_temp piece_color
 				pair_temp.color = color_pair
 				pair_temp.piece = -1
 				board_square_coord[key_tuple] = pair_temp
-				board_window.AttrOff(goncurses.ColorPair(color_pair))
+				board_window.AttrOff(ncurses.ColorPair(color_pair))
 				square_count += 1
 				x_coord += x_inc
 			}
@@ -199,13 +199,13 @@ func draw_board(board_window *goncurses.Window) {
 				}
 			}
 
-			board_window.AttrOn(goncurses.ColorPair(color_pair))
-			board_window.AttrOn(goncurses.A_BOLD)
+			board_window.AttrOn(ncurses.ColorPair(color_pair))
+			board_window.AttrOn(ncurses.A_BOLD)
 
 			board_window.MovePrint(y_coord, x_coord, string(pieces[unicode.ToLower(current_piece)])+"\t")
 			//board_window.MovePrint(y_coord, x_coord, string(pieces[unicode.ToUpper(current_piece)])+" ")
 
-			//board_window.MoveAddChar(y_coord, x_coord, goncurses.Char(pieces[unicode.ToUpper(current_piece)]))
+			//board_window.MoveAddChar(y_coord, x_coord, ncurses.Char(pieces[unicode.ToUpper(current_piece)]))
 
 			//color, piece
 			var pair_temp piece_color
@@ -213,8 +213,8 @@ func draw_board(board_window *goncurses.Window) {
 			pair_temp.piece = pieces[unicode.ToUpper(current_piece)]
 			board_square_coord[key_tuple] = pair_temp
 
-			board_window.AttrOff(goncurses.ColorPair(color_pair))
-			board_window.AttrOff(goncurses.A_BOLD)
+			board_window.AttrOff(ncurses.ColorPair(color_pair))
+			board_window.AttrOff(ncurses.A_BOLD)
 
 			square_count += 1
 			x_coord += x_inc
