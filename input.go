@@ -9,7 +9,7 @@ import (
 )
 
 func options_input(window *ncurses.Window, key ncurses.Key, options []string, selected_index int) (int, bool) {
-	height, width := window.MaxYX()
+	_, width := window.MaxYX()
 
 	if key == ncurses.KEY_MOUSE || key == ncurses.KEY_RESIZE { //dont do any input for mouse event
 		return selected_index, false
@@ -35,11 +35,6 @@ func options_input(window *ncurses.Window, key ncurses.Key, options []string, se
 		if i == selected_index {
 			window.AttrOn(ncurses.ColorPair(3))
 			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
-			var padding string
-			if (width - len(str) - 1) > 0 {
-				padding = fmt.Sprintf("%s", strings.Repeat(" ", (width-len(str)-1)))
-			}
-			window.MovePrint(height-1, len(str), padding)
 			window.AttrOff(ncurses.ColorPair(3))
 		} else {
 			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
@@ -52,8 +47,8 @@ func options_input(window *ncurses.Window, key ncurses.Key, options []string, se
 	return selected_index, false
 }
 
-func update_input(prompt_window *ncurses.Window, key ncurses.Key) {
-	height, width := prompt_window.MaxYX()
+func update_input(window *ncurses.Window, key ncurses.Key) {
+	height, width := window.MaxYX()
 	padding := fmt.Sprintf("%s", strings.Repeat(" ", (width-1)))
 	var currentPoint string = string(rune(8248))
 
@@ -68,9 +63,11 @@ func update_input(prompt_window *ncurses.Window, key ncurses.Key) {
 			delete_x = prompt_x_coord - 1
 		}
 
-		prompt_window.MovePrint(prompt_y_coord, delete_x, currentPoint)
-		prompt_window.MoveAddChar(prompt_y_coord, delete_x+1, ' ') //clear last char printed
-		prompt_x_coord--                                           //decrement char position
+		window.AttrOn(ncurses.A_BLINK)
+		window.MovePrint(prompt_y_coord, delete_x, currentPoint)
+		window.AttrOff(ncurses.A_BLINK)
+		window.MoveAddChar(prompt_y_coord, delete_x+1, ' ') //clear last char printed
+		prompt_x_coord--                                    //decrement char position
 		user_input_string = removeLastRune(user_input_string)
 
 	}
@@ -80,24 +77,24 @@ func update_input(prompt_window *ncurses.Window, key ncurses.Key) {
 		user_input_string = ""           //reset input buffer
 		prompt_x_coord = 1               //reset char coordinates
 		prompt_y_coord = 1               //reset char coordinates
-		prompt_window.MoveAddChar(prompt_y_coord, 0, '|')
-		prompt_window.MoveAddChar(prompt_y_coord, 0, '>')
+		window.MoveAddChar(prompt_y_coord, 0, '|')
+		window.MoveAddChar(prompt_y_coord, 0, '>')
 
 		for i := 1; i < height-1; i++ { //clear window
-			prompt_window.MovePrint(i, prompt_x_coord, padding)
+			window.MovePrint(i, prompt_x_coord, padding)
 		}
 		return
 	}
 	//if the key entered is an input char:
 	if unicode.IsLetter(rune(key)) || unicode.IsDigit(rune(key)) || key == octothorpe || key == plus_sign {
-		prompt_window.MovePrint(prompt_y_coord, prompt_x_coord+1, currentPoint) //indicate char youre on
-		prompt_window.MoveAddChar(prompt_y_coord, prompt_x_coord, ncurses.Char(key))
+		window.MovePrint(prompt_y_coord, prompt_x_coord+1, currentPoint) //indicate char youre on
+		window.MoveAddChar(prompt_y_coord, prompt_x_coord, ncurses.Char(key))
 		prompt_x_coord++ //increment char position
 	}
 
 	//adjust coordinates
 	if prompt_x_coord <= 0 {
-		prompt_window.MoveAddChar(prompt_y_coord, 1, ' ') //clear last char pointer
+		window.MoveAddChar(prompt_y_coord, 1, ' ') //clear last char pointer
 		prompt_x_coord = width - 2
 		prompt_y_coord--
 	}
@@ -121,8 +118,9 @@ func update_input(prompt_window *ncurses.Window, key ncurses.Key) {
 		user_input_string += string(rune(key))
 	}
 	//redraw border in case it was painted over
-	prompt_window.Box('|', '-')
-	prompt_window.MoveAddChar(prompt_y_coord, 0, '>') //indicate the line that you're on.
+	//window.Box('|', '-')
+	window.MoveAddChar(prompt_y_coord, 0, '>') //indicate the line that you're on.
+	window.NoutRefresh()
 }
 
 // func board_window_mouse_input(screen, key, screen_width, screen_height) {

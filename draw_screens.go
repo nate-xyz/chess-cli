@@ -33,7 +33,7 @@ func draw_welcome_screen(screen *ncurses.Window, key ncurses.Key, windows_array 
 	// Declaration of strings
 	title := "chess-cli"
 	subtitle := "play locally with a friend, against stockfish, or online with lichess!"
-	additional_info := []string{"<<press '1' to play locally>>", "<<press '2' to play online>>", "<<press '3' to play stockfish>>"}
+	additional_info := []string{"play locally", "play online", "play stockfish"}
 	//keystr := fmt.Sprintf("Last key pressed: %v", key)
 	statusbarstr := "WELCOME TO CHESS-CLI ! | Press 'Ctrl-o' to quit"
 
@@ -78,7 +78,9 @@ func draw_welcome_screen(screen *ncurses.Window, key ncurses.Key, windows_array 
 	screen.AttrOff(ncurses.A_BOLD)
 
 	// Print rest of text
+	screen.AttrOn(ncurses.A_DIM)
 	screen.MovePrint(start_y+1, start_x_subtitle, subtitle)
+	screen.AttrOff(ncurses.A_DIM)
 
 	screen.MovePrint(start_y+3, (width/2)-2, "----")
 	for i, str := range additional_info {
@@ -92,9 +94,9 @@ func draw_welcome_screen(screen *ncurses.Window, key ncurses.Key, windows_array 
 		x_quote = 0
 	}
 	screen.AttrOn(ncurses.ColorPair(1))
-	screen.AttrOn(ncurses.A_UNDERLINE)
+	screen.AttrOn(ncurses.A_DIM)
 	screen.MovePrint(start_y+11, x_quote, quote)
-	screen.AttrOff(ncurses.A_UNDERLINE)
+	screen.AttrOn(ncurses.A_DIM)
 	screen.AttrOff(ncurses.ColorPair(1))
 	//prompt_welcome_window.Box('|', '-')
 	screen.NoutRefresh()
@@ -307,10 +309,16 @@ func draw_local_game_screen(stdscr *ncurses.Window, key ncurses.Key, windows_arr
 	height, width := stdscr.MaxYX()
 
 	//update window dimensions
-	windows_info_arr[0] = windowSizePos{(height / 4) * 3, width / 2, 0, 0}
-	windows_info_arr[1] = windowSizePos{height / 2, width / 2, 0, width / 2}
-	windows_info_arr[2] = windowSizePos{(height / 4) - 1, width / 2, (height / 4) * 3, 0}
-	windows_info_arr[3] = windowSizePos{(height / 2) - 1, width / 2, height / 2, width / 2}
+	// windows_info_arr[0] = windowSizePos{(height / 4) * 3, width / 2, 0, 0}
+	// windows_info_arr[1] = windowSizePos{height / 2, width / 2, 0, width / 2}
+	// windows_info_arr[2] = windowSizePos{(height / 4) - 1, width / 2, (height / 4) * 3, 0}
+	// windows_info_arr[3] = windowSizePos{(height / 2) - 1, width / 2, height / 2, width / 2}
+
+	//h, w, y, x
+	windows_info_arr[0] = windowSizePos{height / 2, width, 0, 0}                                         //bw
+	windows_info_arr[1] = windowSizePos{(height / 4), width / 2, int(float64(height) * 0.75), width / 2} //iw
+	windows_info_arr[2] = windowSizePos{(height / 4) - 1, width / 2, height / 2, width / 2}              //pw
+	windows_info_arr[3] = windowSizePos{(height / 2) - 1, width / 2, height / 2, 0}                      //hw
 
 	//Clear, refresh, update all windows
 	for i, win := range windows_array {

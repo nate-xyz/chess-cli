@@ -125,7 +125,9 @@ func welcome_screen(screen *ncurses.Window) ncurses.Key {
 	var key ncurses.Key
 	height, width := screen.MaxYX()
 	//start windows
-	options := []string{"<<press '1' to play locally>>", "<<press '2' to play online>>", "<<press '3' to play stockfish>>", "<<quit>>"}
+	//options := []string{"<<press '1' to play locally>>", "<<press '2' to play online>>", "<<press '3' to play stockfish>>", "<<quit>>"}
+
+	options := []string{"play locally", "play online", "play stockfish"}
 	op_info := windowSizePos{(height / 2) - 4, width / 2, (height / 2) + 2, width / 4}
 	options_window, _ := ncurses.NewWindow(op_info.h, op_info.w, op_info.y, op_info.x)
 	windows_array := [1]*ncurses.Window{options_window}
@@ -197,7 +199,9 @@ func lichess_welcome(screen *ncurses.Window) ncurses.Key {
 	}
 	height, width := screen.MaxYX()
 	//start windows
-	options := []string{"<<Press 0 to return to welcome screen>>", "<<Press 1 to view / create challenges>>", "<<Press 2 to view / join ongoing games>>", "etc", "quit"}
+	//options := []string{"<<Press 0 to return to welcome screen>>", "<<Press 1 to view / create challenges>>", "<<Press 2 to view / join ongoing games>>", "etc", "quit"}
+	options := []string{"return to welcome screen", "view / create challenges", "view / join ongoing games", "etc", "quit"}
+
 	op_info := windowSizePos{(height / 2) - 4, width / 2, (height / 2) + 2, width / 4}
 	options_window, _ := ncurses.NewWindow(op_info.h, op_info.w, op_info.y, op_info.x)
 	windows_array := [1]*ncurses.Window{options_window}
