@@ -15,14 +15,15 @@ if libraries are missing: go mod tidy
 - [ ] get mouse input working in board window 
 - [ ] get lichess requests working? wip
   - [x] get profile info ✓
-  - [ ] get challenges / make challenges
+  - [ ] get challenges 
+  - [ ] make challenges
   - [ ] list of ongoing games
   - [ ] game screen w/ working request loop and translation of move sequence into FEN string
 - [x] get oauth working ✓
 - [ ] get stockfish working through lichess? wip
-- [ ] screen handler at different depth? maybe a generic handler with functions passed as parameters
+- [x] screen handler at different depth? maybe a generic handler with functions passed as parameters
   - [x] implemented lichess screen handler
-  - [ ] local game screen handler
+  - [x] local game screen handler
 
 
 ♞♞♞♞♞♞♞♞♞♞♞
