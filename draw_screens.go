@@ -7,12 +7,23 @@ import (
 	ncurses "github.com/nate-xyz/goncurses"
 )
 
-func draw_welcome_screen(screen *ncurses.Window, key ncurses.Key, windows_array [1]*ncurses.Window, windows_info_arr [1]windowSizePos) {
+func draw_welcome_screen(screen *ncurses.Window, key ncurses.Key, windows_array [1]*ncurses.Window, windows_info_arr [1]windowSizePos, op []string) {
 	screen.Clear()
 	height, width := screen.MaxYX()
 
 	//update window dimensions
-	windows_info_arr[0] = windowSizePos{(height / 2) - 4, width, (height / 2) + 2, 0}
+	max_len := 0
+	for _, str := range op {
+		if max_len < len(str) {
+			max_len = len(str)
+		}
+
+	}
+	if max_len%2 == 0 {
+		windows_info_arr[0] = windowSizePos{len(op) + 2, max_len, (height / 2) + 2, (width / 2) - (max_len / 2)}
+	} else {
+		windows_info_arr[0] = windowSizePos{len(op) + 2, max_len + 1, (height / 2) + 2, (width / 2) - ((max_len + 1) / 2)}
+	}
 
 	//Clear, refresh, update all windows
 	for i, win := range windows_array {
@@ -85,9 +96,33 @@ func draw_welcome_screen(screen *ncurses.Window, key ncurses.Key, windows_array 
 	ncurses.Update()
 }
 
-func draw_lichess_welcome(screen *ncurses.Window, key ncurses.Key) {
+func draw_lichess_welcome(screen *ncurses.Window, key ncurses.Key, windows_array [1]*ncurses.Window, windows_info_arr [1]windowSizePos, op []string) {
 	screen.Clear()
 	height, width := screen.MaxYX()
+
+	//update window dimensions
+	max_len := 0
+	for _, str := range op {
+		if max_len < len(str) {
+			max_len = len(str)
+		}
+
+	}
+	if max_len%2 == 0 {
+		windows_info_arr[0] = windowSizePos{len(op) + 2, max_len, (height / 2) + 2, (width / 2) - (max_len / 2)}
+	} else {
+		windows_info_arr[0] = windowSizePos{len(op) + 2, max_len + 1, (height / 2) + 2, (width / 2) - ((max_len + 1) / 2)}
+	}
+
+	//Clear, refresh, update all windows
+	for i, win := range windows_array {
+		win.Clear()
+		info := windows_info_arr[i]
+		win.Resize(info.h, info.w)     //Resize windows based on new dimensions
+		win.MoveWindow(info.y, info.x) //move windows to appropriate locations
+		win.NoutRefresh()
+	}
+
 	// Declaration of strings
 	title := "chess-cli: lichess client"
 	var subtitle string
@@ -149,7 +184,12 @@ func draw_lichess_welcome(screen *ncurses.Window, key ncurses.Key) {
 	}
 	screen.MovePrint(start_y+7, (width/2)-2, "----")
 	screen.MovePrint(start_y+9, start_x_keystr, keystr)
-	screen.Refresh()
+	screen.NoutRefresh()
+	for _, win := range windows_array {
+		win.Box('|', '-')
+		win.NoutRefresh()
+	}
+	ncurses.Update()
 }
 
 func draw_lichess_challenges(screen *ncurses.Window) {
