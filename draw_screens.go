@@ -323,10 +323,10 @@ func draw_local_game_screen(stdscr *ncurses.Window, key ncurses.Key, windows_arr
 	// windows_info_arr[3] = windowSizePos{(height / 2) - 1, width / 2, height / 2, width / 2}
 
 	//h, w, y, x
-	windows_info_arr[0] = windowSizePos{height / 2, width, 0, 0}                                         //bw
-	windows_info_arr[1] = windowSizePos{(height / 2) - 1, width / 2, height / 2, 0}                      //hw
-	windows_info_arr[2] = windowSizePos{(height / 4) - 1, width / 2, height / 2, width / 2}              //pw
-	windows_info_arr[3] = windowSizePos{(height / 4), width / 2, int(float64(height) * 0.75), width / 2} //iw
+	windows_info_arr[0] = windowSizePos{height / 2, width, 0, 0}                                           //bw
+	windows_info_arr[1] = windowSizePos{(height / 2) - 1, width / 2, (height / 2), 0}                      //iw
+	windows_info_arr[2] = windowSizePos{(height / 4) - 1, width / 2, height / 2, width / 2}                //pw
+	windows_info_arr[3] = windowSizePos{(height / 4), width / 2, int(float64(height)*0.75) - 1, width / 2} //hw
 
 	//Clear, refresh, update all windows
 	for i, win := range windows_array {
