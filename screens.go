@@ -325,12 +325,7 @@ blocking_loop:
 
 	//start windows
 	options := []string{"create a new game", "select a challenge", "etc", "back", "quit"}
-	max_len := 0
-	for _, str := range options {
-		if max_len < len(str) {
-			max_len = len(str)
-		}
-	}
+	max_len := getMaxLenStr(options) + 6
 	op_info := windowSizePos{len(options) + 2, max_len + 2, 2, (width / 2) - ((max_len + 2) / 2)}
 	in_info := windowSizePos{int(float64(height)*0.75) - 1, width / 2, len(options) + 4, 0}
 	out_info := windowSizePos{int(float64(height)*0.75) - 1, width / 2, len(options) + 4, width / 2}
@@ -360,12 +355,7 @@ blocking_loop:
 			switch mode {
 			case 0:
 				//update window dimensions
-				max_len := 0
-				for _, str := range options {
-					if max_len < len(str) {
-						max_len = len(str)
-					}
-				}
+				max_len := getMaxLenStr(options) + 6
 				windows_info_arr[0] = windowSizePos{len(options) + 2, max_len + 2, 2, (width / 2) - ((max_len + 2) / 2)}
 				windows_info_arr[1] = windowSizePos{int(float64(height)*0.75) - 1, width / 2, len(options) + 4, 0}
 				windows_info_arr[2] = windowSizePos{int(float64(height)*0.75) - 1, width / 2, len(options) + 4, width / 2}

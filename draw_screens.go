@@ -12,14 +12,10 @@ func draw_welcome_screen(screen *ncurses.Window, key ncurses.Key, windows_array 
 	height, width := screen.MaxYX()
 
 	//update window dimensions
-	max_len := 0
-	for _, str := range op {
-		if max_len < len(str) {
-			max_len = len(str)
-		}
+	max_len := getMaxLenStr(op) + 6
 
-	}
-	windows_info_arr[0] = windowSizePos{len(op) + 2, max_len + 2, (height / 2) + 2, (width / 2) - ((max_len + 2) / 2)}
+	//options window
+	windows_info_arr[0] = windowSizePos{len(op) + 2, max_len, (height / 2) + 2, (width / 2) - (max_len / 2) - max_len%2}
 
 	//Clear, refresh, update all windows
 	for i, win := range windows_array {
@@ -114,14 +110,8 @@ func draw_lichess_welcome(screen *ncurses.Window, key ncurses.Key, windows_array
 	height, width := screen.MaxYX()
 
 	//update window dimensions
-	max_len := 0
-	for _, str := range op {
-		if max_len < len(str) {
-			max_len = len(str)
-		}
-
-	}
-	windows_info_arr[0] = windowSizePos{len(op) + 2, max_len + 2, (height / 2) + 2, (width / 2) - ((max_len + 2) / 2)}
+	max_len := getMaxLenStr(op) + 6
+	windows_info_arr[0] = windowSizePos{len(op) + 2, max_len, (height / 2) + 2, (width / 2) - (max_len / 2) - max_len%2}
 
 	//Clear, refresh, update all windows
 	for i, win := range windows_array {
@@ -166,8 +156,7 @@ func draw_lichess_welcome(screen *ncurses.Window, key ncurses.Key, windows_array
 	screen.AttrOff(ncurses.A_DIM)
 
 	// Rendering some text
-	whstr := fmt.Sprintf("Width: %d, Height: %d\n", width, height)
-	screen.MovePrint(0, 0, whstr)
+	screen.MovePrint(0, 0, fmt.Sprintf("Width: %d, Height: %d\n", width, height))
 
 	// Turning on attributes for title
 	screen.AttrOn(ncurses.ColorPair(2))
@@ -532,7 +521,7 @@ func draw_create_game_screen(screen *ncurses.Window, op []string, sel []string, 
 	screen.MovePrint(y, ((width / 2) - (len(sep) / 2) - len(sep)%2), sep)
 	y++
 
-	op_wid := getMaxLenStr(append(op, title_array[len(sel)])) + 2
+	op_wid := getMaxLenStr(append(op, title_array[len(sel)])) + 6
 	info = windowSizePos{len(op) + 2, op_wid, y, (width / 2) - (op_wid / 2) - op_wid%2}
 	y += info.h
 
@@ -552,14 +541,14 @@ func draw_create_game_screen(screen *ncurses.Window, op []string, sel []string, 
 	win.AttrOff(ncurses.ColorPair(2))
 	win.AttrOff(ncurses.A_BOLD)
 
-	title = "chezz"
-	screen.AttrOn(ncurses.ColorPair(2))
+	piece := " ♟︎ "
+	screen.AttrOn(ncurses.ColorPair(1))
 	screen.AttrOn(ncurses.A_DIM)
 	screen.AttrOn(ncurses.A_BLINK)
-	screen.MovePrint(y, ((width / 2) - (len(title) / 2) - len(title)%2), title)
+	screen.MovePrint(y, ((width / 2) - 2), piece)
 	screen.AttrOff(ncurses.A_BLINK)
 	screen.AttrOff(ncurses.A_DIM)
-	screen.AttrOff(ncurses.ColorPair(2))
+	screen.AttrOff(ncurses.ColorPair(1))
 
 	screen.NoutRefresh()
 	win.NoutRefresh()
@@ -568,14 +557,27 @@ func draw_create_game_screen(screen *ncurses.Window, op []string, sel []string, 
 
 func draw_options_input(window *ncurses.Window, options []string, selected_index int) {
 	_, width := window.MaxYX()
+
+	piece := "♟︎ "
+
 	//draw standout for currently selected option
 	for i, str := range options {
 		if i == selected_index {
 			window.AttrOn(ncurses.ColorPair(3))
 			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
 			window.AttrOff(ncurses.ColorPair(3))
+
+			window.AttrOn(ncurses.A_DIM)
+			window.AttrOn(ncurses.A_BLINK)
+			window.MovePrint(i+1, 1, piece)
+			window.MovePrint(i+1, width-3, piece)
+			window.AttrOff(ncurses.A_BLINK)
+			window.AttrOff(ncurses.A_DIM)
+
 		} else {
 			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
+			window.MovePrint(i+1, 1, " ")
+			window.MovePrint(i+1, width-3, " ")
 		}
 	}
 
