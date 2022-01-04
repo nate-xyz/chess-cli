@@ -324,7 +324,7 @@ blocking_loop:
 	}
 
 	//start windows
-	options := []string{"create a new challenge", "accept a challenge", "view a challenge", "back", "quit"}
+	options := []string{"create a new game", "select a challenge", "etc", "back", "quit"}
 	max_len := 0
 	for _, str := range options {
 		if max_len < len(str) {
@@ -411,86 +411,215 @@ blocking_loop:
 	}
 }
 
+type CreateChallengeType struct {
+	Type           int
+	Username       string
+	DestUser       string
+	Variant        string
+	VariantIndex   int
+	TimeOption     int
+	ClockLimit     int
+	ClockIncrement int
+	Days           int
+	Rated          bool
+	Color          string
+	ColorIndex     int
+}
+
 func create_game(screen *ncurses.Window) int {
 	var key ncurses.Key
-	_, width := screen.MaxYX()
+	//_, width := screen.MaxYX()
 	//start windows
-	options := []string{"create a game (random)", "play with a friend", "play with the computer", "back", "quit"}
-	variant_options := []string{"standard", "crazyhouse", "back", "quit"}
-	_ = variant_options
+	options := []string{"seek a random player", "challenge a friend", "play with the computer", "back", "quit"}
+	variant_options := []string{"standard", "chess960", "crazyhouse", "antichess", "atomic", "horde", "kingOfTheHill", "racingKings", "threeCheck"}
+	time_options := []string{"real time", "correspondence", "unlimited"}
+	rated_options := []string{"casual", "rated"}
+	color_options := []string{"random", "white", "black"}
+	selection := []string{}
+
+	//options_arrays := [][]string{options, variant_options, time_options, rated_options, color_options}
+
+	//mode 0 : select game type (friend, bot)
+	//mode 1 : select game variant
+	//mode 2 : select time control
+	//mode 3 : select time interval for real time / correspondence
+	//mode 4 : select rated / casual
+	//mode 5 : select color
+	//mode 6 : choose user
+
+	windows_info_arr := []windowSizePos{{0, 0, 0, 0}}
+	options_window, _ := ncurses.NewWindow(windows_info_arr[0].h, windows_info_arr[0].w, windows_info_arr[0].y, windows_info_arr[0].x)
+
+	windows_array := []*ncurses.Window{options_window}
+	var window_mode int = 0
+	var option_index int = 0
+	var selected bool
+	var newChallenge CreateChallengeType
+	draw_create_game_screen(screen, options, selection, windows_array, windows_info_arr)
+	for {
+		select {
+		case <-sigs: //resize on os resize signal
+			tRow, tCol, _ := osTermSize()
+			ncurses.ResizeTerm(tRow, tCol)
+			switch window_mode {
+			case 0:
+				draw_create_game_screen(screen, options, selection, windows_array, windows_info_arr)
+			case 1:
+				draw_create_game_screen(screen, variant_options, selection, windows_array, windows_info_arr)
+			case 2:
+				draw_create_game_screen(screen, time_options, selection, windows_array, windows_info_arr)
+			case 3:
+				//draw_create_game_screen(screen, options, windows_array, windows_info_arr)
+			case 4:
+				draw_create_game_screen(screen, rated_options, selection, windows_array, windows_info_arr)
+			case 5:
+				draw_create_game_screen(screen, color_options, selection, windows_array, windows_info_arr)
+			case 6:
+				draw_create_game_screen(screen, allFriends, selection, windows_array, windows_info_arr)
+			}
+
+		default: //normal character loop here
+			key = screen.GetChar()
+			switch window_mode {
+			case 0:
+				option_index, selected = options_input(options_window, key, options, option_index)
+				if selected {
+					switch option_index {
+					case -1: //go to challenges screen
+						return 2
+					case 0, 1, 2: //game mode type
+						//selection[0] = options[option_index]
+						selection = append(selection, options[option_index])
+						newChallenge.Type = option_index
+						window_mode = 1
+						option_index = 0
+						draw_create_game_screen(screen, variant_options, selection, windows_array, windows_info_arr)
+					// case 1: //bot
+					// 	window_mode = 1
+					case 3: //go to challenges screen
+						return 2
+					case 4: //quit
+						return 5
+					}
+
+				}
+			case 1: //mode 1 : select game variant
+				option_index, selected = options_input(options_window, key, variant_options, option_index)
+				if selected {
+					switch option_index {
+					case -1:
+						window_mode = 0 //go back to main options
+						selection = selection[:len(selection)-1]
+						option_index = newChallenge.Type
+						draw_create_game_screen(screen, options, selection, windows_array, windows_info_arr)
+
+					case 0, 1, 2, 3, 4, 5, 6, 7, 8: //all variants
+						//selection[1] = variant_options[option_index]
+						selection = append(selection, variant_options[option_index])
+						newChallenge.Variant = variant_options[option_index] //save selected variant
+						window_mode = 2
+						option_index = 0 //go to time
+						draw_create_game_screen(screen, time_options, selection, windows_array, windows_info_arr)
+
+					}
+
+				}
+			case 2: //mode 2 : select time control
+				option_index, selected = options_input(options_window, key, time_options, option_index)
+				if selected {
+					switch option_index {
+					case -1: //go back to variant
+						window_mode = 1
+						selection = selection[:len(selection)-1]
+						option_index = newChallenge.VariantIndex
+						draw_create_game_screen(screen, variant_options, selection, windows_array, windows_info_arr)
+
+					case 0, 1, 2: //realtime, corrspondence, unlimited
+						//selection[2] = time_options[option_index]
+						selection = append(selection, time_options[option_index])
+						window_mode = 4
+						newChallenge.TimeOption = option_index
+						draw_create_game_screen(screen, rated_options, selection, windows_array, windows_info_arr)
+					}
+
+				}
+			case 3: //mode 3 : select time interval for real time / correspondence
+			case 4: //mode 4 : select rated / casual
+
+				option_index, selected = options_input(options_window, key, rated_options, option_index)
+				if selected {
+					switch option_index {
+					case -1: //go back to time
+						window_mode = 2
+						selection = selection[:len(selection)-1]
+						option_index = newChallenge.TimeOption
+						draw_create_game_screen(screen, time_options, selection, windows_array, windows_info_arr)
+
+					case 0, 1: //rated or casual
+						//selection[4] = rated_options[option_index]
+						selection = append(selection, rated_options[option_index])
+						window_mode = 5 // go to color
+						option_index = 0
+						if option_index == 1 {
+							newChallenge.Rated = true
+
+						} else {
+							newChallenge.Rated = false
+						}
+						draw_create_game_screen(screen, color_options, selection, windows_array, windows_info_arr)
+					}
+
+				}
+			case 5: //mode 5 : select color
+
+				option_index, selected = options_input(options_window, key, color_options, option_index)
+				if selected {
+					switch option_index {
+					case -1: //go back to rated
+						window_mode = 4
+						selection = selection[:len(selection)-1]
+						if newChallenge.Rated {
+							option_index = 1
+						} else {
+							option_index = 0
+						}
+						draw_create_game_screen(screen, rated_options, selection, windows_array, windows_info_arr)
+
+					case 0, 1, 2: //choose color: random, white, black
+						//selection[5] = color_options[option_index]
+						selection = append(selection, color_options[option_index])
+						newChallenge.Color = color_options[option_index]
+						newChallenge.ColorIndex = option_index
+						window_mode = 6 // go to user
+						option_index = 0
+						draw_create_game_screen(screen, append(allFriends, "get url"), selection, windows_array, windows_info_arr)
+					}
+
+				}
+			case 6: //mode 6 : choose user
+				option_index, selected = options_input(options_window, key, append(allFriends, "get url"), option_index)
+				if selected {
+					switch option_index {
+					case -1: //go back to color choice
+						window_mode = 5
+						selection = selection[:len(selection)-1]
+						option_index = newChallenge.ColorIndex
+						draw_create_game_screen(screen, color_options, selection, windows_array, windows_info_arr)
+					}
+				}
+			}
+		}
+	}
+}
+
+func getMaxLenStr(arr []string) int {
 	max_len := 0
-	for _, str := range options {
+	for _, str := range arr {
 		if max_len < len(str) {
 			max_len = len(str)
 		}
 	}
-	op_info := windowSizePos{len(options) + 2, max_len + 2, 2, (width / 2) - ((max_len + 2) / 2)}
-	options_window, _ := ncurses.NewWindow(op_info.h, op_info.w, op_info.y, op_info.x)
-	windows_array := []*ncurses.Window{options_window}
-	windows_info_arr := []windowSizePos{op_info}
-	var window_mode int = 0
-	var option_index int = 0
-	var selected bool
-	var selected_history = []int{}
-	draw_create_game_screen(screen, key, windows_array, windows_info_arr)
-	for {
-		select {
-		case <-sigs:
-			tRow, tCol, _ := osTermSize()
-			ncurses.ResizeTerm(tRow, tCol)
-			max_len := 0
-			for _, str := range options {
-				if max_len < len(str) {
-					max_len = len(str)
-				}
-			}
-			switch window_mode {
-			case 0:
-				windows_info_arr[0] = windowSizePos{len(options) + 2, max_len + 2, 2, (width / 2) - ((max_len + 2) / 2)}
-
-			case 1:
-				windows_info_arr[0] = windowSizePos{len(options) + 2, max_len + 2, 2, (width / 2) - ((max_len + 2) / 2)}
-				windows_info_arr[1] = windowSizePos{len(options) + 2, max_len + 2, 2, (width / 2) - ((max_len + 2) / 2)}
-			}
-			draw_create_game_screen(screen, key, windows_array, windows_info_arr)
-
-		default: //normal character loop here
-			key = screen.GetChar()
-
-			switch window_mode {
-			case 0:
-				option_index, selected = options_input(options_window, key, options, option_index)
-				if selected {
-					switch option_index {
-					case 0, 1, 2: //random
-						selected_history = append(selected_history, option_index)
-						v_info := windowSizePos{len(options) + 2, max_len + 2, 2, (width / 2) - ((max_len + 2) / 2)}
-						variant_window, _ := ncurses.NewWindow(v_info.h, v_info.w, v_info.y, v_info.x)
-						_ = variant_window
-						window_mode = 1 //choose variant
-					case 3: //go to challenges screen
-						return 2
-					case 4: //quit
-						return 5
-					}
-				}
-			case 1:
-				//options = {}
-				option_index, selected = options_input(options_window, key, options, option_index)
-				if selected {
-					switch option_index {
-					case 0, 1, 2: //random
-						selected_history = append(selected_history, option_index)
-						window_mode = 2 //go to time
-					case 3: //go to challenges screen
-						return 2
-					case 4: //quit
-						return 5
-					}
-				}
-			}
-		}
-	}
+	return max_len
 }
 
 func osTermSize() (int, int, error) {

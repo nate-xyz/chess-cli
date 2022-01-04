@@ -9,7 +9,6 @@ import (
 )
 
 func options_input(window *ncurses.Window, key ncurses.Key, options []string, selected_index int) (int, bool) {
-	_, width := window.MaxYX()
 
 	//determine what option to choose based on input
 	switch key {
@@ -31,34 +30,33 @@ func options_input(window *ncurses.Window, key ncurses.Key, options []string, se
 		if options[selected_index] == "back" || options[selected_index] == "quit" {
 			return selected_index, true
 		}
-		var quit_i int = -1
-		for i, str := range options {
-			if str == "back" {
-				return i, true
-			}
-			if str == "quit" {
-				quit_i = i
+		back_i := get_index(options, "back")
+		if back_i != -1 {
+			return back_i, true
+		} else {
+			quit_i := get_index(options, "quit")
+			if quit_i != -1 {
+				return quit_i, true
 			}
 		}
-		if quit_i != -1 {
-			return quit_i, true
-		}
+		return -1, true
 	}
 
+	draw_options_input(window, options, selected_index)
 	//draw standout for currently selected option
-	for i, str := range options {
-		if i == selected_index {
-			window.AttrOn(ncurses.ColorPair(3))
-			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
-			window.AttrOff(ncurses.ColorPair(3))
-		} else {
-			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
-		}
-	}
+	// for i, str := range options {
+	// 	if i == selected_index {
+	// 		window.AttrOn(ncurses.ColorPair(3))
+	// 		window.MovePrint(i+1, (width/2)-(len(str)/2), str)
+	// 		window.AttrOff(ncurses.ColorPair(3))
+	// 	} else {
+	// 		window.MovePrint(i+1, (width/2)-(len(str)/2), str)
+	// 	}
+	// }
 
 	//redraw border in case it was painted over
-	window.Box('|', '-')
-	window.Refresh()
+	//window.Box('|', '-')
+	//window.Refresh()
 	return selected_index, false
 }
 

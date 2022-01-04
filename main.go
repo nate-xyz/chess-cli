@@ -184,6 +184,15 @@ func contains(s []string, str string) bool {
 	return false
 }
 
+func get_index(s []string, str string) int {
+	for i, v := range s {
+		if v == str {
+			return i
+		}
+	}
+	return -1
+}
+
 func GetRandomQuote() string {
 	var rand_quote_map = map[int]string{
 
