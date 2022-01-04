@@ -447,15 +447,16 @@ func create_game(screen *ncurses.Window) int {
 	//mode 5 : select color
 	//mode 6 : choose user
 
-	windows_info_arr := []windowSizePos{{0, 0, 0, 0}}
-	options_window, _ := ncurses.NewWindow(windows_info_arr[0].h, windows_info_arr[0].w, windows_info_arr[0].y, windows_info_arr[0].x)
+	//windows_info_arr := []windowSizePos{{0, 0, 0, 0}}
+	op_info := windowSizePos{0, 0, 0, 0}
+	options_window, _ := ncurses.NewWindow(0, 0, 0, 0)
 
-	windows_array := []*ncurses.Window{options_window}
+	//windows_array := []*ncurses.Window{options_window}
 	var window_mode int = 0
 	var option_index int = 0
 	var selected bool
 	var newChallenge CreateChallengeType
-	draw_create_game_screen(screen, options, selection, windows_array, windows_info_arr)
+	draw_create_game_screen(screen, options, selection, options_window, op_info)
 	for {
 		select {
 		case <-sigs: //resize on os resize signal
@@ -463,19 +464,19 @@ func create_game(screen *ncurses.Window) int {
 			ncurses.ResizeTerm(tRow, tCol)
 			switch window_mode {
 			case 0:
-				draw_create_game_screen(screen, options, selection, windows_array, windows_info_arr)
+				draw_create_game_screen(screen, options, selection, options_window, op_info)
 			case 1:
-				draw_create_game_screen(screen, variant_options, selection, windows_array, windows_info_arr)
+				draw_create_game_screen(screen, variant_options, selection, options_window, op_info)
 			case 2:
-				draw_create_game_screen(screen, time_options, selection, windows_array, windows_info_arr)
+				draw_create_game_screen(screen, time_options, selection, options_window, op_info)
 			case 3:
-				//draw_create_game_screen(screen, options, windows_array, windows_info_arr)
+				//draw_create_game_screen(screen, options, options_window, op_info)
 			case 4:
-				draw_create_game_screen(screen, rated_options, selection, windows_array, windows_info_arr)
+				draw_create_game_screen(screen, rated_options, selection, options_window, op_info)
 			case 5:
-				draw_create_game_screen(screen, color_options, selection, windows_array, windows_info_arr)
+				draw_create_game_screen(screen, color_options, selection, options_window, op_info)
 			case 6:
-				draw_create_game_screen(screen, allFriends, selection, windows_array, windows_info_arr)
+				draw_create_game_screen(screen, allFriends, selection, options_window, op_info)
 			}
 
 		default: //normal character loop here
@@ -493,7 +494,7 @@ func create_game(screen *ncurses.Window) int {
 						newChallenge.Type = option_index
 						window_mode = 1
 						option_index = 0
-						draw_create_game_screen(screen, variant_options, selection, windows_array, windows_info_arr)
+						draw_create_game_screen(screen, variant_options, selection, options_window, op_info)
 					// case 1: //bot
 					// 	window_mode = 1
 					case 3: //go to challenges screen
@@ -511,7 +512,7 @@ func create_game(screen *ncurses.Window) int {
 						window_mode = 0 //go back to main options
 						selection = selection[:len(selection)-1]
 						option_index = newChallenge.Type
-						draw_create_game_screen(screen, options, selection, windows_array, windows_info_arr)
+						draw_create_game_screen(screen, options, selection, options_window, op_info)
 
 					case 0, 1, 2, 3, 4, 5, 6, 7, 8: //all variants
 						//selection[1] = variant_options[option_index]
@@ -519,7 +520,7 @@ func create_game(screen *ncurses.Window) int {
 						newChallenge.Variant = variant_options[option_index] //save selected variant
 						window_mode = 2
 						option_index = 0 //go to time
-						draw_create_game_screen(screen, time_options, selection, windows_array, windows_info_arr)
+						draw_create_game_screen(screen, time_options, selection, options_window, op_info)
 
 					}
 
@@ -532,14 +533,14 @@ func create_game(screen *ncurses.Window) int {
 						window_mode = 1
 						selection = selection[:len(selection)-1]
 						option_index = newChallenge.VariantIndex
-						draw_create_game_screen(screen, variant_options, selection, windows_array, windows_info_arr)
+						draw_create_game_screen(screen, variant_options, selection, options_window, op_info)
 
 					case 0, 1, 2: //realtime, corrspondence, unlimited
 						//selection[2] = time_options[option_index]
 						selection = append(selection, time_options[option_index])
 						window_mode = 4
 						newChallenge.TimeOption = option_index
-						draw_create_game_screen(screen, rated_options, selection, windows_array, windows_info_arr)
+						draw_create_game_screen(screen, rated_options, selection, options_window, op_info)
 					}
 
 				}
@@ -553,7 +554,7 @@ func create_game(screen *ncurses.Window) int {
 						window_mode = 2
 						selection = selection[:len(selection)-1]
 						option_index = newChallenge.TimeOption
-						draw_create_game_screen(screen, time_options, selection, windows_array, windows_info_arr)
+						draw_create_game_screen(screen, time_options, selection, options_window, op_info)
 
 					case 0, 1: //rated or casual
 						//selection[4] = rated_options[option_index]
@@ -566,7 +567,7 @@ func create_game(screen *ncurses.Window) int {
 						} else {
 							newChallenge.Rated = false
 						}
-						draw_create_game_screen(screen, color_options, selection, windows_array, windows_info_arr)
+						draw_create_game_screen(screen, color_options, selection, options_window, op_info)
 					}
 
 				}
@@ -583,7 +584,7 @@ func create_game(screen *ncurses.Window) int {
 						} else {
 							option_index = 0
 						}
-						draw_create_game_screen(screen, rated_options, selection, windows_array, windows_info_arr)
+						draw_create_game_screen(screen, rated_options, selection, options_window, op_info)
 
 					case 0, 1, 2: //choose color: random, white, black
 						//selection[5] = color_options[option_index]
@@ -592,7 +593,7 @@ func create_game(screen *ncurses.Window) int {
 						newChallenge.ColorIndex = option_index
 						window_mode = 6 // go to user
 						option_index = 0
-						draw_create_game_screen(screen, append(allFriends, "get url"), selection, windows_array, windows_info_arr)
+						draw_create_game_screen(screen, append(allFriends, "get url"), selection, options_window, op_info)
 					}
 
 				}
@@ -604,7 +605,7 @@ func create_game(screen *ncurses.Window) int {
 						window_mode = 5
 						selection = selection[:len(selection)-1]
 						option_index = newChallenge.ColorIndex
-						draw_create_game_screen(screen, color_options, selection, windows_array, windows_info_arr)
+						draw_create_game_screen(screen, color_options, selection, options_window, op_info)
 					}
 				}
 			}

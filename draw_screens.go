@@ -480,14 +480,16 @@ func draw_post_screen(screen1 *ncurses.Window, key ncurses.Key, windows_array [2
 
 }
 
-func draw_create_game_screen(screen *ncurses.Window, op []string, sel []string, windows_array []*ncurses.Window, windows_info_arr []windowSizePos) {
+func draw_create_game_screen(screen *ncurses.Window, op []string, sel []string, win *ncurses.Window, info windowSizePos) {
 	screen.Clear()
 	height, width := screen.MaxYX()
 	y := height / 4
 
 	// Declaration of strings
 
-	title_array := []string{"options", "variants", "time options", "time interval", "rated/casual", "choose color", "select friend to challenge"}
+	//title_array := []string{"options", "variants", "time options", "time interval", "rated/casual", "choose color", "select friend to challenge"}
+	title_array := []string{"options", "variants", "time options", "rated/casual", "choose color", "select friend to challenge"}
+
 	var statusbarstr string = fmt.Sprintf("CREATE A LICHESS GAME | Press 'Ctrl-o' to quit")
 
 	//background
@@ -530,27 +532,25 @@ func draw_create_game_screen(screen *ncurses.Window, op []string, sel []string, 
 	screen.MovePrint(y, ((width / 2) - (len(sep) / 2) - len(sep)%2), sep)
 	y++
 
-	windows_info_arr[0] = windowSizePos{len(op) + 2, getMaxLenStr(op) + 2, y, (width / 2) - ((getMaxLenStr(op) + 2) / 2)}
-	y += windows_info_arr[0].h
+	op_wid := getMaxLenStr(append(op, title_array[len(sel)])) + 2
+	info = windowSizePos{len(op) + 2, op_wid, y, (width / 2) - (op_wid / 2) - op_wid%2}
+	y += info.h
+
 	//Clear, refresh, update all windows
-	for i, win := range windows_array {
-		win.Clear()
-		info := windows_info_arr[i]
-		win.Resize(info.h, info.w)     //Resize windows based on new dimensions
-		win.MoveWindow(info.y, info.x) //move windows to appropriate locations
-		win.NoutRefresh()
-	}
+	win.Clear()
+	win.Resize(info.h, info.w)     //Resize windows based on new dimensions
+	win.MoveWindow(info.y, info.x) //move windows to appropriate locations
+	win.NoutRefresh()
 
 	// print windows
-	for i, win := range windows_array {
-		win.Box('|', '-')
-		// Rendering title
-		win.AttrOn(ncurses.ColorPair(2))
-		win.AttrOn(ncurses.A_BOLD)
-		win.MovePrint(0, 1, title_array[i])
-		win.AttrOff(ncurses.ColorPair(2))
-		win.AttrOff(ncurses.A_BOLD)
-	}
+	win_title := title_array[len(sel)]
+	win.Box('|', '-')
+	// Rendering title
+	win.AttrOn(ncurses.ColorPair(2))
+	win.AttrOn(ncurses.A_BOLD)
+	win.MovePrint(0, 1, win_title)
+	win.AttrOff(ncurses.ColorPair(2))
+	win.AttrOff(ncurses.A_BOLD)
 
 	title = "chezz"
 	screen.AttrOn(ncurses.ColorPair(2))
@@ -562,9 +562,7 @@ func draw_create_game_screen(screen *ncurses.Window, op []string, sel []string, 
 	screen.AttrOff(ncurses.ColorPair(2))
 
 	screen.NoutRefresh()
-	for _, win := range windows_array {
-		win.NoutRefresh()
-	}
+	win.NoutRefresh()
 	ncurses.Update()
 }
 
