@@ -23,6 +23,7 @@ if libraries are missing: go mod tidy
   - [ ] maybe settings screen for notation / color to start / unicode on or off, accessible through escape
 - [ ] choose color to start
 - [ ] get mouse input working in board window 
+- [x] local game screen handler
 
 ### lichess 
 - [ ] get lichess requests working? wip
@@ -38,7 +39,8 @@ if libraries are missing: go mod tidy
 - [x] get oauth working ✓
 - [x] screen handler at different depth? maybe a generic handler with functions passed as parameters
   - [x] implemented lichess screen handler
-  - [x] local game screen handler
+ - [ ] stream incoming events
+   - [ ] start as goroutine initially in main and implement notifications for every screen
 
 ### ai 
 - [ ] get stockfish working through lichess? wip
