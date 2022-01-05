@@ -10,21 +10,27 @@ if libraries are missing: go mod tidy
 
 ## TODO: 
 
-- [ ] fix prompt window breaking in alacritty 
+- [x] fix prompt window breaking in alacritty 
+  - [ ] fixed with mouse input active
 - [x] fix legal move list on info window ✓
 - [ ] get mouse input working in board window 
 - [ ] get lichess requests working? wip
   - [x] get profile info ✓
   - [x] get challenges 
   - [ ] make challenges
+    - [ ] create a challenge (specific user)
+    - [ ] create an open-ended challenge
+    - [ ] create a seek (random user)
+    - [ ] challenge the ai
   - [ ] list of ongoing games
-  - [ ] game screen w/ working request loop and translation of move sequence into FEN string
+  - [ ] (after challenge or join ongoing game) lichess game screen w/ working request loop and translation of move sequence into FEN string
 - [x] get oauth working ✓
 - [ ] get stockfish working through lichess? wip
 - [x] screen handler at different depth? maybe a generic handler with functions passed as parameters
   - [x] implemented lichess screen handler
   - [x] local game screen handler
-
+- [ ] non unicode support for tty
+- [ ] windows support with pancurses
 
 ♞♞♞♞♞♞♞♞♞♞♞
 
