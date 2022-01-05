@@ -60,6 +60,212 @@ func options_input(window *ncurses.Window, key ncurses.Key, options []string, se
 	return selected_index, false
 }
 
+func slider_input(win *ncurses.Window, key ncurses.Key, t int, tic_index []int, slider_index int) ([]int, int, float64, bool) {
+	height, width := win.MaxYX()
+	_ = height
+	//slider arrays
+	//second array
+	lo, hi := 0, 180
+	s := make([]int, hi-lo+1)
+	for i := range s {
+		s[i] = i + lo
+	}
+	//minute array
+	m := []float64{0.25, 0.5, 0.75, 1.0, 1.5}
+	lof, hif := 2, 180
+	m_ := make([]float64, hif-lof+1)
+	for i := range m_ {
+		m_[i] = float64(i + lo)
+	}
+	m = append(m, m_...)
+	//day array
+	lod, hid := 1, 14
+	d := make([]int, hid-lod+1)
+	for i := range d {
+		d[i] = i + lod
+	}
+
+	//determine what option to choose based on input
+	switch t { // real time slider: one for minute, one for seconds
+	case 0:
+		switch key {
+		case ncurses.KEY_MOUSE, ncurses.KEY_RESIZE: //no input
+			return tic_index, slider_index, -1.0, false
+		case ncurses.KEY_ENTER, ncurses.KEY_RETURN: //selected input
+			return tic_index, slider_index, m[tic_index[0]], true
+		case ncurses.KEY_LEFT:
+
+			switch slider_index {
+			case 0: //minute slider
+				tic_index[0]--
+				if tic_index[0] < 0 {
+					tic_index[0] = len(m) - 1
+				}
+			case 1: //second slider
+				tic_index[1]--
+				if tic_index[1] < 0 {
+					tic_index[1] = len(s) - 1
+				}
+			}
+
+		case ncurses.KEY_RIGHT:
+			switch slider_index {
+			case 0: //minute slider
+				tic_index[0] += 1
+				if tic_index[0] >= len(m) {
+					tic_index[0] = 0
+				}
+			case 1: //second slider
+				tic_index[1] += 1
+				if tic_index[1] >= len(s) {
+					tic_index[1] = 0
+				}
+			}
+		case ncurses.KEY_UP:
+			slider_index--
+			if slider_index < 0 {
+				slider_index = 3
+			}
+		case ncurses.KEY_DOWN:
+			slider_index++
+			if slider_index > 3 {
+				slider_index = 0
+			}
+		}
+
+	case 1: // correspondence slider, days betwenn 1 - 14
+		switch key {
+		case ncurses.KEY_MOUSE, ncurses.KEY_RESIZE:
+			return tic_index, slider_index, -1.0, false
+		case ncurses.KEY_ENTER, ncurses.KEY_RETURN:
+			return tic_index, slider_index, -1.0, true
+		case ncurses.KEY_LEFT:
+			if slider_index == 0 {
+				tic_index[0]--
+				if tic_index[0] < 0 {
+					tic_index[0] = len(d) - 1
+				}
+			}
+		case ncurses.KEY_RIGHT:
+			if slider_index == 0 {
+				tic_index[0]++
+				if tic_index[0] >= len(d) {
+					tic_index[0] = 0
+				}
+			}
+		case ncurses.KEY_UP:
+			slider_index--
+			if slider_index < 0 {
+				slider_index = 2
+			}
+		case ncurses.KEY_DOWN:
+			slider_index++
+			if slider_index > 2 {
+				slider_index = 0
+			}
+		}
+	}
+
+	// func replaceAtIndex(in string, r rune, i int) string {
+	// 	out := []rune(in)
+	// 	out[i] = r
+	// 	return string(out)
+	// }
+
+	//draw logic
+	tic_line := fmt.Sprintf("%s", strings.Repeat("-", (width-4)))
+	switch t {
+	case 0: // real time slider: one for minute, one for seconds
+
+		mes_one := fmt.Sprintf("Minutes per side: %v", m[tic_index[0]])
+		win.MovePrint(1, 1, fmt.Sprintf("%s", strings.Repeat(" ", (width-2))))
+
+		if slider_index == 0 {
+			win.AttrOn(ncurses.ColorPair(3))
+			win.MovePrint(1, ((width / 2) - (len(mes_one) / 2) - len(mes_one)%2), mes_one) //print the day the tick is at
+
+			win.AttrOff(ncurses.ColorPair(3))
+		} else {
+			win.MovePrint(1, ((width / 2) - (len(mes_one) / 2) - len(mes_one)%2), mes_one) //print the day the tick is at
+
+		}
+		tic_loc := int((float64(len(tic_line))/float64(len(m)))*float64(tic_index[0])) + 2
+		win.MovePrint(height/3, 2, tic_line) //print the tic_line
+		win.MovePrint(height/3, tic_loc, "|")
+
+		mes_two := fmt.Sprintf("Increment in seconds: %v", s[tic_index[1]])
+		win.MovePrint((height/3)+2, 1, fmt.Sprintf("%s", strings.Repeat(" ", (width-2))))
+
+		if slider_index == 1 {
+			win.AttrOn(ncurses.ColorPair(3))
+			win.MovePrint((height/3)+2, ((width / 2) - (len(mes_two) / 2) - len(mes_two)%2), mes_two) //print the day the tick is at
+
+			win.AttrOff(ncurses.ColorPair(3))
+		} else {
+			win.MovePrint((height/3)+2, ((width / 2) - (len(mes_two) / 2) - len(mes_two)%2), mes_two) //print the day the tick is at
+
+		}
+		tic_loc = int((float64(len(tic_line))/float64(len(m)))*float64(tic_index[1])) + 2
+		win.MovePrint((height/3)+4, 2, tic_line) //print the tic_line
+		win.MovePrint((height/3)+4, tic_loc, "|")
+		if slider_index == 2 {
+			win.AttrOn(ncurses.ColorPair(3))
+			win.MovePrint((height/3)+5, (width/2)-(len("submit")/2), "submit")
+			win.AttrOff(ncurses.ColorPair(3))
+		} else {
+			win.MovePrint((height/3)+5, (width/2)-(len("submit")/2), "submit")
+		}
+		if slider_index == 3 {
+			win.AttrOn(ncurses.ColorPair(3))
+			win.MovePrint((height/3)+6, (width/2)-(len("back")/2), "back")
+			win.AttrOff(ncurses.ColorPair(3))
+		} else {
+			win.MovePrint((height/3)+6, (width/2)-(len("back")/2), "back")
+		}
+
+	case 1: // correspondence slider, days betwenn 1 - 14
+		mes := fmt.Sprintf("Days per turn: %v", d[tic_index[0]])
+		win.MovePrint(1, 1, fmt.Sprintf("%s", strings.Repeat(" ", (width-2))))
+
+		if slider_index == 0 {
+			win.AttrOn(ncurses.ColorPair(3))
+			win.MovePrint(1, ((width / 2) - (len(mes) / 2) - len(mes)%2), mes) //print the day the tick is at
+			win.AttrOff(ncurses.ColorPair(3))
+		} else {
+			win.MovePrint(1, ((width / 2) - (len(mes) / 2) - len(mes)%2), mes) //print the day the tick is at
+		}
+		win.MovePrint(height/2, 1, tic_line) //print the tic_line
+		tic_loc := int((float64(len(tic_line))/float64(len(d)))*float64(tic_index[0])) + 2
+		win.MovePrint(height/2, tic_loc, "|")
+		if slider_index == 1 {
+			win.AttrOn(ncurses.ColorPair(3))
+			win.MovePrint((height/3)+5, (width/2)-(len("submit")/2), "submit")
+			win.AttrOff(ncurses.ColorPair(3))
+		} else {
+			win.MovePrint((height/3)+5, (width/2)-(len("submit")/2), "submit")
+		}
+		if slider_index == 2 {
+			win.AttrOn(ncurses.ColorPair(3))
+			win.MovePrint((height/3)+6, (width/2)-(len("back")/2), "back")
+			win.AttrOff(ncurses.ColorPair(3))
+		} else {
+			win.MovePrint((height/3)+6, (width/2)-(len("back")/2), "back")
+		}
+
+	}
+
+	win.Refresh()
+	//win.NoutRefresh()
+	//ncurses.Update()
+	return tic_index, slider_index, -1.0, false
+}
+
+func replaceAtIndex(in string, r rune, i int) string {
+	out := []rune(in)
+	out[i] = r
+	return string(out)
+}
+
 func update_input(window *ncurses.Window, key ncurses.Key) {
 	height, width := window.MaxYX()
 	padding := fmt.Sprintf("%s", strings.Repeat(" ", (width-1)))

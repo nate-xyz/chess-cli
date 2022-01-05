@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	ncurses "github.com/nate-xyz/goncurses"
 )
@@ -142,7 +143,7 @@ func draw_lichess_welcome(screen *ncurses.Window, key ncurses.Key, windows_array
 	// } else {
 	// 	statusbarstr = fmt.Sprintf("LICHESS CLIENT | Press 'Ctrl-o' to quit")
 	// }
-	statusbarstr = fmt.Sprintf("LICHESS CLIENT | Press '0' to return to main | Press 'Ctrl-o' to quit")
+	statusbarstr = fmt.Sprintf("CHESS-CLI | LICHESS CLIENT | Press '0' to return to main | Press 'Ctrl-o' to quit")
 
 	// Centering calculations
 	start_x_title := int((width / 2) - (len(title) / 2) - len(title)%2)
@@ -218,7 +219,7 @@ func draw_lichess_challenges(screen *ncurses.Window, key ncurses.Key, windows_ar
 
 	var subtitle string
 	//var additional_info []string
-	var statusbarstr string = fmt.Sprintf("LICHESS CHALLENGES | Press '0' to return to main | Press '1' to return to lichess main | Press 'Ctrl-o' to quit")
+	var statusbarstr string = fmt.Sprintf("CHESS-CLI | LICHESS CHALLENGES | Press '0' to return to main | Press '1' to return to lichess main | Press 'Ctrl-o' to quit")
 
 	// Centering calculations
 	start_x_title := int((width / 2) - (len(title) / 2) - len(title)%2)
@@ -404,7 +405,7 @@ func draw_post_screen(screen1 *ncurses.Window, key ncurses.Key, windows_array [2
 	final_position_str := "Final position: "
 	//final_history_str := fmt.Sprintf("Last key pressed: %v", key)
 	outcome_str := fmt.Sprintf("outcome: %s, %s\n", game.Outcome().String(), game.Method().String())
-	statusbarstr := "Press '0' to return to main | Press '1' to play again | Press 'Ctrl-o' to quit"
+	statusbarstr := "CHESS-CLI | Press '0' to return to main | Press '1' to play again | Press 'Ctrl-o' to quit"
 
 	// Centering calculations
 	width = windows_info_arr[1].w
@@ -469,7 +470,7 @@ func draw_post_screen(screen1 *ncurses.Window, key ncurses.Key, windows_array [2
 
 }
 
-func draw_create_game_screen(screen *ncurses.Window, op []string, sel []string, win *ncurses.Window, info windowSizePos) {
+func draw_create_game_screen(screen *ncurses.Window, op []string, sel []string, title string, win *ncurses.Window, info windowSizePos) {
 	screen.Clear()
 	height, width := screen.MaxYX()
 	y := height / 4
@@ -477,9 +478,9 @@ func draw_create_game_screen(screen *ncurses.Window, op []string, sel []string, 
 	// Declaration of strings
 
 	//title_array := []string{"options", "variants", "time options", "time interval", "rated/casual", "choose color", "select friend to challenge"}
-	title_array := []string{"options", "variants", "time options", "rated/casual", "choose color", "select friend to challenge"}
+	//title_array := []string{"options", "variants", "time options", "rated/casual", "choose color", "select friend to challenge"}
 
-	var statusbarstr string = fmt.Sprintf("CREATE A LICHESS GAME | Press 'Ctrl-o' to quit")
+	var statusbarstr string = fmt.Sprintf("CHESS CLI | CREATE A LICHESS GAME | Press 'Ctrl-o' to quit")
 
 	//background
 	// screen.AttrOn(ncurses.A_DIM)
@@ -500,11 +501,11 @@ func draw_create_game_screen(screen *ncurses.Window, op []string, sel []string, 
 	screen.AttrOff(ncurses.ColorPair(3))
 
 	// main title
-	title := "lichess: create game"
+	main_title := "create lichess game"
 	screen.AttrOn(ncurses.ColorPair(2))
 	screen.AttrOn(ncurses.A_BOLD)
 	screen.AttrOn(ncurses.A_UNDERLINE)
-	screen.MovePrint(y, ((width / 2) - (len(title) / 2) - len(title)%2), title)
+	screen.MovePrint(y, ((width / 2) - (len(main_title) / 2) - len(main_title)%2), main_title)
 	screen.AttrOff(ncurses.A_UNDERLINE)
 	screen.AttrOff(ncurses.A_BOLD)
 	screen.AttrOff(ncurses.ColorPair(2))
@@ -514,15 +515,23 @@ func draw_create_game_screen(screen *ncurses.Window, op []string, sel []string, 
 	screen.MovePrint(y, ((width / 2) - (len(sep) / 2) - len(sep)%2), sep)
 	y++
 
-	selections := fmt.Sprintf(strings.Join(sel[:], " -> "))
-	screen.MovePrint(y, ((width / 2) - (len(selections) / 2) - len(selections)%2), selections)
-	y++
+	if len(sel) > 0 {
+		selections := fmt.Sprintf(strings.Join(sel[:], " -> "))
+		screen.MovePrint(y, ((width / 2) - (len(selections) / 2) - len(selections)%2), selections)
+		y++
 
-	screen.MovePrint(y, ((width / 2) - (len(sep) / 2) - len(sep)%2), sep)
-	y++
+		screen.MovePrint(y, ((width / 2) - (len(sep) / 2) - len(sep)%2), sep)
+		y++
+	}
+	op_wid := getMaxLenStr(append(op, title)) + 6
 
-	op_wid := getMaxLenStr(append(op, title_array[len(sel)])) + 6
-	info = windowSizePos{len(op) + 2, op_wid, y, (width / 2) - (op_wid / 2) - op_wid%2}
+	//determin option screen size based on what window you're on. different for slider option vs normal menu option
+	if title == "time interval" {
+		info = windowSizePos{int(float64(height) / 2.5), width - 2, y, 1}
+	} else {
+		info = windowSizePos{len(op) + 2, op_wid, y, (width / 2) - (op_wid / 2) - op_wid%2}
+	}
+
 	y += info.h
 
 	//Clear, refresh, update all windows
@@ -532,12 +541,12 @@ func draw_create_game_screen(screen *ncurses.Window, op []string, sel []string, 
 	win.NoutRefresh()
 
 	// print windows
-	win_title := title_array[len(sel)]
+	//win_title := title_array[len(sel)]
 	win.Box('|', '-')
 	// Rendering title
 	win.AttrOn(ncurses.ColorPair(2))
 	win.AttrOn(ncurses.A_BOLD)
-	win.MovePrint(0, 1, win_title)
+	win.MovePrint(0, 1, title)
 	win.AttrOff(ncurses.ColorPair(2))
 	win.AttrOff(ncurses.A_BOLD)
 
@@ -566,21 +575,64 @@ func draw_options_input(window *ncurses.Window, options []string, selected_index
 			window.AttrOn(ncurses.ColorPair(3))
 			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
 			window.AttrOff(ncurses.ColorPair(3))
-
 			window.AttrOn(ncurses.A_DIM)
 			window.AttrOn(ncurses.A_BLINK)
 			window.MovePrint(i+1, 1, piece)
 			window.MovePrint(i+1, width-3, piece)
 			window.AttrOff(ncurses.A_BLINK)
 			window.AttrOff(ncurses.A_DIM)
-
 		} else {
 			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
 			window.MovePrint(i+1, 1, " ")
 			window.MovePrint(i+1, width-3, " ")
 		}
 	}
-
 	window.Refresh()
-
 }
+
+func loading_screen(screen *ncurses.Window, message string) {
+	screen.Clear()
+	height, width := screen.MaxYX()
+	dt := time.Now().Unix() % 10
+	screen.MovePrint(height/2, width/2-len(message)/2, message)
+	screen.MovePrint((height/2)+1, width/2, fmt.Sprintf("%v", loader[dt]))
+	screen.Refresh()
+}
+
+// func draw_slider_input(window *ncurses.Window, titles []string, intervals [][]interface{}, selected_index int) {
+
+// 	_, width := window.MaxYX()
+// 	nav_options := []string{"submit", "back"}
+
+// 	//draw standout for currently selected option
+// 	for i, str := range titles {
+// 		if i == selected_index {
+// 			window.AttrOn(ncurses.ColorPair(3))
+// 			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
+// 			window.AttrOff(ncurses.ColorPair(3))
+// 		} else {
+// 			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
+// 			window.MovePrint(i+1, 1, " ")
+// 			window.MovePrint(i+1, width-3, " ")
+// 		}
+// 		arr := intervals[i]
+// 		tic_line := fmt.Sprintf("%s", strings.Repeat("-", (width-4)))
+// 		tic_loc := int((float64(len(tic_line)) / float64(len(arr))) * float64(tic_index[0]))
+// 		window.MovePrint((height/3)+4, 2, tic_line) //print the tic_line
+// 		window.MovePrint((height/3)+4, tic_loc, "|")
+// 	}
+
+// 	for i, str := range nav_options {
+// 		if i == selected_index {
+// 			window.AttrOn(ncurses.ColorPair(3))
+// 			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
+// 			window.AttrOff(ncurses.ColorPair(3))
+// 		} else {
+// 			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
+// 			window.MovePrint(i+1, 1, " ")
+// 			window.MovePrint(i+1, width-3, " ")
+// 		}
+// 	}
+// 	window.Refresh()
+
+// }

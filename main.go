@@ -16,11 +16,16 @@ import (
 //#f3 e5 g4 Qh4#
 
 var sigs chan os.Signal
+var quit_stream chan bool
 
 func main() {
-
+	//init channels
 	sigs = make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGWINCH)
+
+	quit_stream = make(chan bool)
+	go StreamEvent()
+
 	// Initialize ncurses. It's essential End() is called to ensure the
 	// terminal isn't altered after the program ends
 	stdscr, err := ncurses.Init()
@@ -130,6 +135,7 @@ func lichessScreenHandler(stdscr *ncurses.Window, option int) (int, ncurses.Key)
 	case 3:
 		option = create_game(stdscr)
 	case 4:
+		option = lichess_game(stdscr)
 	case 5:
 		return -1, control_o_key //quit game
 	}

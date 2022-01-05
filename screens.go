@@ -188,6 +188,13 @@ func lichess_welcome(screen *ncurses.Window) int {
 	height, width := screen.MaxYX()
 	done := make(chan struct{})
 	ticker := time.NewTicker(time.Second)
+	var loading_msg string
+	if UserInfo.ApiToken != "" {
+		loading_msg = "Please login through lichess.org"
+	} else {
+		loading_msg = "Logging into lichess.org with your token"
+	}
+
 	go func() {
 		do_oauth()
 		if UserInfo.ApiToken != "" {
@@ -209,16 +216,16 @@ func lichess_welcome(screen *ncurses.Window) int {
 		}
 		close(done)
 	}()
-	loading_screen(screen, "Please login through lichess.org")
+	loading_screen(screen, loading_msg)
 blocking_loop:
 	for {
 		select {
 		case <-sigs:
 			tRow, tCol, _ := osTermSize()
 			ncurses.ResizeTerm(tRow, tCol)
-			loading_screen(screen, "Please login through lichess.org")
+			loading_screen(screen, loading_msg)
 		case <-ticker.C:
-			loading_screen(screen, "Please login through lichess.org")
+			loading_screen(screen, loading_msg)
 		case <-done:
 			break blocking_loop
 		}
@@ -281,15 +288,6 @@ blocking_loop:
 
 		}
 	}
-}
-
-func loading_screen(screen *ncurses.Window, message string) {
-	screen.Clear()
-	height, width := screen.MaxYX()
-	dt := time.Now().Unix() % 10
-	screen.MovePrint(height/2, width/2-len(message)/2, message)
-	screen.MovePrint((height/2)+1, width/2, fmt.Sprintf("%v", loader[dt]))
-	screen.Refresh()
 }
 
 func lichess_challenges(screen *ncurses.Window) int {
@@ -401,21 +399,6 @@ blocking_loop:
 	}
 }
 
-type CreateChallengeType struct {
-	Type           int
-	Username       string
-	DestUser       string
-	Variant        string
-	VariantIndex   int
-	TimeOption     int
-	ClockLimit     int
-	ClockIncrement int
-	Days           int
-	Rated          bool
-	Color          string
-	ColorIndex     int
-}
-
 func create_game(screen *ncurses.Window) int {
 	var key ncurses.Key
 	//_, width := screen.MaxYX()
@@ -426,6 +409,10 @@ func create_game(screen *ncurses.Window) int {
 	rated_options := []string{"casual", "rated"}
 	color_options := []string{"random", "white", "black"}
 	selection := []string{}
+	submit_options := []string{"challenge ok? submit", "back", "back to challenge screen", "quit chess-cli"}
+	title_array := []string{"options", "variants", "time options", "time interval", "rated/casual", "choose color", "select friend to challenge", "submit challenge"}
+	op_arr := [][]string{options, variant_options, time_options, {}, rated_options, color_options, append(allFriends, "get url", "back"), submit_options}
+	//empty_strings := []string{"", "", "", "", "", "", "", "", "", "", "", "", ""}
 
 	//options_arrays := [][]string{options, variant_options, time_options, rated_options, color_options}
 
@@ -444,30 +431,17 @@ func create_game(screen *ncurses.Window) int {
 	//windows_array := []*ncurses.Window{options_window}
 	var window_mode int = 0
 	var option_index int = 0
+	var slider_index int = 0
 	var selected bool
+	tic_index := []int{0, 0}
 	var newChallenge CreateChallengeType
-	draw_create_game_screen(screen, options, selection, options_window, op_info)
+	draw_create_game_screen(screen, op_arr[window_mode], selection, title_array[window_mode], options_window, op_info)
 	for {
 		select {
 		case <-sigs: //resize on os resize signal
 			tRow, tCol, _ := osTermSize()
 			ncurses.ResizeTerm(tRow, tCol)
-			switch window_mode {
-			case 0:
-				draw_create_game_screen(screen, options, selection, options_window, op_info)
-			case 1:
-				draw_create_game_screen(screen, variant_options, selection, options_window, op_info)
-			case 2:
-				draw_create_game_screen(screen, time_options, selection, options_window, op_info)
-			case 3:
-				//draw_create_game_screen(screen, options, options_window, op_info)
-			case 4:
-				draw_create_game_screen(screen, rated_options, selection, options_window, op_info)
-			case 5:
-				draw_create_game_screen(screen, color_options, selection, options_window, op_info)
-			case 6:
-				draw_create_game_screen(screen, allFriends, selection, options_window, op_info)
-			}
+			draw_create_game_screen(screen, op_arr[window_mode], selection, title_array[window_mode], options_window, op_info)
 
 		default: //normal character loop here
 			key = screen.GetChar()
@@ -484,8 +458,8 @@ func create_game(screen *ncurses.Window) int {
 						newChallenge.Type = option_index
 						window_mode = 1
 						option_index = 0
-						draw_create_game_screen(screen, variant_options, selection, options_window, op_info)
-					// case 1: //bot
+						//draw_create_game_screen(screen, op_arr[window_mode], selection, title_array[window_mode], options_window, op_info)
+						// case 1: //bot
 					// 	window_mode = 1
 					case 3: //go to challenges screen
 						return 2
@@ -502,15 +476,12 @@ func create_game(screen *ncurses.Window) int {
 						window_mode = 0 //go back to main options
 						selection = selection[:len(selection)-1]
 						option_index = newChallenge.Type
-						draw_create_game_screen(screen, options, selection, options_window, op_info)
 
 					case 0, 1, 2, 3, 4, 5, 6, 7, 8: //all variants
-						//selection[1] = variant_options[option_index]
 						selection = append(selection, variant_options[option_index])
 						newChallenge.Variant = variant_options[option_index] //save selected variant
 						window_mode = 2
 						option_index = 0 //go to time
-						draw_create_game_screen(screen, time_options, selection, options_window, op_info)
 
 					}
 
@@ -523,41 +494,85 @@ func create_game(screen *ncurses.Window) int {
 						window_mode = 1
 						selection = selection[:len(selection)-1]
 						option_index = newChallenge.VariantIndex
-						draw_create_game_screen(screen, variant_options, selection, options_window, op_info)
-
 					case 0, 1, 2: //realtime, corrspondence, unlimited
-						//selection[2] = time_options[option_index]
 						selection = append(selection, time_options[option_index])
-						window_mode = 4
 						newChallenge.TimeOption = option_index
-						draw_create_game_screen(screen, rated_options, selection, options_window, op_info)
+						if option_index == 2 { //time interval window skip if unlimited
+							window_mode = 4
+						} else {
+							window_mode = 3
+						}
+
 					}
 
 				}
 			case 3: //mode 3 : select time interval for real time / correspondence
-			case 4: //mode 4 : select rated / casual
+				var min_time float64
+				tic_index, slider_index, min_time, selected = slider_input(options_window, key, newChallenge.TimeOption, tic_index, slider_index)
+				if selected {
+					switch newChallenge.TimeOption {
+					case 0: // real time, two sliders
+						switch slider_index {
+						case 0, 1, 2: //
+							window_mode = 4
+							option_index = 0
+							newChallenge.MinTurn = min_time
+							newChallenge.ClockLimit = fmt.Sprintf("%v", int(min_time*60))
+							newChallenge.ClockIncrement = fmt.Sprintf("%v", tic_index[1])
+							selection = append(selection, fmt.Sprintf("%v+%v", min_time, tic_index[1])) //show select
+						case 3: // go back to time control window (real time, corr, unl)
+							tic_index = []int{0, 0}
+							slider_index = 0
+							option_index = newChallenge.TimeOption
+							window_mode = 2
+							selection = selection[:len(selection)-1]
+						}
 
+					case 1: //correspondence, one slider for day
+						switch slider_index {
+						case 0, 1:
+							window_mode = 4
+							option_index = 0
+							newChallenge.Days = fmt.Sprintf("%v", tic_index[0]+1)
+							selection = append(selection, fmt.Sprintf("%v days", newChallenge.Days)) //show select
+						case 2: // go back to time control window (real time, corr, unl)
+							tic_index = []int{0, 0}
+							slider_index = 0
+							window_mode = 2
+							selection = selection[:len(selection)-1]
+							option_index = newChallenge.TimeOption
+						}
+					}
+					//draw_create_game_screen(screen, op_arr[window_mode], selection, title_array[window_mode], options_window, op_info)
+
+				}
+			case 4: //mode 4 : select rated / casual
 				option_index, selected = options_input(options_window, key, rated_options, option_index)
 				if selected {
 					switch option_index {
-					case -1: //go back to time
-						window_mode = 2
-						selection = selection[:len(selection)-1]
-						option_index = newChallenge.TimeOption
-						draw_create_game_screen(screen, time_options, selection, options_window, op_info)
+					case -1: //go back to time interval window, time control if unlimited was selected
 
-					case 0, 1: //rated or casual
-						//selection[4] = rated_options[option_index]
+						selection = selection[:len(selection)-1]
+						tic_index = []int{0, 0}
+						slider_index = 0
+						if newChallenge.TimeOption != 2 { //not unlimited
+							option_index = 0
+							window_mode = 3
+						} else {
+							option_index = newChallenge.TimeOption
+							window_mode = 2
+						}
+					case 0, 1: //go to rated or casual window
 						selection = append(selection, rated_options[option_index])
 						window_mode = 5 // go to color
 						option_index = 0
 						if option_index == 1 {
-							newChallenge.Rated = true
-
+							newChallenge.Rated = "true"
+							newChallenge.RatedBool = true
 						} else {
-							newChallenge.Rated = false
+							newChallenge.Rated = "false"
+							newChallenge.RatedBool = false
 						}
-						draw_create_game_screen(screen, color_options, selection, options_window, op_info)
 					}
 
 				}
@@ -566,40 +581,172 @@ func create_game(screen *ncurses.Window) int {
 				option_index, selected = options_input(options_window, key, color_options, option_index)
 				if selected {
 					switch option_index {
-					case -1: //go back to rated
+					case -1: //go back to rated window
 						window_mode = 4
 						selection = selection[:len(selection)-1]
-						if newChallenge.Rated {
+						if newChallenge.RatedBool {
 							option_index = 1
 						} else {
 							option_index = 0
 						}
-						draw_create_game_screen(screen, rated_options, selection, options_window, op_info)
-
-					case 0, 1, 2: //choose color: random, white, black
-						//selection[5] = color_options[option_index]
+					case 0, 1, 2: //choose color: random, white, black,
+						//only friend mode go to user screen, seek random / or bot go to confirmation screen
 						selection = append(selection, color_options[option_index])
 						newChallenge.Color = color_options[option_index]
 						newChallenge.ColorIndex = option_index
-						window_mode = 6 // go to user
+						if newChallenge.Type == 1 {
+							window_mode = 6 // go to user
+						} else {
+							window_mode = 7
+						}
 						option_index = 0
-						draw_create_game_screen(screen, append(allFriends, "get url"), selection, options_window, op_info)
 					}
 
 				}
-			case 6: //mode 6 : choose user
-				option_index, selected = options_input(options_window, key, append(allFriends, "get url"), option_index)
+			case 6: //mode 6 : choose user to challenge
+				option_index, selected = options_input(options_window, key, append(allFriends, "get url", "back"), option_index)
 				if selected {
-					switch option_index {
-					case -1: //go back to color choice
+					if option_index == -1 || option_index == len(allFriends) { //go back to color choice
 						window_mode = 5
 						selection = selection[:len(selection)-1]
 						option_index = newChallenge.ColorIndex
-						draw_create_game_screen(screen, color_options, selection, options_window, op_info)
+					} else {
+						if option_index == len(allFriends)-1 { //get url option for open ended challenge
+
+							newChallenge.OpenEnded = true
+						} else { //specfic user chosen
+							newChallenge.DestUser = allFriends[option_index]
+
+							newChallenge.OpenEnded = false
+						}
+						window_mode = 7
+						option_index = 0
 					}
+
+				}
+			case 7: //confirmation screen
+				option_index, selected = options_input(options_window, key, submit_options, option_index)
+				if selected {
+
+					switch option_index {
+					case -1, 1: //go back to user screen if friend mode, color screen otherwise
+						selection = selection[:len(selection)-1]
+						option_index = 0
+						if newChallenge.Type == 1 { //not unlimited
+							option_index = 0
+							window_mode = 6
+						} else {
+							option_index = newChallenge.ColorIndex
+							window_mode = 5
+						}
+					case 0: //submit the challenge
+
+						done := make(chan struct{})
+						ticker := time.NewTicker(time.Second)
+						go func() {
+							if UserInfo.ApiToken != "" {
+								switch newChallenge.Type {
+								case 0: //random seek
+									//TODO: api call CREATE A SEEK
+								case 1: //challenge friend
+
+									if newChallenge.OpenEnded {
+										//TODO: api call CREATE A OPEN END CHALLENGE
+
+									} else {
+										//TODO: api call CREATE A CHALLENGE
+										CreateChallenge(newChallenge)
+									}
+								case 2: //lichess ai
+									//TODO: api call CHALLENGE THE AI
+								}
+							}
+							close(done)
+						}()
+						load_msg := "Submitting your challenge / awaiting a response ... "
+						loading_screen(screen, load_msg)
+					blocking_loop:
+						for {
+							select {
+							case <-sigs:
+								tRow, tCol, _ := osTermSize()
+								ncurses.ResizeTerm(tRow, tCol)
+								loading_screen(screen, load_msg)
+							case <-ticker.C:
+								loading_screen(screen, load_msg)
+							case <-done:
+								break blocking_loop
+							}
+
+						}
+						//return to lichessScreenHandler to go to waiting screen
+						return 4
+					case 2: //go back to the main challege screen
+						return 2
+					case 4: //quit chess cli
+						return 5
+
+					}
+				}
+
+			}
+
+			//redraw screen for all window mode if something is selected
+			if selected {
+				draw_create_game_screen(screen, op_arr[window_mode], selection, title_array[window_mode], options_window, op_info)
+
+			}
+
+		}
+	}
+}
+
+func lichess_game(screen *ncurses.Window) int {
+	var key ncurses.Key
+	screen.Clear()
+	//height, width := screen.MaxYX()
+	// message := fmt.Sprintf("challenge id is %s", ChallengeId)
+	// screen.MovePrint(height/2, width/2-len(message)/2, message)
+	ticker := time.NewTicker(time.Second)
+	var load_msg string
+	if streamEvent != "" {
+		load_msg = fmt.Sprintf("load event: %v", streamEvent)
+	} else {
+		load_msg = fmt.Sprintf("waiting for stream event")
+	}
+
+	loading_screen(screen, load_msg)
+
+	for {
+		select {
+		case <-sigs:
+			tRow, tCol, _ := osTermSize()
+			ncurses.ResizeTerm(tRow, tCol)
+			loading_screen(screen, load_msg)
+		case <-ticker.C:
+			if streamEvent != "" {
+				load_msg = fmt.Sprintf("load event: %v", streamEvent)
+			} else {
+				load_msg = fmt.Sprintf("waiting for stream event")
+			}
+			loading_screen(screen, load_msg)
+		default: //normal character loop here
+			key = screen.GetChar()
+			switch key {
+			case control_o_key, one_key, zero_key:
+				user_input_string = ""
+				inputted_str = ""
+				entered_move = false
+				if key == control_o_key {
+					return 5
+				} else if key == one_key {
+					return 1
+				} else {
+					return 0
 				}
 			}
 		}
+		screen.Refresh()
 	}
 }
 
