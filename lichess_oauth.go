@@ -47,6 +47,7 @@ var TokenURL string = fmt.Sprintf("%s/api/token", hostUrl)
 var RedirectURL string
 var redirectPort int
 var json_path = "user_config.json"
+var stream_channel chan StreamEventType
 
 func do_oauth() {
 	err := checkForJSON()
@@ -57,10 +58,9 @@ func do_oauth() {
 	}
 	if UserInfo.ApiToken == "" {
 		AuthUser()
-	} else {
-		//fmt.Printf("already have token\n")
-		return
 	}
+
+	//close(ready)
 	return
 }
 

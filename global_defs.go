@@ -8,7 +8,7 @@ import (
 )
 
 // GLOBAL VARS
-
+var currentGameID string
 var control_l_key ncurses.Key = 12
 var control_o_key ncurses.Key = 15
 var q_key ncurses.Key = 113
@@ -109,6 +109,17 @@ var pieces = map[rune]rune{
 	'n': '♞',
 	//'p': '♟︎',
 	'p': '♙',
+}
+
+var knight_loader = map[int64]string{
+	0: "♞ ",
+	1: "🨇 ",
+	2: "🨓 ",
+	3: "🨜 ",
+	4: "🨨 ",
+	5: "🨱 ",
+	6: "🨽 ",
+	7: "🩆 ",
 }
 
 var loader = map[int64]string{

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"os"
@@ -16,25 +17,65 @@ import (
 //#f3 e5 g4 Qh4#
 
 var sigs chan os.Signal
-var quit_stream chan bool
+var noti_message chan string
+var error_message chan error
+var ready chan struct{}
+
+// var quit_stream chan bool
+// var stream_done chan struct{}
 
 func main() {
 	//init channels
 	sigs = make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGWINCH)
-
-	quit_stream = make(chan bool)
-	go StreamEvent()
-
+	noti_message = make(chan string, 100)
+	error_message = make(chan error, 10)
+	ready = make(chan struct{})
+	stream_channel = make(chan StreamEventType, 1)
 	// Initialize ncurses. It's essential End() is called to ensure the
 	// terminal isn't altered after the program ends
 	stdscr, err := ncurses.Init()
 	if err != nil {
 		log.Fatal("init", err)
 	}
-
 	defer ncurses.End()
 	stdscr.Timeout(0)
+
+	go StreamEvent(stream_channel, ready)
+	go StreamConsumer(stream_channel, noti_message)
+	go notifier(stdscr, noti_message)
+	go ncurses_print_error(stdscr, error_message)
+
+	// go func(screen *ncurses.Window) {
+	// 	rand.Seed(time.Now().UnixNano())
+	// 	for {
+	// 		rando := rand.Intn(100)
+	// 		go screen.MovePrint(10, 100, fmt.Sprintf(" verification %v ", rando))
+	// 		noti_message <- fmt.Sprintf("this is a test %v", rando)
+	// 		//error_message <- fmt.Errorf("this is a test %v", rando)
+	// 		screen.MovePrint(10, 100, fmt.Sprintf(" verification %v ", rando))
+	// 		time.Sleep(time.Millisecond * 500)
+	// 	}
+	// }(stdscr)
+
+	// ticker := time.NewTicker(time.Second)
+
+	// func(screen *ncurses.Window) {
+	// 	for {
+
+	// 		select {
+
+	// 		case <-ticker.C:
+	// 			error_message <- fmt.Errorf("error test")
+	// 			screen.Clear()
+	// 		default:
+	// 			screen.MovePrint(1, 1, "not looooooading")
+	// 			screen.Refresh()
+	// 		}
+
+	// 	}
+	// }(stdscr)
+	//<-ready
 
 	//necessary for mouse input, start keypad, read all mouse events
 	stdscr.Keypad(true)
@@ -135,14 +176,54 @@ func lichessScreenHandler(stdscr *ncurses.Window, option int) (int, ncurses.Key)
 	case 3:
 		option = create_game(stdscr)
 	case 4:
-		option = lichess_game(stdscr)
+		option = lichess_game_wait(stdscr)
 	case 5:
 		return -1, control_o_key //quit game
+	case 6:
+		option = lichess_game(stdscr)
 	}
 	return lichessScreenHandler(stdscr, option)
 }
 
 func game_logic(board_window *ncurses.Window) bool {
+	//inputted_str = inputted_str.strip(' ').strip('\0').strip('^@')
+	inputted_str = strings.Trim(inputted_str, " ^@")
+	board_window.MovePrint(1, 1, inputted_str)
+	legal_moves := game.ValidMoves()
+	legal_move_str_array = []string{}
+
+	for _, move := range legal_moves {
+		legal_move_str_array = append(legal_move_str_array, move.String())
+	}
+
+	if entered_move {
+		entered_move = false
+
+		if err := game.MoveStr(inputted_str); err != nil {
+			status_str = "last input is invalid"
+			inputted_str = ""
+		} else {
+			status_str = "move is legal!"
+			last_move_str = inputted_str //set the last move string to be displayed in the info window
+			history_arr = append([]string{inputted_str}, history_arr...)
+			move_amount++ //increment the global move amount for the history window
+			ncurses.Flash()
+			ncurses.Beep()
+
+			if game.Outcome() != chess.NoOutcome { //check if the game is over
+				status_str = game.Method().String()
+				final_position = game.Position().Board().Draw()
+				return true
+			}
+		}
+
+	}
+
+	legal_moves = game.ValidMoves()
+	return false
+}
+
+func lichess_game_logic(board_window *ncurses.Window) bool {
 	//inputted_str = inputted_str.strip(' ').strip('\0').strip('^@')
 	inputted_str = strings.Trim(inputted_str, " ^@")
 	board_window.MovePrint(1, 1, inputted_str)
@@ -270,4 +351,105 @@ func GetRandomQuote() string {
 
 	return rand_quote
 
+}
+
+func notifier(screen *ncurses.Window, message <-chan string) {
+	for {
+		select {
+		case m := <-message:
+			title := "notification"
+			_, s_width := screen.MaxYX()
+			//x := rand.Intn(width) + 1
+			//y := rand.Intn(height) + 1
+
+			w := getMaxLenStr([]string{m, title}) + 2
+			x := s_width - w - 1
+			//y := rand.Intn(height) + 1
+
+			//win, _ := ncurses.NewWindow(3, 20, 1, width-20)
+
+			timeout := time.After(time.Second * 2)
+		loop:
+			for tick := range time.Tick(time.Millisecond * 10) {
+				_ = tick
+				select {
+				// case <-sigs:
+				// 	_, s_width := screen.MaxYX()
+				// 	x := s_width - w - 1
+				// 	win.Clear()
+				// 	win.MoveWindow(1, x) //move windows to appropriate locations
+				// 	win.Box('|', '-')
+				// 	win.AttrOn(ncurses.ColorPair(2))
+				// 	win.AttrOn(ncurses.A_BOLD)
+				// 	win.MovePrint(0, 1, title)
+				// 	win.AttrOff(ncurses.ColorPair(2))
+				// 	win.AttrOff(ncurses.A_BOLD)
+				// 	win.MovePrint(1, 1, m)
+				// 	win.Refresh()
+				case <-timeout:
+					break loop
+				default:
+					win, _ := ncurses.NewWindow(3, w, 1, x)
+					win.Box('|', '-')
+					win.AttrOn(ncurses.ColorPair(2))
+					win.AttrOn(ncurses.A_BOLD)
+					win.MovePrint(0, 1, title)
+					win.AttrOff(ncurses.ColorPair(2))
+					win.AttrOff(ncurses.A_BOLD)
+					win.MovePrint(1, 1, m)
+					win.NoutRefresh()
+				}
+			}
+			//time.Sleep(time.Second * 5)
+			screen.Clear()
+			sigs <- syscall.SIGWINCH
+			//time.Sleep(time.Second * 1)
+			// default:
+			// 	height, width := screen.MaxYX()
+			// 	rand.Seed(time.Now().UnixNano())
+			// 	x := rand.Intn(width) + 1
+			// 	y := rand.Intn(height) + 1
+			// 	screen.MovePrint(y, x, "no message!")
+			// 	time.Sleep(time.Millisecond * 10)
+
+		}
+	}
+}
+
+func ncurses_print_error(screen *ncurses.Window, message <-chan error) {
+	for {
+		select {
+		case m := <-message:
+			title := "error"
+			h, s_width := screen.MaxYX()
+
+			w := getMaxLenStr([]string{fmt.Sprintf("%v", m), title}) + 2
+			x := (s_width/2 - w/2 - w%2)
+			y := (h / 2)
+
+			timeout := time.After(time.Second * 5)
+		loop:
+			for tick := range time.Tick(time.Millisecond * 10) {
+				_ = tick
+				select {
+				case <-timeout:
+					break loop
+				default:
+					win, _ := ncurses.NewWindow(3, w, y, x)
+					win.Box('|', '-')
+					win.AttrOn(ncurses.ColorPair(2))
+					win.AttrOn(ncurses.A_BOLD)
+					win.MovePrint(0, 1, title)
+					win.AttrOff(ncurses.ColorPair(2))
+					win.AttrOff(ncurses.A_BOLD)
+					win.MovePrint(1, 1, fmt.Sprintf("%v", m))
+					win.NoutRefresh()
+				}
+			}
+			screen.Clear()
+			sigs <- syscall.SIGWINCH
+			time.Sleep(time.Second * 1)
+			//os.Exit(1)
+		}
+	}
 }

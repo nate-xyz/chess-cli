@@ -295,6 +295,78 @@ func draw_challenge_windows(inc *ncurses.Window, out *ncurses.Window) {
 
 }
 
+func draw_lichess_game_screen(stdscr *ncurses.Window, key ncurses.Key, windows_array [4]*ncurses.Window, windows_info_arr [4]windowSizePos) {
+	//Clear and refresh the screen for a blank canvas
+	stdscr.Clear()
+	height, width := stdscr.MaxYX()
+
+	//update window dimensions
+	// windows_info_arr[0] = windowSizePos{(height / 4) * 3, width / 2, 0, 0}
+	// windows_info_arr[1] = windowSizePos{height / 2, width / 2, 0, width / 2}
+	// windows_info_arr[2] = windowSizePos{(height / 4) - 1, width / 2, (height / 4) * 3, 0}
+	// windows_info_arr[3] = windowSizePos{(height / 2) - 1, width / 2, height / 2, width / 2}
+
+	//h, w, y, x
+	windows_info_arr[0] = windowSizePos{height / 2, width, 0, 0}                                           //bw
+	windows_info_arr[1] = windowSizePos{(height / 2) - 1, width / 2, (height / 2), 0}                      //iw
+	windows_info_arr[2] = windowSizePos{(height / 4) - 1, width / 2, height / 2, width / 2}                //pw
+	windows_info_arr[3] = windowSizePos{(height / 4), width / 2, int(float64(height)*0.75) - 1, width / 2} //hw
+
+	//Clear, refresh, update all windows
+	for i, win := range windows_array {
+		win.Clear()
+		info := windows_info_arr[i]
+		win.Resize(info.h, info.w)     //Resize windows based on new dimensions
+		win.MoveWindow(info.y, info.x) //move windows to appropriate locations
+		win.NoutRefresh()
+	}
+
+	//get mouse location
+	// cursor_x := math.Min(width-1, math.Max(0, cursor_x))
+	// cursor_y := math.Min(height-1, math.Max(0, cursor_y))
+
+	// Declaration of strings
+	board_title := "board"
+	info_title := "info"
+	prompt_title := "prompt"
+	history_title := "move_history"
+	title_array := []string{board_title, info_title, prompt_title, history_title}
+	//keystr := fmt.Sprintf("Last key pressed: %v", key)
+	statusbarstr := "CHESS-CLI | LICHESS CLIENT | Press 'Ctrl+o' to exit"
+	// if key == zero_key {
+	// 	keystr = "No key press detected..."
+	// }
+	statusbarfull := fmt.Sprintf("%s", statusbarstr)
+
+	// Turning on attributes for title
+	for i, win := range windows_array {
+		win.Box('|', '-')
+		// Rendering title
+		win.AttrOn(ncurses.ColorPair(2))
+		win.AttrOn(ncurses.A_BOLD)
+		win.MovePrint(0, 1, title_array[i])
+		win.AttrOff(ncurses.ColorPair(2))
+		win.AttrOff(ncurses.A_BOLD)
+	}
+
+	// Render status bar
+	stdscr.AttrOn(ncurses.ColorPair(3))
+	stdscr.MovePrint(height-1, 0, statusbarfull)
+	var padding string
+	if (width - len(statusbarstr) - 1) > 0 {
+		padding = fmt.Sprintf("%s", strings.Repeat(" ", (width-len(statusbarstr)-1)))
+	}
+	stdscr.MovePrint(height-1, len(statusbarfull), padding)
+	stdscr.AttrOff(ncurses.ColorPair(3))
+
+	// Refresh the screen
+	stdscr.NoutRefresh()
+	for _, win := range windows_array {
+		win.NoutRefresh()
+	}
+	ncurses.Update()
+}
+
 func draw_local_game_screen(stdscr *ncurses.Window, key ncurses.Key, windows_array [4]*ncurses.Window, windows_info_arr [4]windowSizePos) {
 	//Clear and refresh the screen for a blank canvas
 	stdscr.Clear()
@@ -591,11 +663,12 @@ func draw_options_input(window *ncurses.Window, options []string, selected_index
 }
 
 func loading_screen(screen *ncurses.Window, message string) {
-	screen.Clear()
 	height, width := screen.MaxYX()
-	dt := time.Now().Unix() % 10
 	screen.MovePrint(height/2, width/2-len(message)/2, message)
-	screen.MovePrint((height/2)+1, width/2, fmt.Sprintf("%v", loader[dt]))
+	// dt := time.Now().Unix() % 10
+	// screen.MovePrint((height/2)+1, width/2, fmt.Sprintf("%v", loader[dt]))
+	dt := time.Now().Unix() % 8
+	screen.MovePrint((height/2)+1, width/2, fmt.Sprintf("%v", knight_loader[dt]))
 	screen.Refresh()
 }
 
