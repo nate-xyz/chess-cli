@@ -75,13 +75,15 @@ func main() {
 	//<-Ready
 
 	//determing unicode support
-	_, x := stdscr.CursorYX()
-	test_char := "あ"
-	stdscr.Print(test_char)
-	_, nx := stdscr.CursorYX()
-	if (nx - x) != 1 {
-		UnicodeSupport = false
-	}
+	// _, x := stdscr.CursorYX()
+	// test_char := "♟︎"
+	// stdscr.MovePrint(1, 1, test_char)
+	// _, nx := stdscr.CursorYX()
+	// diff := (nx - x)
+	// NotiMessage <- fmt.Sprintf("%v", stdscr.MoveInChar(1, 1))
+	// if diff != 1 {
+	// 	UnicodeSupport = false
+	// }
 
 	//necessary for mouse input, start keypad, read all mouse events
 	stdscr.Keypad(true)
