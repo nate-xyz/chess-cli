@@ -172,3 +172,6 @@ go.sum
 
 #config files with json
 *.json
+
+LICENSE
+LICENSE.md
