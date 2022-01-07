@@ -1,4 +1,4 @@
-package main
+package shared
 
 import (
 	"fmt"
@@ -10,36 +10,36 @@ import (
 	"github.com/notnil/chess"
 )
 
-func display_info(info_window *ncurses.Window) {
+func DisplayInfoWindow(info_window *ncurses.Window) {
 	height, width := info_window.MaxYX()
 
 	info_window.AttrOn(ncurses.ColorPair(3))
-	if game.Position().Turn() == chess.White {
+	if CurrentGame.Position().Turn() == chess.White {
 		info_window.MovePrint(1, 1, "white to move")
-	} else if game.Position().Turn() == chess.Black {
+	} else if CurrentGame.Position().Turn() == chess.Black {
 		//info_window.AttrOn(ncurses.A_REVERSE)
 		info_window.MovePrint(1, 1, "black to move")
 		//info_window.AttrOff(ncurses.A_REVERSE)
 	}
-	info_window.MovePrint(2, 1, fmt.Sprintf("last move: %s", last_move_str))
+	info_window.MovePrint(2, 1, fmt.Sprintf("last move: %s", LastMoveString))
 	info_window.AttrOff(ncurses.ColorPair(3))
 
 	var text_colour int16
-	if status_str == "move is legal!" {
+	if StatusMessage == "move is legal!" {
 		text_colour = 8
 	} else {
 		text_colour = 9
 	}
 	info_window.AttrOn(ncurses.ColorPair(text_colour))
-	info_window.MovePrint(3, 1, status_str)
+	info_window.MovePrint(3, 1, StatusMessage)
 	info_window.AttrOff(ncurses.ColorPair(text_colour))
 
-	info_window.MovePrint(4, 1, fmt.Sprintf("input: %s", inputted_str))
+	info_window.MovePrint(4, 1, fmt.Sprintf("input: %s", EnteredPromptStr))
 
 	info_window.AttrOn(ncurses.ColorPair(8))
 
 	//wrap_y := 0
-	san_move_str := fmt.Sprintf("legal moves: %s", strings.Join(legal_move_str_array[:], ", "))
+	san_move_str := fmt.Sprintf("legal moves: %s", strings.Join(LegalMoveStrArray[:], ", "))
 
 	for y := 5; y < height-1; y++ {
 		//wrap_y = y
@@ -66,26 +66,26 @@ func display_info(info_window *ncurses.Window) {
 	//info_window.MovePrint(7, 1, "{}: {}".format("legal moves (uci)", legal_move_str))
 	info_window.AttrOff(ncurses.ColorPair(8))
 
-	status_str = ""
+	StatusMessage = ""
 }
 
-func display_history(history_window *ncurses.Window) {
+func DisplayHistoryWindow(history_window *ncurses.Window) {
 	height, width := history_window.MaxYX()
 
 	history_str_i := 0
-	if len(history_arr) <= 0 {
+	if len(MoveHistoryArray) <= 0 {
 		history_window.MovePrint(1, 1, "no moves yet")
 	}
 	for y := 1; y < height-1; y++ {
-		if y >= len(history_arr) {
+		if y >= len(MoveHistoryArray) {
 			break
 		}
-		hist_str := history_arr[history_str_i]
+		hist_str := MoveHistoryArray[history_str_i]
 		piece_str := pieces['p']
 		if unicode.IsUpper(rune(hist_str[0])) {
 			piece_str = pieces[rune(hist_str[0])]
 		}
-		hist_str = "move " + strconv.Itoa(move_amount-history_str_i) + ": " + hist_str + " " + string(piece_str)
+		hist_str = "move " + strconv.Itoa(MoveAmount-history_str_i) + ": " + hist_str + " " + string(piece_str)
 		if len(hist_str) > width-2 {
 			history_window.MovePrint(y, 1, hist_str[:width-2])
 			//hist_str = hist_str[width-2:]
@@ -96,9 +96,9 @@ func display_history(history_window *ncurses.Window) {
 	}
 }
 
-func draw_board(board_window *ncurses.Window) {
+func DrawBoardWindow(board_window *ncurses.Window) {
 	height, width := board_window.MaxYX()
-	board_FEN := game.Position().String()
+	board_FEN := CurrentGame.Position().String()
 	// board_square_coord = {}
 	x_notation_string := "abcdefgh"
 	y_notation_string := "87654321"
@@ -118,9 +118,9 @@ func draw_board(board_window *ncurses.Window) {
 	var color_pair int16
 
 	for _, current_piece := range board_FEN { //loop to parse the FEN string
-		var key_tuple coord_pair
-		key_tuple.x_coord_ = x_coord
-		key_tuple.y_coord_ = y_coord
+		var key_tuple CoordPair
+		key_tuple.X = x_coord
+		key_tuple.Y = y_coord
 
 		if current_piece == ' ' {
 			board_window.MovePrint(y_coord, x_coord, "\t")
@@ -141,7 +141,7 @@ func draw_board(board_window *ncurses.Window) {
 				}
 				board_window.AttrOn(ncurses.ColorPair(color_pair))
 				board_window.MovePrint(y_coord, x_coord, " \t") //add a space+tab character for an empty square
-				var pair_temp piece_color
+				var pair_temp PieceColor
 				pair_temp.color = color_pair
 				pair_temp.piece = -1
 				board_square_coord[key_tuple] = pair_temp
@@ -178,7 +178,7 @@ func draw_board(board_window *ncurses.Window) {
 			//board_window.MoveAddChar(y_coord, x_coord, ncurses.Char(pieces[unicode.ToUpper(current_piece)]))
 
 			//color, piece
-			var pair_temp piece_color
+			var pair_temp PieceColor
 			pair_temp.color = floating_color
 			pair_temp.piece = pieces[unicode.ToUpper(current_piece)]
 			board_square_coord[key_tuple] = pair_temp

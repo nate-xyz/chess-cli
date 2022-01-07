@@ -1,4 +1,4 @@
-package main
+package shared
 
 // #include <sys/ioctl.h>
 import "C"
@@ -36,7 +36,7 @@ func GetRandomQuote() string {
 	var rand_quote_map = map[int]string{
 
 		0:  "'I have come to the personal conclusion that while all artists are not chess players, all chess players are artists.' – Marcel Duchamp",
-		1:  "'Unlike other games in which lucre is the end and aim, [chess] recommends itself to the wise by the fact that its mimic battles are fought for no prize but honor. It is eminently and emphatically the philosopher’s game.' – Paul Morphy",
+		1:  "'Unlike other games in which lucre is the end and aim, [chess] recommends itself to the wise by the fact that its mimic battles are fought for no prize but honor. It is eminently and emphatically the philosopher’s CurrentGame.' – Paul Morphy",
 		2:  "'The beauty of chess is it can be whatever you want it to be. It transcends language, age, race, religion, politics, gender, and socioeconomic background. Whatever your circumstances, anyone can enjoy a good fight to the death over the chess board.' – Simon Williams",
 		3:  "'Chess is the struggle against the error.' – Johannes Zukertort",
 		4:  "'Every chess master was once a beginner.' – Irving Chernev",
@@ -59,7 +59,7 @@ func GetRandomQuote() string {
 		21: "'It is my style to take my opponent and myself on to unknown grounds. A game of chess is not an examination of knowledge; it is a battle of nerves.' – David Bronstein",
 		22: "'Chess is rarely a game of ideal moves. Almost always, a player faces a series of difficult consequences whichever move he makes.' – David Shenk",
 		23: "'When you see a good move, look for a better one.' – Emanuel Lasker",
-		24: "'After a bad opening, there is hope for the middle game. After a bad middle game, there is hope for the endgame. But once you are in the endgame, the moment of truth has arrived.' – Edmar Mednis",
+		24: "'After a bad opening, there is hope for the middle CurrentGame. After a bad middle game, there is hope for the endgame. But once you are in the endgame, the moment of truth has arrived.' – Edmar Mednis",
 		25: "'Give me a difficult positional game, I will play it. But totally won positions, I cannot stand them.' – Hein Donner",
 		26: "'There is no remorse like the remorse of chess.' – H. G. Wells",
 		27: "'Half the variations which are calculated in a tournament game turn out to be completely superfluous. Unfortunately, no one knows in advance which half.' – Jan Timman",
@@ -67,9 +67,9 @@ func GetRandomQuote() string {
 		29: "'Tactics is knowing what to do when there is something to do; strategy is knowing what to do when there is nothing to do.' – Savielly Tartakower",
 		30: "'In life, as in chess, forethought wins.' – Charles Buxton",
 		31: "'You may learn much more from a game you lose than from a game you win. You will have to lose hundreds of games before becoming a good player.' – José Raúl Capablanca",
-		32: "'Pawns are the soul of the game.' – François-André Danican Philidor",
+		32: "'Pawns are the soul of the CurrentGame.' – François-André Danican Philidor",
 		33: "'The passed pawn is a criminal, who should be kept under lock and key. Mild measures, such as police surveillance, are not sufficient.' – Aron Nimzowitsch",
-		34: "'Modern chess is too much concerned with things like pawn structure. Forget it, checkmate ends the game.' – Nigel Short",
+		34: "'Modern chess is too much concerned with things like pawn structure. Forget it, checkmate ends the CurrentGame.' – Nigel Short",
 		35: "'Pawn endings are to chess what putting is to golf.' – Cecil Purdy",
 		36: "'Nobody ever won a chess game by resigning.' – Savielly Tartakower",
 		37: "'The blunders are all there on the board, waiting to be made.' – Savielly Tartakower",
@@ -105,108 +105,7 @@ func GetRandomQuote() string {
 
 }
 
-func notifier(screen *ncurses.Window, message <-chan string) {
-	for {
-		select {
-		case m := <-message:
-			title := "notification"
-			_, s_width := screen.MaxYX()
-			//x := rand.Intn(width) + 1
-			//y := rand.Intn(height) + 1
-
-			w := getMaxLenStr([]string{m, title}) + 2
-			x := s_width - w - 1
-			//y := rand.Intn(height) + 1
-
-			//win, _ := ncurses.NewWindow(3, 20, 1, width-20)
-
-			timeout := time.After(time.Second * 2)
-		loop:
-			for tick := range time.Tick(time.Millisecond * 10) {
-				_ = tick
-				select {
-				// case <-sigs:
-				// 	_, s_width := screen.MaxYX()
-				// 	x := s_width - w - 1
-				// 	win.Clear()
-				// 	win.MoveWindow(1, x) //move windows to appropriate locations
-				// 	win.Box('|', '-')
-				// 	win.AttrOn(ncurses.ColorPair(2))
-				// 	win.AttrOn(ncurses.A_BOLD)
-				// 	win.MovePrint(0, 1, title)
-				// 	win.AttrOff(ncurses.ColorPair(2))
-				// 	win.AttrOff(ncurses.A_BOLD)
-				// 	win.MovePrint(1, 1, m)
-				// 	win.Refresh()
-				case <-timeout:
-					break loop
-				default:
-					win, _ := ncurses.NewWindow(3, w, 1, x)
-					win.Box('|', '-')
-					win.AttrOn(ncurses.ColorPair(2))
-					win.AttrOn(ncurses.A_BOLD)
-					win.MovePrint(0, 1, title)
-					win.AttrOff(ncurses.ColorPair(2))
-					win.AttrOff(ncurses.A_BOLD)
-					win.MovePrint(1, 1, m)
-					win.NoutRefresh()
-				}
-			}
-			//time.Sleep(time.Second * 5)
-			screen.Clear()
-			sigs <- syscall.SIGWINCH
-			//time.Sleep(time.Second * 1)
-			// default:
-			// 	height, width := screen.MaxYX()
-			// 	rand.Seed(time.Now().UnixNano())
-			// 	x := rand.Intn(width) + 1
-			// 	y := rand.Intn(height) + 1
-			// 	screen.MovePrint(y, x, "no message!")
-			// 	time.Sleep(time.Millisecond * 10)
-
-		}
-	}
-}
-
-func ncurses_print_error(screen *ncurses.Window, message <-chan error) {
-	for {
-		select {
-		case m := <-message:
-			title := "error"
-			h, s_width := screen.MaxYX()
-
-			w := getMaxLenStr([]string{fmt.Sprintf("%v", m), title}) + 2
-			x := (s_width/2 - w/2 - w%2)
-			y := (h / 2)
-
-			timeout := time.After(time.Second * 5)
-		loop:
-			for tick := range time.Tick(time.Millisecond * 10) {
-				_ = tick
-				select {
-				case <-timeout:
-					break loop
-				default:
-					win, _ := ncurses.NewWindow(3, w, y, x)
-					win.Box('|', '-')
-					win.AttrOn(ncurses.ColorPair(2))
-					win.AttrOn(ncurses.A_BOLD)
-					win.MovePrint(0, 1, title)
-					win.AttrOff(ncurses.ColorPair(2))
-					win.AttrOff(ncurses.A_BOLD)
-					win.MovePrint(1, 1, fmt.Sprintf("%v", m))
-					win.NoutRefresh()
-				}
-			}
-			screen.Clear()
-			sigs <- syscall.SIGWINCH
-			time.Sleep(time.Second * 1)
-			//os.Exit(1)
-		}
-	}
-}
-
-func getMaxLenStr(arr []string) int {
+func GetMaxLenStr(arr []string) int {
 	max_len := 0
 	for _, str := range arr {
 		if max_len < len(str) {
@@ -216,7 +115,7 @@ func getMaxLenStr(arr []string) int {
 	return max_len
 }
 
-func osTermSize() (int, int, error) {
+func OsTermSize() (int, int, error) {
 	w := &C.struct_winsize{}
 	res, _, err := syscall.Syscall(syscall.SYS_IOCTL,
 		uintptr(syscall.Stdin),
@@ -229,20 +128,12 @@ func osTermSize() (int, int, error) {
 	return int(w.ws_row), int(w.ws_col), nil
 }
 
-func containedInEventStream(a []StreamEventType, gameid string) (string, bool) {
-	for _, e := range a {
-		if e.Id == gameid {
-			return e.Event, true
-		}
-	}
-	return "", false
-}
-
-func containedInOngoingGames(a []OngoingGameInfo, gameid string) bool {
-	for _, g := range a {
-		if g.GameID == gameid {
-			return true
-		}
-	}
-	return false
+func LoadingScreen(screen *ncurses.Window, message string) {
+	height, width := screen.MaxYX()
+	screen.MovePrint(height/2, width/2-len(message)/2, message)
+	// dt := time.Now().Unix() % 10
+	// screen.MovePrint((height/2)+1, width/2, fmt.Sprintf("%v", loader[dt]))
+	dt := time.Now().Unix() % 8
+	screen.MovePrint((height/2)+1, width/2, fmt.Sprintf("%v", knight_loader[dt]))
+	screen.Refresh()
 }

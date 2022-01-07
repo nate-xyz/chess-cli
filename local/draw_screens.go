@@ -1,29 +1,29 @@
-package main
+package local
 
 import (
 	"fmt"
 	"strings"
-	"time"
 
+	. "github.com/nate-xyz/chess-cli/shared"
 	ncurses "github.com/nate-xyz/goncurses_"
 )
 
-func draw_welcome_screen(screen *ncurses.Window, key ncurses.Key, windows_array [1]*ncurses.Window, windows_info_arr [1]windowSizePos, op []string) {
+func DrawWelcomeScreen(screen *ncurses.Window, key ncurses.Key, windows_array [1]*ncurses.Window, windows_info_arr [1]WinInfo, op []string) {
 	screen.Clear()
 	height, width := screen.MaxYX()
 
 	//update window dimensions
-	max_len := getMaxLenStr(op) + 6
+	max_len := GetMaxLenStr(op) + 6
 
 	//options window
-	windows_info_arr[0] = windowSizePos{len(op) + 2, max_len, (height / 2) + 2, (width / 2) - (max_len / 2) - max_len%2}
+	windows_info_arr[0] = WinInfo{H: len(op) + 2, W: max_len, Y: (height / 2) + 2, X: (width / 2) - (max_len / 2) - max_len%2}
 
 	//Clear, refresh, update all windows
 	for i, win := range windows_array {
 		win.Clear()
 		info := windows_info_arr[i]
-		win.Resize(info.h, info.w)     //Resize windows based on new dimensions
-		win.MoveWindow(info.y, info.x) //move windows to appropriate locations
+		win.Resize(info.H, info.W)     //Resize windows based on new dimensions
+		win.MoveWindow(info.Y, info.X) //move windows to appropriate locations
 		win.NoutRefresh()
 	}
 
@@ -106,29 +106,45 @@ func draw_welcome_screen(screen *ncurses.Window, key ncurses.Key, windows_array 
 	ncurses.Update()
 }
 
-func draw_local_game_screen(stdscr *ncurses.Window, key ncurses.Key, windows_array [4]*ncurses.Window, windows_info_arr [4]windowSizePos) {
+func DrawLocalGameScreen(stdscr *ncurses.Window, key ncurses.Key, windows_array [4]*ncurses.Window, windows_info_arr [4]WinInfo) {
 	//Clear and refresh the screen for a blank canvas
 	stdscr.Clear()
 	height, width := stdscr.MaxYX()
 
 	//update window dimensions
-	// windows_info_arr[0] = windowSizePos{(height / 4) * 3, width / 2, 0, 0}
-	// windows_info_arr[1] = windowSizePos{height / 2, width / 2, 0, width / 2}
-	// windows_info_arr[2] = windowSizePos{(height / 4) - 1, width / 2, (height / 4) * 3, 0}
-	// windows_info_arr[3] = windowSizePos{(height / 2) - 1, width / 2, height / 2, width / 2}
+	// windows_info_arr[0] = WinInfo{(height / 4) * 3, width / 2, 0, 0}
+	// windows_info_arr[1] = WinInfo{height / 2, width / 2, 0, width / 2}
+	// windows_info_arr[2] = WinInfo{(height / 4) - 1, width / 2, (height / 4) * 3, 0}
+	// windows_info_arr[3] = WinInfo{(height / 2) - 1, width / 2, height / 2, width / 2}
 
 	//h, w, y, x
-	windows_info_arr[0] = windowSizePos{height / 2, width, 0, 0}                                           //bw
-	windows_info_arr[1] = windowSizePos{(height / 2) - 1, width / 2, (height / 2), 0}                      //iw
-	windows_info_arr[2] = windowSizePos{(height / 4) - 1, width / 2, height / 2, width / 2}                //pw
-	windows_info_arr[3] = windowSizePos{(height / 4), width / 2, int(float64(height)*0.75) - 1, width / 2} //hw
+	windows_info_arr[0] = WinInfo{
+		H: height / 2,
+		W: width,
+		Y: 0,
+		X: 0} //bw
+	windows_info_arr[1] = WinInfo{
+		H: (height / 2) - 1,
+		W: width / 2,
+		Y: (height / 2),
+		X: 0} //iw
+	windows_info_arr[2] = WinInfo{
+		H: (height / 4) - 1,
+		W: width / 2,
+		Y: height / 2,
+		X: width / 2} //pw
+	windows_info_arr[3] = WinInfo{
+		H: (height / 4),
+		W: width / 2,
+		Y: int(float64(height)*0.75) - 1,
+		X: width / 2} //hw
 
 	//Clear, refresh, update all windows
 	for i, win := range windows_array {
 		win.Clear()
 		info := windows_info_arr[i]
-		win.Resize(info.h, info.w)     //Resize windows based on new dimensions
-		win.MoveWindow(info.y, info.x) //move windows to appropriate locations
+		win.Resize(info.H, info.W)     //Resize windows based on new dimensions
+		win.MoveWindow(info.Y, info.X) //move windows to appropriate locations
 		win.NoutRefresh()
 	}
 
@@ -144,7 +160,7 @@ func draw_local_game_screen(stdscr *ncurses.Window, key ncurses.Key, windows_arr
 	title_array := []string{board_title, info_title, prompt_title, history_title}
 	//keystr := fmt.Sprintf("Last key pressed: %v", key)
 	statusbarstr := "CHESS-CLI | Press '0' to return to main | Press 'Ctrl+o' to exit"
-	// if key == zero_key {
+	// if key == ZeroKey {
 	// 	keystr = "No key press detected..."
 	// }
 	statusbarfull := fmt.Sprintf("%s", statusbarstr)
@@ -186,26 +202,34 @@ func draw_local_game_screen(stdscr *ncurses.Window, key ncurses.Key, windows_arr
 	// }
 }
 
-func draw_post_screen(screen1 *ncurses.Window, key ncurses.Key, windows_array [2]*ncurses.Window, windows_info_arr [2]windowSizePos) {
+func DrawPostScreen(screen1 *ncurses.Window, key ncurses.Key, windows_array [2]*ncurses.Window, windows_info_arr [2]WinInfo) {
 	height, width := screen1.MaxYX()
 	screen1.Clear()
 
 	//update window dimensions
-	windows_info_arr[0] = windowSizePos{height / 2, width, 0, 0}
-	windows_info_arr[1] = windowSizePos{height / 2, width, height / 2, 0}
+	windows_info_arr[0] = WinInfo{
+		H: height / 2,
+		W: width,
+		Y: 0,
+		X: 0}
+	windows_info_arr[1] = WinInfo{
+		H: height / 2,
+		W: width,
+		Y: height / 2,
+		X: 0}
 
 	//Clear, refresh, update all windows
 	for i, win := range windows_array {
 		win.Clear()
 		info := windows_info_arr[i]
-		win.Resize(info.h, info.w)     //Resize windows based on new dimensions
-		win.MoveWindow(info.y, info.x) //move windows to appropriate locations
+		win.Resize(info.H, info.W)     //Resize windows based on new dimensions
+		win.MoveWindow(info.Y, info.X) //move windows to appropriate locations
 		win.NoutRefresh()
 	}
 
 	//revese history array
-	for i, j := 0, len(history_arr)-1; i < j; i, j = i+1, j-1 {
-		history_arr[i], history_arr[j] = history_arr[j], history_arr[i]
+	for i, j := 0, len(MoveHistoryArray)-1; i < j; i, j = i+1, j-1 {
+		MoveHistoryArray[i], MoveHistoryArray[j] = MoveHistoryArray[j], MoveHistoryArray[i]
 	}
 
 	// Declaration of strings
@@ -215,12 +239,12 @@ func draw_post_screen(screen1 *ncurses.Window, key ncurses.Key, windows_array [2
 	title_array := []string{board_title, history_title}
 	final_position_str := "Final position: "
 	//final_history_str := fmt.Sprintf("Last key pressed: %v", key)
-	outcome_str := fmt.Sprintf("outcome: %s, %s\n", game.Outcome().String(), game.Method().String())
+	outcome_str := fmt.Sprintf("outcome: %s, %s\n", CurrentGame.Outcome().String(), CurrentGame.Method().String())
 	statusbarstr := "CHESS-CLI | Press '0' to return to main | Press '1' to play again | Press 'Ctrl-o' to quit"
 
 	// Centering calculations
-	width = windows_info_arr[1].w
-	height = windows_info_arr[1].h
+	width = windows_info_arr[1].W
+	height = windows_info_arr[1].H
 	start_x_title := int((width / 2) - (len(title) / 2) - len(title)%2)
 	if start_x_title < 1 {
 		start_x_title = 1
@@ -267,7 +291,7 @@ func draw_post_screen(screen1 *ncurses.Window, key ncurses.Key, windows_array [2
 
 	// Print rest of text
 	windows_array[1].MovePrint(start_y+1, start_x_final_position_str, final_position_str)
-	history := fmt.Sprintf(strings.Join(history_arr[:], " -> "))
+	history := fmt.Sprintf(strings.Join(MoveHistoryArray[:], " -> "))
 	windows_array[1].MovePrint(start_y+3, ((width / 2) - (len(history) / 2)), history)
 	windows_array[1].MovePrint(start_y+5, ((width / 2) - (len(outcome_str) / 2)), outcome_str)
 	//windows_array[1].MovePrint(start_y+6, start_x_final_history_str, final_history_str)
@@ -281,43 +305,7 @@ func draw_post_screen(screen1 *ncurses.Window, key ncurses.Key, windows_array [2
 
 }
 
-func draw_options_input(window *ncurses.Window, options []string, selected_index int) {
-	_, width := window.MaxYX()
-
-	piece := "♟︎ "
-
-	//draw standout for currently selected option
-	for i, str := range options {
-		if i == selected_index {
-			window.AttrOn(ncurses.ColorPair(3))
-			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
-			window.AttrOff(ncurses.ColorPair(3))
-			window.AttrOn(ncurses.A_DIM)
-			window.AttrOn(ncurses.A_BLINK)
-			window.MovePrint(i+1, 1, piece)
-			window.MovePrint(i+1, width-3, piece)
-			window.AttrOff(ncurses.A_BLINK)
-			window.AttrOff(ncurses.A_DIM)
-		} else {
-			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
-			window.MovePrint(i+1, 1, " ")
-			window.MovePrint(i+1, width-3, " ")
-		}
-	}
-	window.Refresh()
-}
-
-func loading_screen(screen *ncurses.Window, message string) {
-	height, width := screen.MaxYX()
-	screen.MovePrint(height/2, width/2-len(message)/2, message)
-	// dt := time.Now().Unix() % 10
-	// screen.MovePrint((height/2)+1, width/2, fmt.Sprintf("%v", loader[dt]))
-	dt := time.Now().Unix() % 8
-	screen.MovePrint((height/2)+1, width/2, fmt.Sprintf("%v", knight_loader[dt]))
-	screen.Refresh()
-}
-
-// func draw_slider_input(window *ncurses.Window, titles []string, intervals [][]interface{}, selected_index int) {
+// func draw_SliderInput(window *ncurses.Window, titles []string, intervals [][]interface{}, selected_index int) {
 
 // 	_, width := window.MaxYX()
 // 	nav_options := []string{"submit", "back"}

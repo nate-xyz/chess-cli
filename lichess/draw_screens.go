@@ -1,26 +1,27 @@
-package main
+package lichess
 
 import (
 	"fmt"
 	"strings"
 
+	. "github.com/nate-xyz/chess-cli/shared"
 	ncurses "github.com/nate-xyz/goncurses_"
 )
 
-func draw_lichess_welcome(screen *ncurses.Window, key ncurses.Key, windows_array [1]*ncurses.Window, windows_info_arr [1]windowSizePos, op []string) {
+func DrawLichessWelcome(screen *ncurses.Window, key ncurses.Key, windows_array [1]*ncurses.Window, windows_info_arr [1]WinInfo, op []string) {
 	screen.Clear()
 	height, width := screen.MaxYX()
 
 	//update window dimensions
-	max_len := getMaxLenStr(op) + 6
-	windows_info_arr[0] = windowSizePos{len(op) + 2, max_len, (height / 2) + 2, (width / 2) - (max_len / 2) - max_len%2}
+	max_len := GetMaxLenStr(op) + 6
+	windows_info_arr[0] = WinInfo{len(op) + 2, max_len, (height / 2) + 2, (width / 2) - (max_len / 2) - max_len%2}
 
 	//Clear, refresh, update all windows
 	for i, win := range windows_array {
 		win.Clear()
 		info := windows_info_arr[i]
-		win.Resize(info.h, info.w)     //Resize windows based on new dimensions
-		win.MoveWindow(info.y, info.x) //move windows to appropriate locations
+		win.Resize(info.H, info.W)     //Resize windows based on new dimensions
+		win.MoveWindow(info.Y, info.X) //move windows to appropriate locations
 		win.NoutRefresh()
 	}
 
@@ -54,7 +55,7 @@ func draw_lichess_welcome(screen *ncurses.Window, key ncurses.Key, windows_array
 
 	//background
 	screen.AttrOn(ncurses.A_DIM)
-	screen.MovePrint(0, 0, lichess_bg)
+	screen.MovePrint(0, 0, LichessBg)
 	screen.AttrOff(ncurses.A_DIM)
 
 	// Rendering some text
@@ -98,7 +99,7 @@ func draw_lichess_welcome(screen *ncurses.Window, key ncurses.Key, windows_array
 	ncurses.Update()
 }
 
-func draw_lichess_challenges(screen *ncurses.Window, key ncurses.Key, windows_array [3]*ncurses.Window, windows_info_arr [3]windowSizePos, op []string) {
+func DrawLichessChallenges(screen *ncurses.Window, key ncurses.Key, windows_array [3]*ncurses.Window, windows_info_arr [3]WinInfo, op []string) {
 	screen.Clear()
 	height, width := screen.MaxYX()
 
@@ -106,8 +107,8 @@ func draw_lichess_challenges(screen *ncurses.Window, key ncurses.Key, windows_ar
 	for i, win := range windows_array {
 		win.Clear()
 		info := windows_info_arr[i]
-		win.Resize(info.h, info.w)     //Resize windows based on new dimensions
-		win.MoveWindow(info.y, info.x) //move windows to appropriate locations
+		win.Resize(info.H, info.W)     //Resize windows based on new dimensions
+		win.MoveWindow(info.Y, info.X) //move windows to appropriate locations
 		win.NoutRefresh()
 	}
 	// Declaration of strings
@@ -131,7 +132,7 @@ func draw_lichess_challenges(screen *ncurses.Window, key ncurses.Key, windows_ar
 
 	//background
 	screen.AttrOn(ncurses.A_DIM)
-	screen.MovePrint(0, 0, lichess_bg)
+	screen.MovePrint(0, 0, LichessBg)
 	screen.AttrOff(ncurses.A_DIM)
 
 	// Rendering some text
@@ -159,7 +160,7 @@ func draw_lichess_challenges(screen *ncurses.Window, key ncurses.Key, windows_ar
 		win.AttrOff(ncurses.A_BOLD)
 	}
 
-	draw_challenge_windows(windows_array[1], windows_array[2])
+	DrawChallengeWindows(windows_array[1], windows_array[2])
 
 	// Turning on attributes for main title
 	screen.AttrOn(ncurses.ColorPair(2))
@@ -185,7 +186,7 @@ func draw_lichess_challenges(screen *ncurses.Window, key ncurses.Key, windows_ar
 	ncurses.Update()
 }
 
-func draw_challenge_windows(inc *ncurses.Window, out *ncurses.Window) {
+func DrawChallengeWindows(inc *ncurses.Window, out *ncurses.Window) {
 	for i, challenge := range IncomingChallenges {
 		inc.MovePrint(i+1, 1, fmt.Sprintf("%s -> %s", challenge.Challenger.Id, challenge.DestUser.Id))
 
@@ -196,7 +197,7 @@ func draw_challenge_windows(inc *ncurses.Window, out *ncurses.Window) {
 
 }
 
-func draw_create_game_screen(screen *ncurses.Window, op []string, sel []string, title string, win *ncurses.Window, info windowSizePos) {
+func DrawCreateGame(screen *ncurses.Window, op []string, sel []string, title string, win *ncurses.Window, info WinInfo) {
 	screen.Clear()
 	height, width := screen.MaxYX()
 	y := height / 4
@@ -210,7 +211,7 @@ func draw_create_game_screen(screen *ncurses.Window, op []string, sel []string, 
 
 	//background
 	// screen.AttrOn(ncurses.A_DIM)
-	// screen.MovePrint(0, 0, lichess_bg)
+	// screen.MovePrint(0, 0, LichessBg)
 	// screen.AttrOff(ncurses.A_DIM)
 
 	// size info
@@ -249,21 +250,21 @@ func draw_create_game_screen(screen *ncurses.Window, op []string, sel []string, 
 		screen.MovePrint(y, ((width / 2) - (len(sep) / 2) - len(sep)%2), sep)
 		y++
 	}
-	op_wid := getMaxLenStr(append(op, title)) + 6
+	op_wid := GetMaxLenStr(append(op, title)) + 6
 
 	//determin option screen size based on what window you're on. different for slider option vs normal menu option
 	if title == "time interval" {
-		info = windowSizePos{int(float64(height) / 2.5), width - 2, y, 1}
+		info = WinInfo{int(float64(height) / 2.5), width - 2, y, 1}
 	} else {
-		info = windowSizePos{len(op) + 2, op_wid, y, (width / 2) - (op_wid / 2) - op_wid%2}
+		info = WinInfo{len(op) + 2, op_wid, y, (width / 2) - (op_wid / 2) - op_wid%2}
 	}
 
-	y += info.h
+	y += info.H
 
 	//Clear, refresh, update all windows
 	win.Clear()
-	win.Resize(info.h, info.w)     //Resize windows based on new dimensions
-	win.MoveWindow(info.y, info.x) //move windows to appropriate locations
+	win.Resize(info.H, info.W)     //Resize windows based on new dimensions
+	win.MoveWindow(info.Y, info.X) //move windows to appropriate locations
 	win.NoutRefresh()
 
 	// print windows
@@ -290,29 +291,29 @@ func draw_create_game_screen(screen *ncurses.Window, op []string, sel []string, 
 	ncurses.Update()
 }
 
-func draw_lichess_game_screen(stdscr *ncurses.Window, key ncurses.Key, windows_array [4]*ncurses.Window, windows_info_arr [4]windowSizePos) {
+func DrawLichessGame(stdscr *ncurses.Window, key ncurses.Key, windows_array [4]*ncurses.Window, windows_info_arr [4]WinInfo) {
 	//Clear and refresh the screen for a blank canvas
 	stdscr.Clear()
 	height, width := stdscr.MaxYX()
 
 	//update window dimensions
-	// windows_info_arr[0] = windowSizePos{(height / 4) * 3, width / 2, 0, 0}
-	// windows_info_arr[1] = windowSizePos{height / 2, width / 2, 0, width / 2}
-	// windows_info_arr[2] = windowSizePos{(height / 4) - 1, width / 2, (height / 4) * 3, 0}
-	// windows_info_arr[3] = windowSizePos{(height / 2) - 1, width / 2, height / 2, width / 2}
+	// windows_info_arr[0] = WinInfo{(height / 4) * 3, width / 2, 0, 0}
+	// windows_info_arr[1] = WinInfo{height / 2, width / 2, 0, width / 2}
+	// windows_info_arr[2] = WinInfo{(height / 4) - 1, width / 2, (height / 4) * 3, 0}
+	// windows_info_arr[3] = WinInfo{(height / 2) - 1, width / 2, height / 2, width / 2}
 
 	//h, w, y, x
-	windows_info_arr[0] = windowSizePos{height / 2, width, 0, 0}                                           //bw
-	windows_info_arr[1] = windowSizePos{(height / 2) - 1, width / 2, (height / 2), 0}                      //iw
-	windows_info_arr[2] = windowSizePos{(height / 4) - 1, width / 2, height / 2, width / 2}                //pw
-	windows_info_arr[3] = windowSizePos{(height / 4), width / 2, int(float64(height)*0.75) - 1, width / 2} //hw
+	windows_info_arr[0] = WinInfo{height / 2, width, 0, 0}                                           //bw
+	windows_info_arr[1] = WinInfo{(height / 2) - 1, width / 2, (height / 2), 0}                      //iw
+	windows_info_arr[2] = WinInfo{(height / 4) - 1, width / 2, height / 2, width / 2}                //pw
+	windows_info_arr[3] = WinInfo{(height / 4), width / 2, int(float64(height)*0.75) - 1, width / 2} //hw
 
 	//Clear, refresh, update all windows
 	for i, win := range windows_array {
 		win.Clear()
 		info := windows_info_arr[i]
-		win.Resize(info.h, info.w)     //Resize windows based on new dimensions
-		win.MoveWindow(info.y, info.x) //move windows to appropriate locations
+		win.Resize(info.H, info.W)     //Resize windows based on new dimensions
+		win.MoveWindow(info.Y, info.X) //move windows to appropriate locations
 		win.NoutRefresh()
 	}
 
@@ -328,7 +329,7 @@ func draw_lichess_game_screen(stdscr *ncurses.Window, key ncurses.Key, windows_a
 	title_array := []string{board_title, info_title, prompt_title, history_title}
 	//keystr := fmt.Sprintf("Last key pressed: %v", key)
 	statusbarstr := "CHESS-CLI | LICHESS CLIENT | Press 'Ctrl+o' to exit"
-	// if key == zero_key {
+	// if key == ZeroKey {
 	// 	keystr = "No key press detected..."
 	// }
 	statusbarfull := fmt.Sprintf("%s", statusbarstr)

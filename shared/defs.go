@@ -1,110 +1,85 @@
-package main
+package shared
 
 import (
-	"fmt"
+	"os"
 	"regexp"
 
 	ncurses "github.com/nate-xyz/goncurses_"
 	"github.com/notnil/chess"
 )
 
-//API
-var UserEmail string
-var Username string
-var UserProfile map[string]interface{}
-var UserFriends string
-var allFriends []string
-var FriendsMap map[string]bool
-var ChallengeId string
-var streamEvent string
-var OngoingGames []OngoingGameInfo
-var IncomingChallenges []ChallengeInfo
-var OutgoingChallenges []ChallengeInfo
-var BoardStreamArr []BoardState
-var EventStreamArr []StreamEventType
-var gameStateChan chan BoardState
-var board_state_sig chan bool
-var testChallenge = CreateChallengeType{
-	Type:       1,
-	TimeOption: 2,
-	DestUser:   "",
-	Rated:      "false",
-	Color:      "white",
-	Variant:    "standard"}
+var Sigs chan os.Signal
+var NotiMessage chan string
+var ErrorMessage chan error
+var Ready chan struct{}
 
-//OAUTH
-var hostUrl string = "https://lichess.org"
-var ClientID string = "chess-cli"
-var Scopes = []string{
-	"preference:read",
-	"preference:write",
-	"email:read",
-	"challenge:read",
-	"challenge:write",
-	"challenge:bulk",
-	"study:read",
-	"study:write",
-	"puzzle:read",
-	"follow:write",
-	"msg:write",
-	"board:play",
+//TYPE DEFINITIONS
+
+//type for piece location
+type CoordPair struct {
+	X int
+	Y int
 }
 
-var UserInfo = UserConfig{ApiToken: ""}
-var AuthURL string = fmt.Sprintf("%s/oauth", hostUrl)
-var TokenURL string = fmt.Sprintf("%s/api/token", hostUrl)
-var RedirectURL string
-var redirectPort int
-var json_path = "user_config.json"
-var stream_channel chan StreamEventType
+//type for piece color
+type PieceColor struct {
+	color int16
+	piece rune
+}
+
+type WinInfo struct {
+	H int
+	W int
+	Y int
+	X int
+}
 
 // GLOBAL VAR DECLARATIONS
 
-var currentGameID string
 var control_l_key ncurses.Key = 12
-var control_o_key ncurses.Key = 15
+var CtrlO_Key ncurses.Key = 15
 var q_key ncurses.Key = 113
-var zero_key ncurses.Key = 48
-var one_key ncurses.Key = 49
-var two_key ncurses.Key = 50
-var three_key ncurses.Key = 51
-var four_key ncurses.Key = 52
+var ZeroKey ncurses.Key = 48
+var OneKey ncurses.Key = 49
+var TwoKey ncurses.Key = 50
+var ThreeKey ncurses.Key = 51
+var FourKey ncurses.Key = 52
 
 // set to true to skip welcome screen
-var dev_mode bool = false
+var DevMode bool = false
 
 // Set true to disable post screen
-var post_screen_toggle bool = false
+var PostScreen_toggle bool = false
 
 // prompt vars
 var prompt_x_coord int = 1
 var prompt_y_coord int = 1
 
 // global strings
-var last_move_str string = "no move yet"
-var user_input_string string = ""
-var inputted_str string = ""
-var status_str string = ""
+var LastMoveString string = "no move yet"
+var UserInputString string = ""
+var EnteredPromptStr string = ""
+var StatusMessage string = ""
 var legal_move_str string = ""
 var san_move_str string = ""
 
-var final_position string = ""
-var legal_move_str_array []string
+var FinalBoardFEN string = ""
+var LegalMoveStrArray []string
 
-var move_amount int = 0
+var MoveAmount int = 0
 var game_outcome_enum int = 0
 
 // true if user hits enter key
-var entered_move bool = false
+var HasEnteredMove bool = false
 var quit_game bool = false
 var mouse_pressed bool = false
 var floating_piece string = ""
 var floating bool = false
 var mouse_event_bool bool = false
 
-var board_square_coord = make(map[coord_pair]piece_color)
+var board_square_coord = make(map[CoordPair]PieceColor)
 
-var history_arr = []string{"init"}
+var MoveHistoryArray = []string{"init"}
 
 // var outcome_tuple = []string{
 // 	"Good luck.",
@@ -170,7 +145,7 @@ var loader = map[int64]string{
 	9: "⠏",
 }
 
-var game *chess.Game = chess.NewGame()
+var CurrentGame *chess.Game = chess.NewGame()
 
 var alphanumeric *regexp.Regexp = regexp.MustCompile("^[a-zA-Z0-9]*$")
 
@@ -189,7 +164,7 @@ var down_arrow ncurses.Key = 258
 var left_arrow ncurses.Key = 260
 var right_arrow ncurses.Key = 261
 
-var lichess_bg string = `::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+var LichessBg string = `::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 :         :::::::::         :::www:::   _+_   :::::::::         ::::::::::
 :  |_|_|  :: _,,:::   (/)   :::)@(:::   )@(   :::(/):::   _,,   ::|_|_|:::
 :   |@|   ::"- \~::   |@|   :::|@|:::   |@|   :::|@|:::  "- \~  :::|@|::::

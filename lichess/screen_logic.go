@@ -1,14 +1,15 @@
-package main
+package lichess
 
 import (
 	"fmt"
 	"os"
 	"time"
 
+	. "github.com/nate-xyz/chess-cli/shared"
 	ncurses "github.com/nate-xyz/goncurses_"
 )
 
-func lichess_welcome(screen *ncurses.Window) int {
+func LichessWelcome(screen *ncurses.Window) int {
 	var key ncurses.Key
 	height, width := screen.MaxYX()
 	done := make(chan struct{})
@@ -39,17 +40,17 @@ func lichess_welcome(screen *ncurses.Window) int {
 			}
 			err := GetChallenges()
 			if err != nil {
-				error_message <- fmt.Errorf("unable to retrieve challenges: %v", err)
+				ErrorMessage <- fmt.Errorf("unable to retrieve challenges: %v", err)
 			} else {
-				noti_message <- fmt.Sprintf("retrieved challenges")
+				NotiMessage <- fmt.Sprintf("retrieved challenges")
 			}
 			err = GetOngoingGames()
 			if err != nil {
-				error_message <- fmt.Errorf("unable to retrieve ongoing games: %v", err)
+				ErrorMessage <- fmt.Errorf("unable to retrieve ongoing games: %v", err)
 			} else {
-				noti_message <- fmt.Sprintf("retrieved ongoing games")
+				NotiMessage <- fmt.Sprintf("retrieved ongoing games")
 			}
-			ready <- struct{}{} //unblock event stream
+			Ready <- struct{}{} //unblock event stream
 		}
 		close(done)
 	}()
@@ -57,16 +58,16 @@ func lichess_welcome(screen *ncurses.Window) int {
 	screen.Erase()
 	//ticker := time.NewTicker(time.Second)
 	ticker := time.NewTicker(time.Millisecond * 500)
-	loading_screen(screen, loading_msg)
+	LoadingScreen(screen, loading_msg)
 blocking_loop:
 	for {
 		select {
-		case <-sigs:
-			tRow, tCol, _ := osTermSize()
+		case <-Sigs:
+			tRow, tCol, _ := OsTermSize()
 			ncurses.ResizeTerm(tRow, tCol)
-			loading_screen(screen, loading_msg)
+			LoadingScreen(screen, loading_msg)
 		case <-ticker.C:
-			loading_screen(screen, loading_msg)
+			LoadingScreen(screen, loading_msg)
 		case <-done:
 			break blocking_loop
 		}
@@ -76,56 +77,95 @@ blocking_loop:
 	//start windows
 	//options := []string{"<<Press 0 to return to welcome screen>>", "<<Press 1 to view / create challenges>>", "<<Press 2 to view / join ongoing games>>", "etc", "quit"}
 	options := []string{"new game", "ongoing games", "back", "quit", "test"}
-	op_info := windowSizePos{(height / 2) - 4, width / 2, (height / 2) + 2, width / 4}
-	options_window, _ := ncurses.NewWindow(op_info.h, op_info.w, op_info.y, op_info.x)
+	op_info := WinInfo{(height / 2) - 4, width / 2, (height / 2) + 2, width / 4}
+	options_window, _ := ncurses.NewWindow(op_info.H, op_info.W, op_info.Y, op_info.X)
 	windows_array := [1]*ncurses.Window{options_window}
-	windows_info_arr := [1]windowSizePos{op_info}
+	windows_info_arr := [1]WinInfo{op_info}
 	var option_index int = 0
 	var selected bool
 
-	draw_lichess_welcome(screen, key, windows_array, windows_info_arr, options)
+	DrawLichessWelcome(screen, key, windows_array, windows_info_arr, options)
 	for {
 		select {
-		case <-sigs:
-			tRow, tCol, _ := osTermSize()
+		case <-Sigs:
+			tRow, tCol, _ := OsTermSize()
 			ncurses.ResizeTerm(tRow, tCol)
-			draw_lichess_welcome(screen, key, windows_array, windows_info_arr, options)
+			DrawLichessWelcome(screen, key, windows_array, windows_info_arr, options)
 
 		default: //normal character loop here
 			key = screen.GetChar()
-			option_index, selected = options_input(options_window, key, options, option_index)
+			option_index, selected = OptionsInput(options_window, key, options, option_index)
 			if selected {
 				switch option_index {
 				case 0: //view / create challenges
-					key = one_key
+					key = OneKey
 				case 1: //view / join ongoing games
-					//key = two_key
+					//key = TwoKey
 				case 2:
-					key = zero_key //return to welcome screen
+					key = ZeroKey //return to welcome screen
 				case 3:
-					key = control_o_key
-				case 4:
-					curChallenge = testChallenge
-					lichessScreenHandler(screen, 4)
+					key = CtrlO_Key
+				case 4: //testing out lichess requess, skip to wait
+					CurrentChallenge = testChallenge
+					//LichessScreenHandler(screen, 4)
+					i := func(stdscr *ncurses.Window, option int) int {
+						switch option {
+						case 0:
+							return -1 //go back to welcome screen
+						case 1:
+							option = LichessWelcome(stdscr)
+						case 2:
+							option = LichessChallenges(stdscr) //go to challenge screen
+						case 3:
+							option = CreateLichessGame(stdscr)
+						case 4:
+							option = WaitForLichessGameResponse(stdscr)
+						case 5:
+							return -1 //quit game
+						case 6:
+							option = LichessGame(stdscr)
+						}
+						return option
+					}(screen, 4)
+					func(stdscr *ncurses.Window, option int) {
+						switch option {
+						case 0:
+							//return -1, ZeroKey //go back to welcome screen
+						case 1:
+							option = LichessWelcome(stdscr)
+						case 2:
+							option = LichessChallenges(stdscr) //go to challenge screen
+						case 3:
+							option = CreateLichessGame(stdscr)
+						case 4:
+							option = WaitForLichessGameResponse(stdscr)
+						case 5:
+							//return -1, CtrlO_Key //quit game
+						case 6:
+							option = LichessGame(stdscr)
+
+						}
+						os.Exit(1)
+					}(screen, i)
 
 				}
 			}
 			switch key {
-			case zero_key:
+			case ZeroKey:
 				if !selected {
-					_, _ = options_input(options_window, key, options, 0)
+					_, _ = OptionsInput(options_window, key, options, 0)
 				}
 				return 0
-			case one_key:
+			case OneKey:
 				if !selected {
-					_, _ = options_input(options_window, key, options, 1)
+					_, _ = OptionsInput(options_window, key, options, 1)
 				}
 				return 2
-			case two_key:
-			case three_key:
-			case control_o_key:
+			case TwoKey:
+			case ThreeKey:
+			case CtrlO_Key:
 				if !selected {
-					_, _ = options_input(options_window, key, options, 4)
+					_, _ = OptionsInput(options_window, key, options, 4)
 				}
 				return 5
 			}
@@ -134,7 +174,7 @@ blocking_loop:
 	}
 }
 
-func lichess_challenges(screen *ncurses.Window) int {
+func LichessChallenges(screen *ncurses.Window) int {
 	var key ncurses.Key
 	var option_index int = 0
 	var selected bool
@@ -147,31 +187,31 @@ func lichess_challenges(screen *ncurses.Window) int {
 	// 		if UserInfo.ApiToken != "" {
 	// 			err := GetChallenges()
 	// 			if err != nil {
-	// 				error_message <- fmt.Errorf("unable to retrieve challenges: %v", err)
+	// 				ErrorMessage <- fmt.Errorf("unable to retrieve challenges: %v", err)
 	// 			} else {
-	// 				noti_message <- fmt.Sprintf("retrieved challenges")
+	// 				NotiMessage <- fmt.Sprintf("retrieved challenges")
 	// 			}
 	// 			err = GetOngoingGames()
 	// 			if err != nil {
-	// 				error_message <- fmt.Errorf("unable to retrieve ongoing games: %v", err)
+	// 				ErrorMessage <- fmt.Errorf("unable to retrieve ongoing games: %v", err)
 	// 			} else {
-	// 				noti_message <- fmt.Sprintf("retrieved ongoing games")
+	// 				NotiMessage <- fmt.Sprintf("retrieved ongoing games")
 	// 			}
 	// 		}
 	// 		close(done)
 	// 	}()
 	// 	load_msg := "Requesting your challenges ... "
-	// 	loading_screen(screen, load_msg)
+	// 	LoadingScreen(screen, load_msg)
 
 	// blocking_loop:
 	// 	for {
 	// 		select {
-	// 		case <-sigs:
-	// 			tRow, tCol, _ := osTermSize()
+	// 		case <-Sigs:
+	// 			tRow, tCol, _ := OsTermSize()
 	// 			ncurses.ResizeTerm(tRow, tCol)
-	// 			loading_screen(screen, load_msg)
+	// 			LoadingScreen(screen, load_msg)
 	// 		case <-ticker.C:
-	// 			loading_screen(screen, load_msg)
+	// 			LoadingScreen(screen, load_msg)
 	// 		case <-done:
 	// 			break blocking_loop
 	// 		}
@@ -180,15 +220,15 @@ func lichess_challenges(screen *ncurses.Window) int {
 
 	//start windows
 	options := []string{"create a new game", "select a challenge", "etc", "back", "quit"}
-	max_len := getMaxLenStr(options) + 6
-	op_info := windowSizePos{len(options) + 2, max_len + 2, 2, (width / 2) - ((max_len + 2) / 2)}
-	in_info := windowSizePos{int(float64(height)*0.75) - 1, width / 2, len(options) + 4, 0}
-	out_info := windowSizePos{int(float64(height)*0.75) - 1, width / 2, len(options) + 4, width / 2}
-	options_window, _ := ncurses.NewWindow(op_info.h, op_info.w, op_info.y, op_info.x)
-	in_challenge, _ := ncurses.NewWindow(in_info.h, in_info.w, in_info.y, in_info.x)
-	out_challenge, _ := ncurses.NewWindow(out_info.h, out_info.w, out_info.y, out_info.x)
+	max_len := GetMaxLenStr(options) + 6
+	op_info := WinInfo{len(options) + 2, max_len + 2, 2, (width / 2) - ((max_len + 2) / 2)}
+	in_info := WinInfo{int(float64(height)*0.75) - 1, width / 2, len(options) + 4, 0}
+	out_info := WinInfo{int(float64(height)*0.75) - 1, width / 2, len(options) + 4, width / 2}
+	options_window, _ := ncurses.NewWindow(op_info.H, op_info.W, op_info.Y, op_info.X)
+	in_challenge, _ := ncurses.NewWindow(in_info.H, in_info.W, in_info.Y, in_info.X)
+	out_challenge, _ := ncurses.NewWindow(out_info.H, out_info.W, out_info.Y, out_info.X)
 	windows_array := [3]*ncurses.Window{options_window, in_challenge, out_challenge}
-	windows_info_arr := [3]windowSizePos{op_info, in_info, out_info}
+	windows_info_arr := [3]WinInfo{op_info, in_info, out_info}
 
 	var mode int = 0
 	if UserInfo.ApiToken != "" {
@@ -198,11 +238,11 @@ func lichess_challenges(screen *ncurses.Window) int {
 			os.Exit(1)
 		}
 	}
-	draw_lichess_challenges(screen, key, windows_array, windows_info_arr, options)
+	DrawLichessChallenges(screen, key, windows_array, windows_info_arr, options)
 	for {
 		select {
-		case <-sigs:
-			tRow, tCol, _ := osTermSize()
+		case <-Sigs:
+			tRow, tCol, _ := OsTermSize()
 			ncurses.ResizeTerm(tRow, tCol)
 
 			height, width := screen.MaxYX()
@@ -210,18 +250,18 @@ func lichess_challenges(screen *ncurses.Window) int {
 			switch mode {
 			case 0:
 				//update window dimensions
-				max_len := getMaxLenStr(options) + 6
-				windows_info_arr[0] = windowSizePos{len(options) + 2, max_len + 2, 2, (width / 2) - ((max_len + 2) / 2)}
-				windows_info_arr[1] = windowSizePos{int(float64(height)*0.75) - 1, width / 2, len(options) + 4, 0}
-				windows_info_arr[2] = windowSizePos{int(float64(height)*0.75) - 1, width / 2, len(options) + 4, width / 2}
-				draw_lichess_challenges(screen, key, windows_array, windows_info_arr, options)
+				max_len := GetMaxLenStr(options) + 6
+				windows_info_arr[0] = WinInfo{len(options) + 2, max_len + 2, 2, (width / 2) - ((max_len + 2) / 2)}
+				windows_info_arr[1] = WinInfo{int(float64(height)*0.75) - 1, width / 2, len(options) + 4, 0}
+				windows_info_arr[2] = WinInfo{int(float64(height)*0.75) - 1, width / 2, len(options) + 4, width / 2}
+				DrawLichessChallenges(screen, key, windows_array, windows_info_arr, options)
 			case 1:
 			case 3:
 
 			}
 		default: //normal character loop here
 			key = screen.GetChar()
-			option_index, selected = options_input(options_window, key, options, option_index)
+			option_index, selected = OptionsInput(options_window, key, options, option_index)
 			if selected {
 				switch option_index {
 				case 0: //create a new challenge
@@ -236,19 +276,19 @@ func lichess_challenges(screen *ncurses.Window) int {
 				}
 			}
 			switch key {
-			case zero_key:
+			case ZeroKey:
 				if !selected {
-					_, _ = options_input(options_window, key, options, 0)
+					_, _ = OptionsInput(options_window, key, options, 0)
 				}
 				return 3
-			case three_key:
+			case ThreeKey:
 				if !selected {
-					_, _ = options_input(options_window, key, options, 2)
+					_, _ = OptionsInput(options_window, key, options, 2)
 				}
 				return 2
-			case control_o_key:
+			case CtrlO_Key:
 				if !selected {
-					_, _ = options_input(options_window, key, options, 4)
+					_, _ = OptionsInput(options_window, key, options, 4)
 				}
 				return 5
 			}
@@ -256,7 +296,7 @@ func lichess_challenges(screen *ncurses.Window) int {
 	}
 }
 
-func create_game(screen *ncurses.Window) int {
+func CreateLichessGame(screen *ncurses.Window) int {
 	var key ncurses.Key
 	//_, width := screen.MaxYX()
 	//start windows
@@ -281,8 +321,8 @@ func create_game(screen *ncurses.Window) int {
 	//mode 5 : select color
 	//mode 6 : choose user
 
-	//windows_info_arr := []windowSizePos{{0, 0, 0, 0}}
-	op_info := windowSizePos{0, 0, 0, 0}
+	//windows_info_arr := []WinInfo{{0, 0, 0, 0}}
+	op_info := WinInfo{0, 0, 0, 0}
 	options_window, _ := ncurses.NewWindow(0, 0, 0, 0)
 
 	//windows_array := []*ncurses.Window{options_window}
@@ -292,19 +332,19 @@ func create_game(screen *ncurses.Window) int {
 	var selected bool
 	tic_index := []int{0, 0}
 	var newChallenge CreateChallengeType
-	draw_create_game_screen(screen, op_arr[window_mode], selection, title_array[window_mode], options_window, op_info)
+	DrawCreateGame(screen, op_arr[window_mode], selection, title_array[window_mode], options_window, op_info)
 	for {
 		select {
-		case <-sigs: //resize on os resize signal
-			tRow, tCol, _ := osTermSize()
+		case <-Sigs: //resize on os resize signal
+			tRow, tCol, _ := OsTermSize()
 			ncurses.ResizeTerm(tRow, tCol)
-			draw_create_game_screen(screen, op_arr[window_mode], selection, title_array[window_mode], options_window, op_info)
+			DrawCreateGame(screen, op_arr[window_mode], selection, title_array[window_mode], options_window, op_info)
 
 		default: //normal character loop here
 			key = screen.GetChar()
 			switch window_mode {
 			case 0:
-				option_index, selected = options_input(options_window, key, options, option_index)
+				option_index, selected = OptionsInput(options_window, key, options, option_index)
 				if selected {
 					switch option_index {
 					case -1: //go to challenges screen
@@ -315,7 +355,7 @@ func create_game(screen *ncurses.Window) int {
 						newChallenge.Type = option_index
 						window_mode = 1
 						option_index = 0
-						//draw_create_game_screen(screen, op_arr[window_mode], selection, title_array[window_mode], options_window, op_info)
+						//DrawCreateGame(screen, op_arr[window_mode], selection, title_array[window_mode], options_window, op_info)
 						// case 1: //bot
 					// 	window_mode = 1
 					case 3: //go to challenges screen
@@ -326,7 +366,7 @@ func create_game(screen *ncurses.Window) int {
 
 				}
 			case 1: //mode 1 : select game variant
-				option_index, selected = options_input(options_window, key, variant_options, option_index)
+				option_index, selected = OptionsInput(options_window, key, variant_options, option_index)
 				if selected {
 					switch option_index {
 					case -1:
@@ -344,7 +384,7 @@ func create_game(screen *ncurses.Window) int {
 
 				}
 			case 2: //mode 2 : select time control
-				option_index, selected = options_input(options_window, key, time_options, option_index)
+				option_index, selected = OptionsInput(options_window, key, time_options, option_index)
 				if selected {
 					switch option_index {
 					case -1: //go back to variant
@@ -365,7 +405,7 @@ func create_game(screen *ncurses.Window) int {
 				}
 			case 3: //mode 3 : select time interval for real time / correspondence
 				var min_time float64
-				tic_index, slider_index, min_time, selected = slider_input(options_window, key, newChallenge.TimeOption, tic_index, slider_index)
+				tic_index, slider_index, min_time, selected = SliderInput(options_window, key, newChallenge.TimeOption, tic_index, slider_index)
 				if selected {
 					switch newChallenge.TimeOption {
 					case 0: // real time, two sliders
@@ -400,11 +440,11 @@ func create_game(screen *ncurses.Window) int {
 							option_index = newChallenge.TimeOption
 						}
 					}
-					//draw_create_game_screen(screen, op_arr[window_mode], selection, title_array[window_mode], options_window, op_info)
+					//DrawCreateGame(screen, op_arr[window_mode], selection, title_array[window_mode], options_window, op_info)
 
 				}
 			case 4: //mode 4 : select rated / casual
-				option_index, selected = options_input(options_window, key, rated_options, option_index)
+				option_index, selected = OptionsInput(options_window, key, rated_options, option_index)
 				if selected {
 					switch option_index {
 					case -1: //go back to time interval window, time control if unlimited was selected
@@ -435,7 +475,7 @@ func create_game(screen *ncurses.Window) int {
 				}
 			case 5: //mode 5 : select color
 
-				option_index, selected = options_input(options_window, key, color_options, option_index)
+				option_index, selected = OptionsInput(options_window, key, color_options, option_index)
 				if selected {
 					switch option_index {
 					case -1: //go back to rated window
@@ -461,7 +501,7 @@ func create_game(screen *ncurses.Window) int {
 
 				}
 			case 6: //mode 6 : choose user to challenge
-				option_index, selected = options_input(options_window, key, append(allFriends, "get url", "back"), option_index)
+				option_index, selected = OptionsInput(options_window, key, append(allFriends, "get url", "back"), option_index)
 				if selected {
 					if option_index == -1 || option_index == len(allFriends) { //go back to color choice
 						window_mode = 5
@@ -482,7 +522,7 @@ func create_game(screen *ncurses.Window) int {
 
 				}
 			case 7: //confirmation screen
-				option_index, selected = options_input(options_window, key, submit_options, option_index)
+				option_index, selected = OptionsInput(options_window, key, submit_options, option_index)
 				if selected {
 
 					switch option_index {
@@ -497,9 +537,9 @@ func create_game(screen *ncurses.Window) int {
 							window_mode = 5
 						}
 					case 0: //submit the challenge
-						//return to lichessScreenHandler to go to waiting screen
-						curChallenge = newChallenge
-						//noti_message <- fmt.Sprintf("going to wait screen")
+						//return to LichessScreenHandler to go to waiting screen
+						CurrentChallenge = newChallenge
+						//NotiMessage <- fmt.Sprintf("going to wait screen")
 						return 4
 					case 2: //go back to the main challege screen
 						return 2
@@ -513,7 +553,7 @@ func create_game(screen *ncurses.Window) int {
 
 			//redraw screen for all window mode if something is selected
 			if selected {
-				draw_create_game_screen(screen, op_arr[window_mode], selection, title_array[window_mode], options_window, op_info)
+				DrawCreateGame(screen, op_arr[window_mode], selection, title_array[window_mode], options_window, op_info)
 
 			}
 
@@ -521,7 +561,7 @@ func create_game(screen *ncurses.Window) int {
 	}
 }
 
-func lichess_game_wait(screen *ncurses.Window) int {
+func WaitForLichessGameResponse(screen *ncurses.Window) int {
 	//svar key ncurses.Key
 	screen.Clear()
 	//height, width := screen.MaxYX()
@@ -529,56 +569,56 @@ func lichess_game_wait(screen *ncurses.Window) int {
 	//done := make(chan struct{})
 	var localid string
 	getgameid := make(chan string, 1)
-	waiting_alert = make(chan StreamEventType, 1)
+	WaitingAlert = make(chan StreamEventType, 1)
 	ticker := time.NewTicker(time.Second)
 
 	go func(gchan chan<- string) {
 		if UserInfo.ApiToken != "" {
-			noti_message <- fmt.Sprintf("type is %v", curChallenge.Type)
-			switch curChallenge.Type {
+			NotiMessage <- fmt.Sprintf("type is %v", CurrentChallenge.Type)
+			switch CurrentChallenge.Type {
 			case 0: //random seek
 				//TODO: api call CREATE A SEEK
-				noti_message <- fmt.Sprintf("creating a random seek")
+				NotiMessage <- fmt.Sprintf("creating a random seek")
 			case 1: //challenge friend
 
-				if curChallenge.OpenEnded {
-					noti_message <- fmt.Sprintf("creating an open ended challenge")
+				if CurrentChallenge.OpenEnded {
+					NotiMessage <- fmt.Sprintf("creating an open ended challenge")
 					//TODO: api call CREATE A OPEN END CHALLENGE
 
 				} else {
 					// api call CREATE A CHALLENGE
-					noti_message <- fmt.Sprintf("creating a challenge")
+					NotiMessage <- fmt.Sprintf("creating a challenge")
 
-					err, id := CreateChallenge(curChallenge)
+					err, id := CreateChallenge(CurrentChallenge)
 					if err != nil {
-						error_message <- err
+						ErrorMessage <- err
 						//os.Exit(1)
 					} else {
-						noti_message <- fmt.Sprintf("posted challenge, id: %v", id)
+						NotiMessage <- fmt.Sprintf("posted challenge, id: %v", id)
 					}
 					gchan <- id
 				}
 			case 2: //lichess ai
-				noti_message <- fmt.Sprintf("challenging the lichess ai")
+				NotiMessage <- fmt.Sprintf("challenging the lichess ai")
 				//TODO: api call CHALLENGE THE AI
 			}
 		} else {
-			error_message <- fmt.Errorf("no token")
+			ErrorMessage <- fmt.Errorf("no token")
 		}
 		//close(done)
 	}(getgameid)
-	noti_message <- fmt.Sprintf("sent goroutine ")
+	NotiMessage <- fmt.Sprintf("sent goroutine ")
 	// load_msg := "requesting game from lichess ... "
-	// loading_screen(screen, load_msg)
+	// LoadingScreen(screen, load_msg)
 	// blocking_loop:
 	// 	for {
 	// 		select {
-	// 		case <-sigs:
-	// 			tRow, tCol, _ := osTermSize()
+	// 		case <-Sigs:
+	// 			tRow, tCol, _ := OsTermSize()
 	// 			ncurses.ResizeTerm(tRow, tCol)
-	// 			loading_screen(screen, load_msg)
+	// 			LoadingScreen(screen, load_msg)
 	// 		case <-ticker.C:
-	// 			loading_screen(screen, load_msg)
+	// 			LoadingScreen(screen, load_msg)
 	// 		case <-done:
 	// 			break blocking_loop
 	// 		}
@@ -586,91 +626,91 @@ func lichess_game_wait(screen *ncurses.Window) int {
 	// 	}
 	//load_msg = fmt.Sprintf("waiting for stream event from lichess...")
 	load_msg := "requesting game from lichess ... "
-	loading_screen(screen, load_msg)
+	LoadingScreen(screen, load_msg)
 	for {
 		select {
 		// case <-stream_done:
 		// 	load_msg = fmt.Sprintf("stream closed")
-		// 	loading_screen(screen, load_msg)
+		// 	LoadingScreen(screen, load_msg)
 		case id := <-getgameid:
-			noti_message <- fmt.Sprintf("got getgameid")
-			noti_message <- fmt.Sprintf("event %v retrieved from channel", id)
+			NotiMessage <- fmt.Sprintf("got getgameid")
+			NotiMessage <- fmt.Sprintf("event %v retrieved from channel", id)
 			localid = id
 			s, b := containedInEventStream(EventStreamArr, id)
 
 			if b {
 				switch s {
 				case "challenge":
-					noti_message <- fmt.Sprintf("event: %v:%v", id, s)
-					load_msg = fmt.Sprintf("waiting for %v to accept the challenge %v/%v.", curChallenge.DestUser, hostUrl, id)
-					noti_message <- load_msg
+					NotiMessage <- fmt.Sprintf("event: %v:%v", id, s)
+					load_msg = fmt.Sprintf("waiting for %v to accept the challenge %v/%v.", CurrentChallenge.DestUser, hostUrl, id)
+					NotiMessage <- load_msg
 				case "gameFinish":
-					noti_message <- fmt.Sprintf("event %v wrong type s", s)
+					NotiMessage <- fmt.Sprintf("event %v wrong type s", s)
 					time.Sleep(time.Second * 3)
 					return 2
 				case "challengeCanceled", "challengeDeclined":
-					noti_message <- fmt.Sprintf("challenge rejected: %v", s)
-					error_message <- fmt.Errorf("challenge rejected: %v", s)
+					NotiMessage <- fmt.Sprintf("challenge rejected: %v", s)
+					ErrorMessage <- fmt.Errorf("challenge rejected: %v", s)
 					time.Sleep(time.Second * 3)
 					return 2
 				case "gameStart":
-					noti_message <- fmt.Sprintf("event id: %v", id)
+					NotiMessage <- fmt.Sprintf("event id: %v", id)
 					load_msg = fmt.Sprintf("load event: %v!!!", s)
-					loading_screen(screen, load_msg)
+					LoadingScreen(screen, load_msg)
 					currentGameID = id
 					//call stream board state
 					gameStateChan = make(chan BoardState, 1)
 					board_state_sig = make(chan bool, 1)
-					go StreamBoardState(gameStateChan, board_state_sig, id, error_message)
-					go BoardConsumer(gameStateChan, noti_message)
+					go StreamBoardState(gameStateChan, board_state_sig, id, ErrorMessage)
+					go BoardConsumer(gameStateChan, NotiMessage)
 					time.Sleep(time.Second * 2)
 					return 6
 				}
 			} else {
-				load_msg = fmt.Sprintf("waiting for %v to accept the challenge %v/%v.", curChallenge.DestUser, hostUrl, id)
+				load_msg = fmt.Sprintf("waiting for %v to accept the challenge %v/%v.", CurrentChallenge.DestUser, hostUrl, id)
 
-				noti_message <- fmt.Sprintf("event %v not in stream ... waiting", id)
+				NotiMessage <- fmt.Sprintf("event %v not in stream ... waiting", id)
 
 				time.Sleep(time.Second * 3)
 				//return 2
 			}
-		case e := <-stream_channel:
+		case e := <-StreamChannel:
 			if e.Id == localid {
-				noti_message <- fmt.Sprintf("event id: %v", e.Id)
-				error_message <- fmt.Errorf("event id: %v", e.Id)
+				NotiMessage <- fmt.Sprintf("event id: %v", e.Id)
+				ErrorMessage <- fmt.Errorf("event id: %v", e.Id)
 				load_msg = fmt.Sprintf("load event: %v!!!", e.Event)
-				loading_screen(screen, load_msg)
+				LoadingScreen(screen, load_msg)
 				currentGameID = e.Id
 				//call stream board state
 				gameStateChan = make(chan BoardState, 1)
 				board_state_sig = make(chan bool, 1)
-				go StreamBoardState(gameStateChan, board_state_sig, e.Id, error_message)
-				go BoardConsumer(gameStateChan, noti_message)
+				go StreamBoardState(gameStateChan, board_state_sig, e.Id, ErrorMessage)
+				go BoardConsumer(gameStateChan, NotiMessage)
 				time.Sleep(time.Second * 2)
 				return 6
 			} else {
-				noti_message <- fmt.Sprintf("event %v is not your game, it is %v", e.Id, e.Event)
+				NotiMessage <- fmt.Sprintf("event %v is not your game, it is %v", e.Id, e.Event)
 			}
 
-		case <-sigs:
-			noti_message <- fmt.Sprintf("resize")
-			tRow, tCol, _ := osTermSize()
+		case <-Sigs:
+			NotiMessage <- fmt.Sprintf("resize")
+			tRow, tCol, _ := OsTermSize()
 			ncurses.ResizeTerm(tRow, tCol)
-			loading_screen(screen, load_msg)
+			LoadingScreen(screen, load_msg)
 		case <-ticker.C:
-			noti_message <- fmt.Sprintf("ticker")
+			NotiMessage <- fmt.Sprintf("ticker")
 			//load_msg = fmt.Sprintf("waiting for stream event from lichess...")
-			loading_screen(screen, load_msg)
+			LoadingScreen(screen, load_msg)
 			// case <-done: //normal character loop here
 			// 	key = screen.GetChar()
 			// 	switch key {
-			// 	case control_o_key, one_key, zero_key:
-			// 		user_input_string = ""
-			// 		inputted_str = ""
-			// 		entered_move = false
-			// 		if key == control_o_key {
+			// 	case CtrlO_Key, OneKey, ZeroKey:
+			// 		UserInputString = ""
+			// 		EnteredPromptStr = ""
+			// 		HasEnteredMove = false
+			// 		if key == CtrlO_Key {
 			// 			return 5
-			// 		} else if key == one_key {
+			// 		} else if key == OneKey {
 			// 			return 1
 			// 		} else {
 			// 			return 0
@@ -681,26 +721,26 @@ func lichess_game_wait(screen *ncurses.Window) int {
 	}
 }
 
-func lichess_game(screen *ncurses.Window) int {
+func LichessGame(screen *ncurses.Window) int {
 	var key ncurses.Key
 	screen.Clear()
 	height, width := screen.MaxYX()
 
 	//start windows
-	bw_info := windowSizePos{(height / 4) * 3, width / 2, 0, 0}
-	iw_info := windowSizePos{(height / 4) - 1, width / 2, (height / 4) * 3, 0}
-	pw_info := windowSizePos{height / 2, width / 2, 0, width / 2}
-	hw_info := windowSizePos{(height / 2) - 1, width / 2, height / 2, width / 2}
+	bw_info := WinInfo{(height / 4) * 3, width / 2, 0, 0}
+	iw_info := WinInfo{(height / 4) - 1, width / 2, (height / 4) * 3, 0}
+	pw_info := WinInfo{height / 2, width / 2, 0, width / 2}
+	hw_info := WinInfo{(height / 2) - 1, width / 2, height / 2, width / 2}
 
-	board_window, _ := ncurses.NewWindow(bw_info.h, bw_info.w, bw_info.y, bw_info.x)
-	prompt_window, _ := ncurses.NewWindow(pw_info.h, pw_info.w, pw_info.y, pw_info.x)
-	info_window, _ := ncurses.NewWindow(iw_info.h, iw_info.w, iw_info.y, iw_info.x)
-	history_window, _ := ncurses.NewWindow(hw_info.h, hw_info.w, hw_info.y, hw_info.x)
+	board_window, _ := ncurses.NewWindow(bw_info.H, bw_info.W, bw_info.Y, bw_info.X)
+	prompt_window, _ := ncurses.NewWindow(pw_info.H, pw_info.W, pw_info.Y, pw_info.X)
+	info_window, _ := ncurses.NewWindow(iw_info.H, iw_info.W, iw_info.Y, iw_info.X)
+	history_window, _ := ncurses.NewWindow(hw_info.H, hw_info.W, hw_info.Y, hw_info.X)
 
 	windows_array := [4]*ncurses.Window{board_window, info_window, prompt_window, history_window}
-	windows_info_arr := [4]windowSizePos{bw_info, iw_info, pw_info, hw_info}
+	windows_info_arr := [4]WinInfo{bw_info, iw_info, pw_info, hw_info}
 
-	draw_local_game_screen(screen, key, windows_array, windows_info_arr)
+	DrawLichessGame(screen, key, windows_array, windows_info_arr)
 	for {
 		select {
 		case <-board_state_sig:
@@ -710,28 +750,28 @@ func lichess_game(screen *ncurses.Window) int {
 			for i, win := range windows_array {
 				win.Clear()
 				info := windows_info_arr[i]
-				win.Resize(info.h, info.w)     //Resize windows based on new dimensions
-				win.MoveWindow(info.y, info.x) //move windows to appropriate locations
+				win.Resize(info.H, info.W)     //Resize windows based on new dimensions
+				win.MoveWindow(info.Y, info.X) //move windows to appropriate locations
 				win.NoutRefresh()
 			}
 			board_window.MovePrint(height/2, width/2, "something happened!")
 			time.Sleep(time.Second)
 			screen.Refresh()
 
-		case <-sigs:
-			tRow, tCol, _ := osTermSize()
+		case <-Sigs:
+			tRow, tCol, _ := OsTermSize()
 			ncurses.ResizeTerm(tRow, tCol)
-			draw_local_game_screen(screen, key, windows_array, windows_info_arr)
+			DrawLichessGame(screen, key, windows_array, windows_info_arr)
 		default: //normal character loop here
 			//external function calls
-			update_input(prompt_window, key)
-			if lichess_game_logic(board_window) {
-				<-ready
+			UpdateInput(prompt_window, key)
+			if LichessGameLogic(board_window) {
+				<-Ready
 				os.Exit(0) //game done no post lichess screen tho
 			}
-			draw_board(board_window)
-			display_info(info_window)
-			display_history(history_window)
+			DrawBoardWindow(board_window)
+			DisplayInfoWindow(info_window)
+			DisplayHistoryWindow(history_window)
 			//board_window_mouse_input(board_window, key, width, height)
 
 			//TODO: move refresh call to within window function
@@ -744,11 +784,11 @@ func lichess_game(screen *ncurses.Window) int {
 			// var history_window *ncurses.Window
 			key = screen.GetChar()
 			switch key {
-			case control_o_key, zero_key:
-				user_input_string = ""
-				inputted_str = ""
-				entered_move = false
-				if key == control_o_key {
+			case CtrlO_Key, ZeroKey:
+				UserInputString = ""
+				EnteredPromptStr = ""
+				HasEnteredMove = false
+				if key == CtrlO_Key {
 					return 5
 				} else {
 					return 1

@@ -1,4 +1,4 @@
-package main
+package lichess
 
 import (
 	"encoding/json"
@@ -30,7 +30,7 @@ func do_oauth() {
 		AuthUser()
 	}
 
-	//close(ready)
+	//close(Ready)
 	return
 }
 

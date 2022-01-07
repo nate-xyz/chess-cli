@@ -1,9 +1,36 @@
-package main
+package lichess
 
-//TYPE DEFINITIONS
+import "fmt"
+
+var CurrentChallenge CreateChallengeType
+var WaitingAlert chan StreamEventType
+
+//API
+var currentGameID string
+var UserEmail string
+var Username string
+var UserProfile map[string]interface{}
+var UserFriends string
+var allFriends []string
+var FriendsMap map[string]bool
+var ChallengeId string
+var streamEvent string
+var OngoingGames []OngoingGameInfo
+var IncomingChallenges []ChallengeInfo
+var OutgoingChallenges []ChallengeInfo
+var BoardStreamArr []BoardState
+var EventStreamArr []StreamEventType
+var gameStateChan chan BoardState
+var board_state_sig chan bool
+var testChallenge = CreateChallengeType{
+	Type:       1,
+	TimeOption: 2,
+	DestUser:   "",
+	Rated:      "false",
+	Color:      "white",
+	Variant:    "standard"}
 
 //API TYPES
-
 type OngoingGameInfo struct {
 	FullId   string `json: "fullId"`
 	GameID   string `json: "gameId"`
@@ -99,23 +126,28 @@ type UserConfig struct {
 	ApiToken string
 }
 
-//OTHER TYPES
-
-//type for piece location
-type coord_pair struct {
-	x_coord_ int
-	y_coord_ int
+//OAUTH VARS
+var hostUrl string = "https://lichess.org"
+var ClientID string = "chess-cli"
+var Scopes = []string{
+	"preference:read",
+	"preference:write",
+	"email:read",
+	"challenge:read",
+	"challenge:write",
+	"challenge:bulk",
+	"study:read",
+	"study:write",
+	"puzzle:read",
+	"follow:write",
+	"msg:write",
+	"board:play",
 }
 
-//type for piece color
-type piece_color struct {
-	color int16
-	piece rune
-}
-
-type windowSizePos struct {
-	h int
-	w int
-	y int
-	x int
-}
+var UserInfo = UserConfig{ApiToken: ""}
+var AuthURL string = fmt.Sprintf("%s/oauth", hostUrl)
+var TokenURL string = fmt.Sprintf("%s/api/token", hostUrl)
+var RedirectURL string
+var redirectPort int
+var json_path = "user_config.json"
+var StreamChannel chan StreamEventType

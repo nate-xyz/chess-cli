@@ -1,4 +1,4 @@
-package main
+package lichess
 
 import (
 	"encoding/json"
@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	. "github.com/nate-xyz/chess-cli/shared"
+	//	. "github.com/nate-xyz/chess-cli/shared"
 )
 
 //var Challenge map[string]interface{}
@@ -70,14 +73,14 @@ import (
 
 //var JSONresult ChallengeJSON
 
-func StreamBoardState(event_chan chan<- BoardState, board_state_sig chan<- bool, game string, error_message chan<- error) error {
+func StreamBoardState(event_chan chan<- BoardState, board_state_sig chan<- bool, game string, ErrorMessage chan<- error) error {
 	//https://lichess.org/api/board/game/stream/{gameId}
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/board/game/stream/%s", hostUrl, game), nil)
-	noti_message <- fmt.Sprintf(fmt.Sprintf("board stream started at %s/api/board/game/stream/%s", hostUrl, game))
+	NotiMessage <- fmt.Sprintf(fmt.Sprintf("board stream started at %s/api/board/game/stream/%s", hostUrl, game))
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
 	req.Header.Add("Accept", "application/x-ndjson")
 	if err != nil {
-		error_message <- fmt.Errorf("stream event get request failed: %v", err)
+		ErrorMessage <- fmt.Errorf("stream event get request failed: %v", err)
 		return fmt.Errorf("stream event get request failed: %v", err)
 	}
 
@@ -85,16 +88,16 @@ func StreamBoardState(event_chan chan<- BoardState, board_state_sig chan<- bool,
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		error_message <- fmt.Errorf("%v: %v", resp.StatusCode, err)
+		ErrorMessage <- fmt.Errorf("%v: %v", resp.StatusCode, err)
 		return fmt.Errorf("%v: %v", resp.StatusCode, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		error_message <- fmt.Errorf("bad response: %v", resp.StatusCode)
+		ErrorMessage <- fmt.Errorf("bad response: %v", resp.StatusCode)
 		return fmt.Errorf("bad response: %v", resp.StatusCode)
 	} else {
-		noti_message <- fmt.Sprintf("board stream good response: %v", resp.StatusCode)
-		//error_message <- fmt.Errorf("good response: %v", resp.StatusCode)
+		NotiMessage <- fmt.Sprintf("board stream good response: %v", resp.StatusCode)
+		//ErrorMessage <- fmt.Errorf("good response: %v", resp.StatusCode)
 	}
 
 	d := json.NewDecoder(resp.Body)
@@ -110,11 +113,11 @@ func StreamBoardState(event_chan chan<- BoardState, board_state_sig chan<- bool,
 			if err != nil {
 				if err != io.EOF {
 					log.Fatal(err)
-					error_message <- fmt.Errorf("decode error, not EOF: %v", err)
+					ErrorMessage <- fmt.Errorf("decode error, not EOF: %v", err)
 					//fmt.Printf("decode error, not EOF\n")
 
 				}
-				error_message <- fmt.Errorf("decode error, EOF: %v", err)
+				ErrorMessage <- fmt.Errorf("decode error, EOF: %v", err)
 				//fmt.Printf("decode error, EOF\n")
 				continue
 			}
@@ -130,14 +133,14 @@ func StreamBoardState(event_chan chan<- BoardState, board_state_sig chan<- bool,
 				bevent.Type = streamEvent
 				switch streamEvent {
 				case "gameFull":
-					noti_message <- fmt.Sprintf("got a gamestate")
+					NotiMessage <- fmt.Sprintf("got a gamestate")
 					bevent.Rated = responseData["rated"].(bool)
 					state := responseData["state"].(map[string]interface{})
 					bevent.Moves = state["moves"].(string)
 					bevent.Status = state["status"].(string)
 					board_state_sig <- true
 				case "gameState":
-					noti_message <- fmt.Sprintf("got a gamestate")
+					NotiMessage <- fmt.Sprintf("got a gamestate")
 					bevent.Moves = responseData["moves"].(string)
 					bevent.Status = responseData["status"].(string)
 					board_state_sig <- true
@@ -151,7 +154,7 @@ func StreamBoardState(event_chan chan<- BoardState, board_state_sig chan<- bool,
 				//fmt.Printf("%v\n", StreamEventID)
 				//return nil
 			} else {
-				error_message <- fmt.Errorf("no type in stream event")
+				ErrorMessage <- fmt.Errorf("no type in stream event")
 				return fmt.Errorf("no type in stream event")
 			}
 		}
@@ -166,7 +169,7 @@ func StreamEvent(event_chan chan<- StreamEventType, got_token chan struct{}) err
 	if err != nil {
 		return fmt.Errorf("stream event get request failed: %v", err)
 	}
-	noti_message <- fmt.Sprintf("event stream started at %s/api/stream/event", hostUrl)
+	NotiMessage <- fmt.Sprintf("event stream started at %s/api/stream/event", hostUrl)
 	//do http request. must be done in this fashion so we can add the auth bear token headers above
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -211,7 +214,7 @@ func StreamEvent(event_chan chan<- StreamEventType, got_token chan struct{}) err
 
 				}
 				event_chan <- StreamEventType{streamEvent, streamEventID}
-				//error_message <- fmt.Errorf("%v, %v", streamEvent, streamEventID)
+				//ErrorMessage <- fmt.Errorf("%v, %v", streamEvent, streamEventID)
 				//fmt.Printf("%v\n", StreamEventID)
 				//return nil
 			} else {
@@ -241,7 +244,7 @@ func StreamConsumer(event_chan <-chan StreamEventType, noti chan<- string) {
 		case e := <-event_chan:
 			//fmt.Printf("consumer: %v %v \n", e.Event, e.Id)
 			EventStreamArr = append([]StreamEventType{e}, EventStreamArr...)
-			waiting_alert <- e
+			WaitingAlert <- e
 			if e.Event != "gameStart" {
 				noti <- fmt.Sprintf("event %v:%v", e.Event, e.Id)
 			} else {
@@ -288,13 +291,13 @@ func CreateChallenge(challenge CreateChallengeType) (error, string) {
 		}
 
 	}
-	noti_message <- fmt.Sprintf("%s", reqParam)
+	NotiMessage <- fmt.Sprintf("%s", reqParam)
 	//application/x-www-form-urlencoded
 
 	// create the request and execute it
 	req, err := http.NewRequest("POST", requestUrl, strings.NewReader(reqParam.Encode()))
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	noti_message <- fmt.Sprintf("POST request at %s", requestUrl)
+	NotiMessage <- fmt.Sprintf("POST request at %s", requestUrl)
 
 	if err != nil {
 		return err, ""
@@ -327,7 +330,7 @@ func CreateChallenge(challenge CreateChallengeType) (error, string) {
 		err := fmt.Errorf("not 200 response: %v", err)
 		return err, ""
 	} else {
-		noti_message <- fmt.Sprintf("challenge good response: %v", res.StatusCode)
+		NotiMessage <- fmt.Sprintf("challenge good response: %v", res.StatusCode)
 	}
 	// unmarshal the json into a string map
 	var responseData map[string]interface{}
@@ -338,7 +341,7 @@ func CreateChallenge(challenge CreateChallengeType) (error, string) {
 
 	// retrieve the access token out of the map, and return to caller
 	if !isNil(responseData["challenge"]) {
-		noti_message <- fmt.Sprintf("posted challenge\n")
+		NotiMessage <- fmt.Sprintf("posted challenge\n")
 		chal := responseData["challenge"].(map[string]interface{})
 		ChallengeId = chal["id"].(string)
 		return nil, ChallengeId

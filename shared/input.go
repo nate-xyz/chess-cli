@@ -1,4 +1,4 @@
-package main
+package shared
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	ncurses "github.com/nate-xyz/goncurses_"
 )
 
-func options_input(window *ncurses.Window, key ncurses.Key, options []string, selected_index int) (int, bool) {
+func OptionsInput(window *ncurses.Window, key ncurses.Key, options []string, selected_index int) (int, bool) {
 
 	//determine what option to choose based on input
 	switch key {
@@ -60,7 +60,33 @@ func options_input(window *ncurses.Window, key ncurses.Key, options []string, se
 	return selected_index, false
 }
 
-func slider_input(win *ncurses.Window, key ncurses.Key, t int, tic_index []int, slider_index int) ([]int, int, float64, bool) {
+func draw_options_input(window *ncurses.Window, options []string, selected_index int) {
+	_, width := window.MaxYX()
+
+	piece := "♟︎ "
+
+	//draw standout for currently selected option
+	for i, str := range options {
+		if i == selected_index {
+			window.AttrOn(ncurses.ColorPair(3))
+			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
+			window.AttrOff(ncurses.ColorPair(3))
+			window.AttrOn(ncurses.A_DIM)
+			window.AttrOn(ncurses.A_BLINK)
+			window.MovePrint(i+1, 1, piece)
+			window.MovePrint(i+1, width-3, piece)
+			window.AttrOff(ncurses.A_BLINK)
+			window.AttrOff(ncurses.A_DIM)
+		} else {
+			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
+			window.MovePrint(i+1, 1, " ")
+			window.MovePrint(i+1, width-3, " ")
+		}
+	}
+	window.Refresh()
+}
+
+func SliderInput(win *ncurses.Window, key ncurses.Key, t int, tic_index []int, slider_index int) ([]int, int, float64, bool) {
 	height, width := win.MaxYX()
 	_ = height
 	//slider arrays
@@ -266,7 +292,7 @@ func replaceAtIndex(in string, r rune, i int) string {
 	return string(out)
 }
 
-func update_input(window *ncurses.Window, key ncurses.Key) {
+func UpdateInput(window *ncurses.Window, key ncurses.Key) {
 	height, width := window.MaxYX()
 	padding := fmt.Sprintf("%s", strings.Repeat(" ", (width-1)))
 	var currentPoint string = string(rune(8248))
@@ -288,7 +314,7 @@ func update_input(window *ncurses.Window, key ncurses.Key) {
 	if prompt_y_coord >= height-1 {
 		prompt_x_coord = width - 2
 		prompt_y_coord = height - 2
-		status_str = "char limit reached"
+		StatusMessage = "char limit reached"
 	}
 
 	if key == ncurses.KEY_MOUSE || key == ncurses.KEY_RESIZE { //dont do any input for mouse event
@@ -306,15 +332,15 @@ func update_input(window *ncurses.Window, key ncurses.Key) {
 		window.AttrOff(ncurses.A_BLINK)
 
 		prompt_x_coord-- //decrement char position
-		user_input_string = removeLastRune(user_input_string)
+		UserInputString = removeLastRune(UserInputString)
 
 	}
 	if key == ncurses.KEY_ENTER || key == ncurses.KEY_RETURN || key == enter_key { //enter key
-		entered_move = true
-		inputted_str = user_input_string //set global string to check if move is legal
-		user_input_string = ""           //reset input buffer
-		prompt_x_coord = 1               //reset char coordinates
-		prompt_y_coord = 1               //reset char coordinates
+		HasEnteredMove = true
+		EnteredPromptStr = UserInputString //set global string to check if move is legal
+		UserInputString = ""               //reset input buffer
+		prompt_x_coord = 1                 //reset char coordinates
+		prompt_y_coord = 1                 //reset char coordinates
 		window.MoveAddChar(prompt_y_coord, 0, '|')
 		window.MoveAddChar(prompt_y_coord, 0, '>')
 
@@ -342,12 +368,20 @@ func update_input(window *ncurses.Window, key ncurses.Key) {
 
 	//add to the current input buffer
 	if key != ncurses.KEY_ENTER && key != ncurses.KEY_RETURN && key != delete_key && (unicode.IsLetter(rune(key)) || unicode.IsDigit(rune(key)) || key == octothorpe || key == plus_sign) { //not enter and not delete
-		user_input_string += string(rune(key))
+		UserInputString += string(rune(key))
 	}
 	//redraw border in case it was painted over
 	//window.Box('|', '-')
 
 	window.NoutRefresh()
+}
+
+func removeLastRune(s string) string {
+	if len(s) <= 0 {
+		return s
+	}
+	r := []rune(s)
+	return string(r[:len(r)-1])
 }
 
 // func board_window_mouse_input(screen, key, screen_width, screen_height) {
@@ -385,11 +419,3 @@ func update_input(window *ncurses.Window, key ncurses.Key) {
 //             screen.AttrOn(ncurses.A_BOLD)
 //     except:
 //         screen.MovePrint(7, 2, "error")
-
-func removeLastRune(s string) string {
-	if len(s) <= 0 {
-		return s
-	}
-	r := []rune(s)
-	return string(r[:len(r)-1])
-}

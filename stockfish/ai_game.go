@@ -1,4 +1,4 @@
-package main
+package stockfish
 
 //"chess-tui/input"
 //"chess-tui/"
