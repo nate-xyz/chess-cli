@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	ncurses "github.com/nate-xyz/goncurses"
+	ncurses "github.com/nate-xyz/goncurses_"
 )
 
 func draw_welcome_screen(screen *ncurses.Window, key ncurses.Key, windows_array [1]*ncurses.Window, windows_info_arr [1]windowSizePos, op []string) {

@@ -10,7 +10,7 @@ import (
 	"time"
 	"unsafe"
 
-	ncurses "github.com/nate-xyz/goncurses"
+	ncurses "github.com/nate-xyz/goncurses_"
 )
 
 func local_game_screen(stdscr *ncurses.Window) int {

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unicode"
 
-	ncurses "github.com/nate-xyz/goncurses"
+	ncurses "github.com/nate-xyz/goncurses_"
 )
 
 func options_input(window *ncurses.Window, key ncurses.Key, options []string, selected_index int) (int, bool) {

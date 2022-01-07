@@ -3,9 +3,9 @@ github.com/gbin/goncurses v0.0.0-20141106211150-34d9399fcea5 h1:1zsAMqM0C3Yjv9KW
 github.com/gbin/goncurses v0.0.0-20141106211150-34d9399fcea5/go.mod h1:dmRjyC3ZOQQ4EXWMOIAQi0TLaJPcg61LFsJ9mvhSGRE=
 github.com/jimlambrt/go-oauth-pkce-code-verifier v0.0.0-20201220003123-6363600dffda h1:bQONHNUnOORYC/LwlHqYTRdK40usp79dLXFffPKxLz0=
 github.com/jimlambrt/go-oauth-pkce-code-verifier v0.0.0-20201220003123-6363600dffda/go.mod h1:dRScMNYlkRbOXpUiqNHR6mSBOzXgepLOFIX5M4RFgbk=
-github.com/nate-xyz/goncurses v0.0.0-20211229023527-2c2f26648929 h1:HbS3ax3CkeKGmXAHb53/JPbdcKQVFnELCRANteJERqg=
-github.com/nate-xyz/goncurses v0.0.0-20211229023527-2c2f26648929/go.mod h1:6ykFBY/ZxdjZwB+mlHy+VMmnps2ZpL+Qf/KvCz/8aoc=
-github.com/notnil/chess v1.7.1 h1:4Y+PL5vxuWhRo7DHBpFwUmkU7muMimo6tJHv2Y6EmFY=
-github.com/notnil/chess v1.7.1/go.mod h1:cRuJUIBFq9Xki05TWHJxHYkC+fFpq45IWwk94DdlCrA=
+github.com/nate-xyz/goncurses_ v0.0.0-20211229023527-2c2f26648929 h1:VooLA7DmqGoHNbTSh2sxYwLn5OHXSogxo6IJzArJY5A=
+github.com/nate-xyz/goncurses_ v0.0.0-20211229023527-2c2f26648929/go.mod h1:I8uu/dOq3GvrttYG3IQ7G9K6AdrreXa+wszxz5e9be4=
+github.com/notnil/chess v1.7.2 h1:9Khpc/5a2jvSlDZaOLiowB9QSof6iwPgjiRvlu3Ce4E=
+github.com/notnil/chess v1.7.2/go.mod h1:cRuJUIBFq9Xki05TWHJxHYkC+fFpq45IWwk94DdlCrA=
 github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 h1:JIAuq3EEf9cgbU6AtGPK4CTG3Zf6CKMNqf0MHTggAUA=
 github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966/go.mod h1:sUM3LWHvSMaG192sy56D9F7CNvL7jUJVXoqM1QKLnog=

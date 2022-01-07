@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	ncurses "github.com/nate-xyz/goncurses"
+	ncurses "github.com/nate-xyz/goncurses_"
 	"github.com/notnil/chess"
 )
 
