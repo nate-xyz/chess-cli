@@ -54,7 +54,7 @@ func LichessScreenHandler(stdscr *ncurses.Window, option int) (int, ncurses.Key)
 	case 5:
 		return -1, CtrlO_Key //quit game
 	case 6:
-		option = LichessGame(stdscr)
+		option = LichessGameScreen(stdscr, "")
 	}
 	return LichessScreenHandler(stdscr, option)
 }

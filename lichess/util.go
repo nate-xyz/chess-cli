@@ -17,3 +17,16 @@ func containedInEventStream(a []StreamEventType, gameid string) (string, bool) {
 	}
 	return "", false
 }
+
+func getEvents(a []StreamEventType, gameid string) ([]StreamEventType, bool) {
+	n := make([]StreamEventType, 0)
+	for _, e := range a {
+		if e.Id == gameid {
+			n = append(n, e)
+		}
+	}
+	if len(n) > 0 {
+		return n, true
+	}
+	return n, false
+}

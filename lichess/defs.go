@@ -5,31 +5,6 @@ import "fmt"
 var CurrentChallenge CreateChallengeType
 var WaitingAlert chan StreamEventType
 
-//API
-var currentGameID string
-var UserEmail string
-var Username string
-var UserProfile map[string]interface{}
-var UserFriends string
-var allFriends []string
-var FriendsMap map[string]bool
-var ChallengeId string
-var streamEvent string
-var OngoingGames []OngoingGameInfo
-var IncomingChallenges []ChallengeInfo
-var OutgoingChallenges []ChallengeInfo
-var BoardStreamArr []BoardState
-var EventStreamArr []StreamEventType
-var gameStateChan chan BoardState
-var board_state_sig chan bool
-var testChallenge = CreateChallengeType{
-	Type:       1,
-	TimeOption: 2,
-	DestUser:   "",
-	Rated:      "false",
-	Color:      "white",
-	Variant:    "standard"}
-
 //API TYPES
 type OngoingGameInfo struct {
 	FullId   string `json: "fullId"`
@@ -119,6 +94,31 @@ type CreateChallengeType struct {
 	OpenEnded      bool
 }
 
+//API VARS
+var currentGameID string
+var UserEmail string
+var Username string
+var UserProfile map[string]interface{}
+var UserFriends string
+var allFriends []string
+var FriendsMap map[string]bool
+var ChallengeId string
+var streamEvent string
+var OngoingGames []OngoingGameInfo
+var IncomingChallenges []ChallengeInfo
+var OutgoingChallenges []ChallengeInfo
+var BoardStreamArr []BoardState
+var EventStreamArr []StreamEventType
+var gameStateChan chan BoardState
+var board_state_sig chan bool
+var testChallenge = CreateChallengeType{
+	Type:       1,
+	TimeOption: 2,
+	DestUser:   "",
+	Rated:      "false",
+	Color:      "black",
+	Variant:    "standard"}
+
 //OAUTH TYPES
 
 //type for storing user info into a json
@@ -151,3 +151,64 @@ var RedirectURL string
 var redirectPort int
 var json_path = "user_config.json"
 var StreamChannel chan StreamEventType
+var StreamChannelForWaiter chan StreamEventType
+
+//var Challenge map[string]interface{}
+
+// type TimeInfo struct {
+// 	Increment int    `json: "increment"`
+// 	Limit     int    `json: "limit"`
+// 	Show      string `json: "show"`
+// 	Type      string `json: "type"`
+// }
+
+// type VariantInfo struct {
+// 	Key   string `json: "key"`
+// 	Name  string `json: "name"`
+// 	Short string `json: "short"`
+// }
+
+// type ChallengerInfo struct {
+// 	Id     string `json: "id"`
+// 	Name   string `json: "name"`
+// 	Rating int    `json: "rating"`
+// 	Title  string `json: "title"`
+// }
+
+// type Perf_ struct {
+// 	Icon string `json: "icon"`
+// 	Name string `json: "name"`
+// }
+
+// type OngoingGameVariant struct {
+// 	Key  string `json: "key"`
+// 	Name string `json: "name"`
+// }
+
+// type OngoingGameOpp struct {
+// 	Id       string `json: "id"`
+// 	Username string `json: "username"`
+// 	Rating   string `json: "rating"`
+// }
+
+// type ChallengeInfo struct {
+// 	Id          string         `json: "id"`
+// 	URL         string         `json: "url"`
+// 	Color       string         `json: "color"`
+// 	Direction   string         `json: "direction"`
+// 	TimeControl TimeInfo       `json: "timeControl"`
+// 	Variant     VariantInfo    `json: "variant"`
+// 	Challenger  ChallengerInfo `json: "challenger"`
+// 	DestUser    ChallengerInfo `json: "destUser"`
+// 	Perf        Perf_          `json: "perf"`
+// 	Rated       bool           `json: "rated"`
+// 	Speed       string         `json: "speed"`
+// 	Status      string         `json: "status"`
+// }
+
+// type ChallengeJSON struct {
+// 	In  []ChallengeInfo `json: "in"`
+// 	Out []ChallengeInfo `json: "out"`
+// }
+
+//var JSONresult ChallengeJSON

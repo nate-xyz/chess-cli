@@ -60,32 +60,6 @@ func OptionsInput(window *ncurses.Window, key ncurses.Key, options []string, sel
 	return selected_index, false
 }
 
-func draw_options_input(window *ncurses.Window, options []string, selected_index int) {
-	_, width := window.MaxYX()
-
-	piece := "♟︎ "
-
-	//draw standout for currently selected option
-	for i, str := range options {
-		if i == selected_index {
-			window.AttrOn(ncurses.ColorPair(3))
-			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
-			window.AttrOff(ncurses.ColorPair(3))
-			window.AttrOn(ncurses.A_DIM)
-			window.AttrOn(ncurses.A_BLINK)
-			window.MovePrint(i+1, 1, piece)
-			window.MovePrint(i+1, width-3, piece)
-			window.AttrOff(ncurses.A_BLINK)
-			window.AttrOff(ncurses.A_DIM)
-		} else {
-			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
-			window.MovePrint(i+1, 1, " ")
-			window.MovePrint(i+1, width-3, " ")
-		}
-	}
-	window.Refresh()
-}
-
 func SliderInput(win *ncurses.Window, key ncurses.Key, t int, tic_index []int, slider_index int) ([]int, int, float64, bool) {
 	height, width := win.MaxYX()
 	_ = height

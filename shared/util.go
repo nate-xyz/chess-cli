@@ -4,13 +4,10 @@ package shared
 import "C"
 
 import (
-	"fmt"
 	"math/rand"
 	"syscall"
 	"time"
 	"unsafe"
-
-	ncurses "github.com/nate-xyz/goncurses_"
 )
 
 func contains(s []string, str string) bool {
@@ -126,14 +123,4 @@ func OsTermSize() (int, int, error) {
 		return 0, 0, err
 	}
 	return int(w.ws_row), int(w.ws_col), nil
-}
-
-func LoadingScreen(screen *ncurses.Window, message string) {
-	height, width := screen.MaxYX()
-	screen.MovePrint(height/2, width/2-len(message)/2, message)
-	// dt := time.Now().Unix() % 10
-	// screen.MovePrint((height/2)+1, width/2, fmt.Sprintf("%v", loader[dt]))
-	dt := time.Now().Unix() % 8
-	screen.MovePrint((height/2)+1, width/2, fmt.Sprintf("%v", knight_loader[dt]))
-	screen.Refresh()
 }

@@ -35,6 +35,9 @@ type WinInfo struct {
 }
 
 // GLOBAL VAR DECLARATIONS
+var UnicodeSupport = true
+
+//var GameWaiter = false
 
 var control_l_key ncurses.Key = 12
 var CtrlO_Key ncurses.Key = 15

@@ -77,7 +77,7 @@ blocking_loop:
 	//start windows
 	//options := []string{"<<Press 0 to return to welcome screen>>", "<<Press 1 to view / create challenges>>", "<<Press 2 to view / join ongoing games>>", "etc", "quit"}
 	options := []string{"new game", "ongoing games", "back", "quit", "test"}
-	op_info := WinInfo{(height / 2) - 4, width / 2, (height / 2) + 2, width / 4}
+	op_info := WinInfo{H: (height / 2) - 4, W: width / 2, Y: (height / 2) + 2, X: width / 4}
 	options_window, _ := ncurses.NewWindow(op_info.H, op_info.W, op_info.Y, op_info.X)
 	windows_array := [1]*ncurses.Window{options_window}
 	windows_info_arr := [1]WinInfo{op_info}
@@ -91,7 +91,6 @@ blocking_loop:
 			tRow, tCol, _ := OsTermSize()
 			ncurses.ResizeTerm(tRow, tCol)
 			DrawLichessWelcome(screen, key, windows_array, windows_info_arr, options)
-
 		default: //normal character loop here
 			key = screen.GetChar()
 			option_index, selected = OptionsInput(options_window, key, options, option_index)
@@ -108,25 +107,6 @@ blocking_loop:
 				case 4: //testing out lichess requess, skip to wait
 					CurrentChallenge = testChallenge
 					//LichessScreenHandler(screen, 4)
-					i := func(stdscr *ncurses.Window, option int) int {
-						switch option {
-						case 0:
-							return -1 //go back to welcome screen
-						case 1:
-							option = LichessWelcome(stdscr)
-						case 2:
-							option = LichessChallenges(stdscr) //go to challenge screen
-						case 3:
-							option = CreateLichessGame(stdscr)
-						case 4:
-							option = WaitForLichessGameResponse(stdscr)
-						case 5:
-							return -1 //quit game
-						case 6:
-							option = LichessGame(stdscr)
-						}
-						return option
-					}(screen, 4)
 					func(stdscr *ncurses.Window, option int) {
 						switch option {
 						case 0:
@@ -142,11 +122,25 @@ blocking_loop:
 						case 5:
 							//return -1, CtrlO_Key //quit game
 						case 6:
-							option = LichessGame(stdscr)
+							screen.Clear()
+							l, b := getEvents(EventStreamArr, currentGameID)
+							if b {
+								for i, e := range l {
+									message := fmt.Sprintf("IN STREAM W/ ID: %v", e.Event)
+									_, w := screen.MaxYX()
+									screen.MovePrint(1+i, w/2, message)
+									screen.Refresh()
+									time.Sleep(time.Second)
+									NotiMessage <- message
+								}
+							} else {
+								os.Exit(2)
+							}
+							option = LichessGameScreen(stdscr, currentGameID)
 
 						}
 						os.Exit(1)
-					}(screen, i)
+					}(screen, WaitForLichessGameResponse(screen))
 
 				}
 			}
@@ -569,7 +563,6 @@ func WaitForLichessGameResponse(screen *ncurses.Window) int {
 	//done := make(chan struct{})
 	var localid string
 	getgameid := make(chan string, 1)
-	WaitingAlert = make(chan StreamEventType, 1)
 	ticker := time.NewTicker(time.Second)
 
 	go func(gchan chan<- string) {
@@ -627,13 +620,17 @@ func WaitForLichessGameResponse(screen *ncurses.Window) int {
 	//load_msg = fmt.Sprintf("waiting for stream event from lichess...")
 	load_msg := "requesting game from lichess ... "
 	LoadingScreen(screen, load_msg)
+
+	// defer func() { //block on close
+	// 	GameWaiter = false
+	// }()
+
 	for {
 		select {
 		// case <-stream_done:
 		// 	load_msg = fmt.Sprintf("stream closed")
 		// 	LoadingScreen(screen, load_msg)
 		case id := <-getgameid:
-			NotiMessage <- fmt.Sprintf("got getgameid")
 			NotiMessage <- fmt.Sprintf("event %v retrieved from channel", id)
 			localid = id
 			s, b := containedInEventStream(EventStreamArr, id)
@@ -646,16 +643,19 @@ func WaitForLichessGameResponse(screen *ncurses.Window) int {
 					NotiMessage <- load_msg
 				case "gameFinish":
 					NotiMessage <- fmt.Sprintf("event %v wrong type s", s)
+
 					time.Sleep(time.Second * 3)
+
 					return 2
 				case "challengeCanceled", "challengeDeclined":
 					NotiMessage <- fmt.Sprintf("challenge rejected: %v", s)
 					ErrorMessage <- fmt.Errorf("challenge rejected: %v", s)
+
 					time.Sleep(time.Second * 3)
 					return 2
 				case "gameStart":
-					NotiMessage <- fmt.Sprintf("event id: %v", id)
-					load_msg = fmt.Sprintf("load event: %v!!!", s)
+					NotiMessage <- fmt.Sprintf("(direct from challenge) event id: %v", id)
+					load_msg = fmt.Sprintf("(direct from challenge) load event: %v!!!", s)
 					LoadingScreen(screen, load_msg)
 					currentGameID = id
 					//call stream board state
@@ -663,6 +663,7 @@ func WaitForLichessGameResponse(screen *ncurses.Window) int {
 					board_state_sig = make(chan bool, 1)
 					go StreamBoardState(gameStateChan, board_state_sig, id, ErrorMessage)
 					go BoardConsumer(gameStateChan, NotiMessage)
+
 					time.Sleep(time.Second * 2)
 					return 6
 				}
@@ -675,10 +676,14 @@ func WaitForLichessGameResponse(screen *ncurses.Window) int {
 				//return 2
 			}
 		case e := <-StreamChannel:
+			EventStreamArr = append([]StreamEventType{e}, EventStreamArr...)
+
 			if e.Id == localid {
-				NotiMessage <- fmt.Sprintf("event id: %v", e.Id)
-				ErrorMessage <- fmt.Errorf("event id: %v", e.Id)
-				load_msg = fmt.Sprintf("load event: %v!!!", e.Event)
+				NotiMessage <- fmt.Sprintf("(stream channel)  event id: %v", e.Id)
+				ErrorMessage <- fmt.Errorf("(stream channel)  event id: %v", e.Id)
+				load_msg = fmt.Sprintf("(stream channel) load event: %v!!!", e.Event)
+				screen.Clear()
+				screen.Refresh()
 				LoadingScreen(screen, load_msg)
 				currentGameID = e.Id
 				//call stream board state
@@ -686,19 +691,44 @@ func WaitForLichessGameResponse(screen *ncurses.Window) int {
 				board_state_sig = make(chan bool, 1)
 				go StreamBoardState(gameStateChan, board_state_sig, e.Id, ErrorMessage)
 				go BoardConsumer(gameStateChan, NotiMessage)
-				time.Sleep(time.Second * 2)
+
+				time.Sleep(time.Second * 5)
 				return 6
 			} else {
-				NotiMessage <- fmt.Sprintf("event %v is not your game, it is %v", e.Id, e.Event)
+				NotiMessage <- fmt.Sprintf("event %v is not your game, it is %v (waiting for %v)", e.Id, e.Event, localid)
 			}
+		case e := <-StreamChannelForWaiter:
+			if e.Id == localid {
+				NotiMessage <- fmt.Sprintf("(stream channel)  event id: %v", e.Id)
+				ErrorMessage <- fmt.Errorf("(stream channel)  event id: %v", e.Id)
+				load_msg = fmt.Sprintf("(stream channel) load event: %v!!!", e.Event)
+				screen.Clear()
+				screen.Refresh()
+				LoadingScreen(screen, load_msg)
+				currentGameID = e.Id
+				//call stream board state
+				gameStateChan = make(chan BoardState, 1)
+				board_state_sig = make(chan bool, 1)
+				go StreamBoardState(gameStateChan, board_state_sig, e.Id, ErrorMessage)
+				go BoardConsumer(gameStateChan, NotiMessage)
 
+				time.Sleep(time.Second * 5)
+				return 6
+			} else {
+				NotiMessage <- fmt.Sprintf("event %v is not your game, it is %v (waiting for %v)", e.Id, e.Event, localid)
+			}
 		case <-Sigs:
 			NotiMessage <- fmt.Sprintf("resize")
 			tRow, tCol, _ := OsTermSize()
 			ncurses.ResizeTerm(tRow, tCol)
 			LoadingScreen(screen, load_msg)
 		case <-ticker.C:
-			NotiMessage <- fmt.Sprintf("ticker")
+			if localid != "" {
+				NotiMessage <- fmt.Sprintf("event %v not in stream ... waiting", localid)
+			} else {
+				NotiMessage <- fmt.Sprintf("ticker")
+			}
+
 			//load_msg = fmt.Sprintf("waiting for stream event from lichess...")
 			LoadingScreen(screen, load_msg)
 			// case <-done: //normal character loop here
@@ -721,11 +751,12 @@ func WaitForLichessGameResponse(screen *ncurses.Window) int {
 	}
 }
 
-func LichessGame(screen *ncurses.Window) int {
+//screen for drawing, initialFEN for custom starting positions, and gameID for verifying streamed events
+func LichessGameScreen(screen *ncurses.Window, gameID string) int {
 	var key ncurses.Key
 	screen.Clear()
 	height, width := screen.MaxYX()
-
+	var currentFEN string
 	//start windows
 	bw_info := WinInfo{(height / 4) * 3, width / 2, 0, 0}
 	iw_info := WinInfo{(height / 4) - 1, width / 2, (height / 4) * 3, 0}
@@ -741,23 +772,13 @@ func LichessGame(screen *ncurses.Window) int {
 	windows_info_arr := [4]WinInfo{bw_info, iw_info, pw_info, hw_info}
 
 	DrawLichessGame(screen, key, windows_array, windows_info_arr)
+
 	for {
 		select {
 		case <-board_state_sig:
 			//get updated board position from board event
-			screen.Clear()
-			//Clear, refresh, update all windows
-			for i, win := range windows_array {
-				win.Clear()
-				info := windows_info_arr[i]
-				win.Resize(info.H, info.W)     //Resize windows based on new dimensions
-				win.MoveWindow(info.Y, info.X) //move windows to appropriate locations
-				win.NoutRefresh()
-			}
-			board_window.MovePrint(height/2, width/2, "something happened!")
-			time.Sleep(time.Second)
-			screen.Refresh()
 
+			time.Sleep(time.Second)
 		case <-Sigs:
 			tRow, tCol, _ := OsTermSize()
 			ncurses.ResizeTerm(tRow, tCol)
@@ -769,7 +790,7 @@ func LichessGame(screen *ncurses.Window) int {
 				<-Ready
 				os.Exit(0) //game done no post lichess screen tho
 			}
-			DrawBoardWindow(board_window)
+			DrawBoardWindow(board_window, currentFEN)
 			DisplayInfoWindow(info_window)
 			DisplayHistoryWindow(history_window)
 			//board_window_mouse_input(board_window, key, width, height)

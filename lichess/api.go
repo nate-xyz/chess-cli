@@ -13,66 +13,6 @@ import (
 	//	. "github.com/nate-xyz/chess-cli/shared"
 )
 
-//var Challenge map[string]interface{}
-
-// type TimeInfo struct {
-// 	Increment int    `json: "increment"`
-// 	Limit     int    `json: "limit"`
-// 	Show      string `json: "show"`
-// 	Type      string `json: "type"`
-// }
-
-// type VariantInfo struct {
-// 	Key   string `json: "key"`
-// 	Name  string `json: "name"`
-// 	Short string `json: "short"`
-// }
-
-// type ChallengerInfo struct {
-// 	Id     string `json: "id"`
-// 	Name   string `json: "name"`
-// 	Rating int    `json: "rating"`
-// 	Title  string `json: "title"`
-// }
-
-// type Perf_ struct {
-// 	Icon string `json: "icon"`
-// 	Name string `json: "name"`
-// }
-
-// type OngoingGameVariant struct {
-// 	Key  string `json: "key"`
-// 	Name string `json: "name"`
-// }
-
-// type OngoingGameOpp struct {
-// 	Id       string `json: "id"`
-// 	Username string `json: "username"`
-// 	Rating   string `json: "rating"`
-// }
-
-// type ChallengeInfo struct {
-// 	Id          string         `json: "id"`
-// 	URL         string         `json: "url"`
-// 	Color       string         `json: "color"`
-// 	Direction   string         `json: "direction"`
-// 	TimeControl TimeInfo       `json: "timeControl"`
-// 	Variant     VariantInfo    `json: "variant"`
-// 	Challenger  ChallengerInfo `json: "challenger"`
-// 	DestUser    ChallengerInfo `json: "destUser"`
-// 	Perf        Perf_          `json: "perf"`
-// 	Rated       bool           `json: "rated"`
-// 	Speed       string         `json: "speed"`
-// 	Status      string         `json: "status"`
-// }
-
-// type ChallengeJSON struct {
-// 	In  []ChallengeInfo `json: "in"`
-// 	Out []ChallengeInfo `json: "out"`
-// }
-
-//var JSONresult ChallengeJSON
-
 func StreamBoardState(event_chan chan<- BoardState, board_state_sig chan<- bool, game string, ErrorMessage chan<- error) error {
 	//https://lichess.org/api/board/game/stream/{gameId}
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/board/game/stream/%s", hostUrl, game), nil)
@@ -161,6 +101,17 @@ func StreamBoardState(event_chan chan<- BoardState, board_state_sig chan<- bool,
 	}
 }
 
+func BoardConsumer(event_chan <-chan BoardState, noti chan<- string) {
+	for {
+		select {
+		case e := <-event_chan:
+			//fmt.Printf("consumer: %v %v \n", e.Event, e.Id)
+			BoardStreamArr = append([]BoardState{e}, BoardStreamArr...)
+			noti <- fmt.Sprintf("event %v", e.Type)
+		}
+	}
+}
+
 func StreamEvent(event_chan chan<- StreamEventType, got_token chan struct{}) error {
 	<-got_token
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/stream/event", hostUrl), nil)
@@ -214,6 +165,7 @@ func StreamEvent(event_chan chan<- StreamEventType, got_token chan struct{}) err
 
 				}
 				event_chan <- StreamEventType{streamEvent, streamEventID}
+
 				//ErrorMessage <- fmt.Errorf("%v, %v", streamEvent, streamEventID)
 				//fmt.Printf("%v\n", StreamEventID)
 				//return nil
@@ -221,20 +173,9 @@ func StreamEvent(event_chan chan<- StreamEventType, got_token chan struct{}) err
 				return fmt.Errorf("no type in stream event")
 			}
 		}
-
+		NotiMessage <- "stream still open"
 		//fmt.Printf("end loop %v\n", loop_i)
 		//loop_i++
-	}
-}
-
-func BoardConsumer(event_chan <-chan BoardState, noti chan<- string) {
-	for {
-		select {
-		case e := <-event_chan:
-			//fmt.Printf("consumer: %v %v \n", e.Event, e.Id)
-			BoardStreamArr = append([]BoardState{e}, BoardStreamArr...)
-			noti <- fmt.Sprintf("event %v", e.Type)
-		}
 	}
 }
 
@@ -244,7 +185,7 @@ func StreamConsumer(event_chan <-chan StreamEventType, noti chan<- string) {
 		case e := <-event_chan:
 			//fmt.Printf("consumer: %v %v \n", e.Event, e.Id)
 			EventStreamArr = append([]StreamEventType{e}, EventStreamArr...)
-			WaitingAlert <- e
+			StreamChannelForWaiter <- e
 			if e.Event != "gameStart" {
 				noti <- fmt.Sprintf("event %v:%v", e.Event, e.Id)
 			} else {

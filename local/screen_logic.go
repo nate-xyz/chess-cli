@@ -102,7 +102,7 @@ func LocalGameScreen(stdscr *ncurses.Window) int {
 			if game_logic(board_window) {
 				return 2
 			}
-			DrawBoardWindow(board_window)
+			DrawBoardWindow(board_window, CurrentGame.Position().String())
 			DisplayInfoWindow(info_window)
 			DisplayHistoryWindow(history_window)
 			//board_window_mouse_input(board_window, key, width, height)
@@ -153,7 +153,7 @@ func PostScreen(screen *ncurses.Window) int {
 			ncurses.ResizeTerm(tRow, tCol)
 			DrawPostScreen(screen, key, windows_array, windows_info_arr)
 		default: //normal character loop here
-			DrawBoardWindow(board_post_window)
+			DrawBoardWindow(board_post_window, CurrentGame.Position().String())
 			//UpdateInput(prompt_post_window, key)
 			for _, win := range windows_array {
 				win.NoutRefresh()

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	ncurses "github.com/nate-xyz/goncurses_"
@@ -96,9 +97,9 @@ func DisplayHistoryWindow(history_window *ncurses.Window) {
 	}
 }
 
-func DrawBoardWindow(board_window *ncurses.Window) {
+func DrawBoardWindow(board_window *ncurses.Window, FEN string) {
 	height, width := board_window.MaxYX()
-	board_FEN := CurrentGame.Position().String()
+	//board_FEN := CurrentGame.Position().String()
 	// board_square_coord = {}
 	x_notation_string := "abcdefgh"
 	y_notation_string := "87654321"
@@ -117,7 +118,7 @@ func DrawBoardWindow(board_window *ncurses.Window) {
 	square_count := 0
 	var color_pair int16
 
-	for _, current_piece := range board_FEN { //loop to parse the FEN string
+	for _, current_piece := range FEN { //loop to parse the FEN string
 		var key_tuple CoordPair
 		key_tuple.X = x_coord
 		key_tuple.Y = y_coord
@@ -201,4 +202,47 @@ func DrawBoardWindow(board_window *ncurses.Window) {
 		board_window.MovePrint(og_ycoord+y_inc*i, og_xcoord-x_inc-1, string(y_notation_string[i]))
 		board_window.MovePrint(og_ycoord+y_inc*i, og_xcoord+8*x_inc+1, string(y_notation_string[i]))
 	}
+}
+
+func LoadingScreen(screen *ncurses.Window, message string) {
+	height, width := screen.MaxYX()
+	screen.MovePrint(height/2, width/2-len(message)/2, message)
+	if UnicodeSupport {
+		dt := time.Now().Unix() % 8
+		screen.MovePrint((height/2)+1, width/2, fmt.Sprintf("%v", knight_loader[dt]))
+	} else {
+		dt := time.Now().Unix() % 10
+		screen.MovePrint((height/2)+1, width/2, fmt.Sprintf("%v", loader[dt]))
+	}
+	screen.Refresh()
+}
+
+func draw_options_input(window *ncurses.Window, options []string, selected_index int) {
+	_, width := window.MaxYX()
+
+	piece := "♟︎ "
+
+	//draw standout for currently selected option
+	for i, str := range options {
+		if i == selected_index {
+			window.AttrOn(ncurses.ColorPair(3))
+			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
+			window.AttrOff(ncurses.ColorPair(3))
+			if UnicodeSupport {
+				window.AttrOn(ncurses.A_DIM)
+				window.AttrOn(ncurses.A_BLINK)
+				window.MovePrint(i+1, 1, piece)
+				window.MovePrint(i+1, width-3, piece)
+				window.AttrOff(ncurses.A_BLINK)
+				window.AttrOff(ncurses.A_DIM)
+			}
+		} else {
+			window.MovePrint(i+1, (width/2)-(len(str)/2), str)
+			if UnicodeSupport {
+				window.MovePrint(i+1, 1, " ")
+				window.MovePrint(i+1, width-3, " ")
+			}
+		}
+	}
+	window.Refresh()
 }

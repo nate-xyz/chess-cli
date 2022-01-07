@@ -27,6 +27,8 @@ func main() {
 	ErrorMessage = make(chan error, 10)
 	Ready = make(chan struct{})
 	StreamChannel = make(chan StreamEventType, 1)
+	StreamChannelForWaiter = make(chan StreamEventType, 1000)
+
 	// Initialize ncurses. It's essential End() is called to ensure the
 	// terminal isn't altered after the program ends
 	stdscr, err := ncurses.Init()
@@ -71,6 +73,15 @@ func main() {
 	// 	}
 	// }(stdscr)
 	//<-Ready
+
+	//determing unicode support
+	_, x := stdscr.CursorYX()
+	test_char := "あ"
+	stdscr.Print(test_char)
+	_, nx := stdscr.CursorYX()
+	if (nx - x) != 1 {
+		UnicodeSupport = false
+	}
 
 	//necessary for mouse input, start keypad, read all mouse events
 	stdscr.Keypad(true)
@@ -144,7 +155,7 @@ func notifier(screen *ncurses.Window, message <-chan string) {
 
 			//win, _ := ncurses.NewWindow(3, 20, 1, width-20)
 
-			timeout := time.After(time.Second * 2)
+			timeout := time.After(time.Second * 3)
 		loop:
 			for tick := range time.Tick(time.Millisecond * 10) {
 				_ = tick
