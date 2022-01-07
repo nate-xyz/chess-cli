@@ -55,64 +55,6 @@ var FriendsMap map[string]bool
 // 	Rating   string `json: "rating"`
 // }
 
-type OngoingGameInfo struct {
-	FullId   string `json: "fullId"`
-	GameID   string `json: "gameId"`
-	FEN      string `json: "fen"`
-	Color    string `json: "color"`
-	LastMove string `json: "lastMove"`
-	Variant  struct {
-		Key  string `json: "key"`
-		Name string `json: "name"`
-	} `json: "variant"`
-	Speed    string `json: "speed"`
-	Perf     string `json: "perf"`
-	Rated    bool   `json: "rated"`
-	Opponent struct {
-		Id       string `json: "id"`
-		Username string `json: "username"`
-		Rating   int    `json: "rating"`
-	} `json: "opponent"`
-	IsMyTurn bool `json: "isMyTurn"`
-}
-
-type ChallengeInfo struct {
-	Id          string `json: "id"`
-	URL         string `json: "url"`
-	Color       string `json: "color"`
-	Direction   string `json: "direction"`
-	TimeControl struct {
-		Increment int    `json: "increment"`
-		Limit     int    `json: "limit"`
-		Show      string `json: "show"`
-		Type      string `json: "type"`
-	} `json: "timeControl"`
-	Variant struct {
-		Key   string `json: "key"`
-		Name  string `json: "name"`
-		Short string `json: "short"`
-	} `json: "variant"`
-	Challenger struct {
-		Id     string `json: "id"`
-		Name   string `json: "name"`
-		Rating int    `json: "rating"`
-		Title  string `json: "title"`
-	} `json: "challenger"`
-	DestUser struct {
-		Id     string `json: "id"`
-		Name   string `json: "name"`
-		Rating int    `json: "rating"`
-		Title  string `json: "title"`
-	} `json: "destUser"`
-	Perf struct {
-		Icon string `json: "icon"`
-		Name string `json: "name"`
-	} `json: "perf"`
-	Rated  bool   `json: "rated"`
-	Speed  string `json: "speed"`
-	Status string `json: "status"`
-}
-
 // type ChallengeInfo struct {
 // 	Id          string         `json: "id"`
 // 	URL         string         `json: "url"`
@@ -135,39 +77,8 @@ type ChallengeInfo struct {
 
 //var JSONresult ChallengeJSON
 
-type CreateChallengeType struct {
-	Type           int
-	Username       string
-	DestUser       string
-	Variant        string
-	VariantIndex   int
-	TimeOption     int
-	ClockLimit     string
-	ClockIncrement string
-	Days           string
-	Rated          string
-	RatedBool      bool
-	Color          string
-	ColorIndex     int
-	MinTurn        float64
-	OpenEnded      bool
-}
-
 var ChallengeId string
 var streamEvent string
-
-type StreamEventType struct {
-	Event string
-	Id    string
-}
-
-type BoardState struct {
-	Type   string
-	Moves  string
-	Status string
-	Rated  bool
-}
-
 var OngoingGames []OngoingGameInfo
 var IncomingChallenges []ChallengeInfo
 var OutgoingChallenges []ChallengeInfo
@@ -175,6 +86,14 @@ var BoardStreamArr []BoardState
 var EventStreamArr []StreamEventType
 var gameStateChan chan BoardState
 var board_state_sig chan bool
+
+var testChallenge = CreateChallengeType{
+	Type:       1,
+	TimeOption: 2,
+	DestUser:   "",
+	Rated:      "false",
+	Color:      "white",
+	Variant:    "standard"}
 
 func StreamBoardState(event_chan chan<- BoardState, board_state_sig chan<- bool, game string, error_message chan<- error) error {
 	//https://lichess.org/api/board/game/stream/{gameId}
@@ -362,14 +281,6 @@ func StreamConsumer(event_chan <-chan StreamEventType, noti chan<- string) {
 		}
 	}
 }
-
-var testChallenge = CreateChallengeType{
-	Type:       1,
-	TimeOption: 2,
-	DestUser:   "",
-	Rated:      "false",
-	Color:      "white",
-	Variant:    "standard"}
 
 //create a challenge against a specific user or get the url
 func CreateChallenge(challenge CreateChallengeType) (error, string) {

@@ -36,12 +36,7 @@ var Scopes = []string{
 	"board:play",
 }
 
-type UserConfig struct {
-	ApiToken string
-}
-
 var UserInfo = UserConfig{ApiToken: ""}
-
 var AuthURL string = fmt.Sprintf("%s/oauth", hostUrl)
 var TokenURL string = fmt.Sprintf("%s/api/token", hostUrl)
 var RedirectURL string

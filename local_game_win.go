@@ -10,18 +10,6 @@ import (
 	"github.com/notnil/chess"
 )
 
-// //      888 d8b                   888                            d8b           .d888
-// //      888 Y8P                   888                            Y8P          d88P"
-// //      888                       888                                         888
-// //  .d88888 888 .d8888b  88888b.  888  8888b.  888  888          888 88888b.  888888 .d88b.
-// // d88" 888 888 88K      888 "88b 888     "88b 888  888          888 888 "88b 888   d88""88b
-// // 888  888 888 "Y8888b. 888  888 888 .d888888 888  888          888 888  888 888   888  888
-// // Y88b 888 888      X88 888 d88P 888 888  888 Y88b 888          888 888  888 888   Y88..88P
-// //  "Y88888 888  88888P' 88888P"  888 "Y888888  "Y88888 88888888 888 888  888 888    "Y88P"
-// //                       888                        888
-// //                       888                   Y8b d88P
-// //                       888                    "Y88P"
-
 func display_info(info_window *ncurses.Window) {
 	height, width := info_window.MaxYX()
 
@@ -81,16 +69,6 @@ func display_info(info_window *ncurses.Window) {
 	status_str = ""
 }
 
-// //          88  88                          88                                     88           88
-// //          88  ""                          88                                     88           ""               ,d
-// //          88                              88                                     88                            88
-// //  ,adPPYb,88  88  ,adPPYba,  8b,dPPYba,   88  ,adPPYYba,  8b       d8            88,dPPYba,   88  ,adPPYba,  MM88MMM  ,adPPYba,   8b,dPPYba,  8b       d8
-// // a8"    `Y88  88  I8[    ""  88P'    "8a  88  ""     `Y8  `8b     d8'            88P'    "8a  88  I8[    ""    88    a8"     "8a  88P'   "Y8  `8b     d8'
-// // 8b       88  88   `"Y8ba,   88       d8  88  ,adPPPPP88   `8b   d8'             88       88  88   `"Y8ba,     88    8b       d8  88           `8b   d8'
-// // "8a,   ,d88  88  aa    ]8I  88b,   ,a8"  88  88,    ,88    `8b,d8'              88       88  88  aa    ]8I    88,   "8a,   ,a8"  88            `8b,d8'
-// //  `"8bbdP"Y8  88  `"YbbdP"'  88`YbbdP"'   88  `"8bbdP"Y8      Y88'               88       88  88  `"YbbdP"'    "Y888  `"YbbdP"'   88              Y88'
-// //                             88                               d8'                                                                                 d8'
-// //                             88                              d8'     888888888888                                                                d8'
 func display_history(history_window *ncurses.Window) {
 	height, width := history_window.MaxYX()
 
@@ -118,14 +96,6 @@ func display_history(history_window *ncurses.Window) {
 	}
 }
 
-// //      888                                       888                                    888
-// //      888                                       888                                    888
-// //      888                                       888                                    888
-// //  .d88888 888d888 8888b.  888  888  888         88888b.   .d88b.   8888b.  888d888 .d88888
-// // d88" 888 888P"      "88b 888  888  888         888 "88b d88""88b     "88b 888P"  d88" 888
-// // 888  888 888    .d888888 888  888  888         888  888 888  888 .d888888 888    888  888
-// // Y88b 888 888    888  888 Y88b 888 d88P         888 d88P Y88..88P 888  888 888    Y88b 888
-// //  "Y88888 888    "Y888888  "Y8888888P" 88888888 88888P"   "Y88P"  "Y888888 888     "Y88888
 func draw_board(board_window *ncurses.Window) {
 	height, width := board_window.MaxYX()
 	board_FEN := game.Position().String()
