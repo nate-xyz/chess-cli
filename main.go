@@ -1,5 +1,8 @@
 package main
 
+// #include <sys/ioctl.h>
+import "C"
+
 import (
 	"fmt"
 	"log"
@@ -9,6 +12,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"unsafe"
 
 	ncurses "github.com/nate-xyz/goncurses_"
 	"github.com/notnil/chess"
@@ -20,6 +24,8 @@ var sigs chan os.Signal
 var noti_message chan string
 var error_message chan error
 var ready chan struct{}
+var curChallenge CreateChallengeType
+var waiting_alert chan StreamEventType
 
 // var quit_stream chan bool
 // var stream_done chan struct{}
@@ -452,4 +458,27 @@ func ncurses_print_error(screen *ncurses.Window, message <-chan error) {
 			//os.Exit(1)
 		}
 	}
+}
+
+func getMaxLenStr(arr []string) int {
+	max_len := 0
+	for _, str := range arr {
+		if max_len < len(str) {
+			max_len = len(str)
+		}
+	}
+	return max_len
+}
+
+func osTermSize() (int, int, error) {
+	w := &C.struct_winsize{}
+	res, _, err := syscall.Syscall(syscall.SYS_IOCTL,
+		uintptr(syscall.Stdin),
+		uintptr(syscall.TIOCGWINSZ),
+		uintptr(unsafe.Pointer(w)),
+	)
+	if int(res) == -1 {
+		return 0, 0, err
+	}
+	return int(w.ws_row), int(w.ws_col), nil
 }

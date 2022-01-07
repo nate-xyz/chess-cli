@@ -1,14 +1,9 @@
 package main
 
-// #include <sys/ioctl.h>
-import "C"
-
 import (
 	"fmt"
 	"os"
-	"syscall"
 	"time"
-	"unsafe"
 
 	ncurses "github.com/nate-xyz/goncurses_"
 )
@@ -699,9 +694,6 @@ func create_game(screen *ncurses.Window) int {
 	}
 }
 
-var curChallenge CreateChallengeType
-var waiting_alert chan StreamEventType
-
 func lichess_game_wait(screen *ncurses.Window) int {
 	//svar key ncurses.Key
 	screen.Clear()
@@ -955,26 +947,4 @@ func lichess_game(screen *ncurses.Window) int {
 			}
 		}
 	}
-}
-func getMaxLenStr(arr []string) int {
-	max_len := 0
-	for _, str := range arr {
-		if max_len < len(str) {
-			max_len = len(str)
-		}
-	}
-	return max_len
-}
-
-func osTermSize() (int, int, error) {
-	w := &C.struct_winsize{}
-	res, _, err := syscall.Syscall(syscall.SYS_IOCTL,
-		uintptr(syscall.Stdin),
-		uintptr(syscall.TIOCGWINSZ),
-		uintptr(unsafe.Pointer(w)),
-	)
-	if int(res) == -1 {
-		return 0, 0, err
-	}
-	return int(w.ws_row), int(w.ws_col), nil
 }
