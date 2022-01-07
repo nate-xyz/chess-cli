@@ -26,27 +26,31 @@ if libraries are missing: go mod tidy
 - [x] local game screen handler
 
 ### lichess
-- [ ] get lichess requests working? wip
-  - [x] get profile info ✓
-  - [x] get challenges
-  - [ ] make challenges
-    - [x] create a challenge (specific user)
-    - [ ] create an open-ended challenge
-    - [ ] create a seek (random user)
-    - [ ] challenge the ai
-  - [ ] list of ongoing games
-    - [x] request
-    - [ ] screen
+
+- [ ] oauth
+  - [x] get oauth working ✓
+  - [ ] check if token is expired and get new one if so
+- [ ] api
+  - [ ] get lichess requests working? wip
+    - [x] get profile info ✓
+    - [x] get challenges
+    - [ ] make challenges
+      - [x] create a challenge (specific user)
+      - [ ] create an open-ended challenge
+      - [ ] create a seek (random user)
+      - [ ] challenge the ai
+    - [ ] list of ongoing games
+      - [x] request
+      - [ ] screen
+   - [x] stream incoming events
+     - [x] start as goroutine initially in main and implement notifications for every screen
+- [ ] game client
+  - [x] screen handler at different depth? maybe a generic handler with functions passed as parameters
+    - [x] implemented lichess screen handler
   - [ ] (after challenge or join ongoing game) lichess game screen w/ working request loop and translation of move sequence into FEN string
     - [ ] tranlate move sequence into FEN w local chess lib
     - [ ] update FEN on board event from stream
     - [ ] make move
- - [x] stream incoming events
-   - [x] start as goroutine initially in main and implement notifications for every screen
-- [x] get oauth working ✓
-- [x] screen handler at different depth? maybe a generic handler with functions passed as parameters
-  - [x] implemented lichess screen handler
-
 
 ### ai
 - [ ] get stockfish working through lichess? wip
