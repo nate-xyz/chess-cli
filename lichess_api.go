@@ -10,13 +10,6 @@ import (
 	"strings"
 )
 
-var UserEmail string
-var Username string
-var UserProfile map[string]interface{}
-var UserFriends string
-var allFriends []string
-var FriendsMap map[string]bool
-
 //var Challenge map[string]interface{}
 
 // type TimeInfo struct {
@@ -76,24 +69,6 @@ var FriendsMap map[string]bool
 // }
 
 //var JSONresult ChallengeJSON
-
-var ChallengeId string
-var streamEvent string
-var OngoingGames []OngoingGameInfo
-var IncomingChallenges []ChallengeInfo
-var OutgoingChallenges []ChallengeInfo
-var BoardStreamArr []BoardState
-var EventStreamArr []StreamEventType
-var gameStateChan chan BoardState
-var board_state_sig chan bool
-
-var testChallenge = CreateChallengeType{
-	Type:       1,
-	TimeOption: 2,
-	DestUser:   "",
-	Rated:      "false",
-	Color:      "white",
-	Variant:    "standard"}
 
 func StreamBoardState(event_chan chan<- BoardState, board_state_sig chan<- bool, game string, error_message chan<- error) error {
 	//https://lichess.org/api/board/game/stream/{gameId}

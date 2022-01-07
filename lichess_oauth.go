@@ -19,31 +19,6 @@ import (
 
 //TODO: check if token is expired
 
-var hostUrl string = "https://lichess.org"
-var ClientID string = "chess-cli"
-var Scopes = []string{
-	"preference:read",
-	"preference:write",
-	"email:read",
-	"challenge:read",
-	"challenge:write",
-	"challenge:bulk",
-	"study:read",
-	"study:write",
-	"puzzle:read",
-	"follow:write",
-	"msg:write",
-	"board:play",
-}
-
-var UserInfo = UserConfig{ApiToken: ""}
-var AuthURL string = fmt.Sprintf("%s/oauth", hostUrl)
-var TokenURL string = fmt.Sprintf("%s/api/token", hostUrl)
-var RedirectURL string
-var redirectPort int
-var json_path = "user_config.json"
-var stream_channel chan StreamEventType
-
 func do_oauth() {
 	err := checkForJSON()
 	if err != nil {
