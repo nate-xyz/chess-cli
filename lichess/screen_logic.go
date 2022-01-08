@@ -3,10 +3,12 @@ package lichess
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	. "github.com/nate-xyz/chess-cli/shared"
 	ncurses "github.com/nate-xyz/goncurses_"
+	"github.com/notnil/chess"
 )
 
 func LichessWelcome(screen *ncurses.Window) int {
@@ -28,25 +30,33 @@ func LichessWelcome(screen *ncurses.Window) int {
 				err := GetEmail()
 				if err != nil {
 					fmt.Printf("%s\n", err)
-					UserEmail = "could not retrieve email"
+					NotiMessage <- "could not retrieve email"
+					time.Sleep(time.Second * 5)
+					os.Exit(1)
 				}
 			}
 			if Username == "" {
 				err := GetUsername()
 				if err != nil {
 					fmt.Printf("%s\n", err)
-					UserEmail = "could not retrieve username"
+					NotiMessage <- "could not retrieve username"
+					time.Sleep(time.Second * 5)
+					os.Exit(1)
 				}
 			}
 			err := GetChallenges()
 			if err != nil {
 				ErrorMessage <- fmt.Errorf("unable to retrieve challenges: %v", err)
+				time.Sleep(time.Second * 5)
+				os.Exit(1)
 			} else {
 				NotiMessage <- fmt.Sprintf("retrieved challenges")
 			}
 			err = GetOngoingGames()
 			if err != nil {
 				ErrorMessage <- fmt.Errorf("unable to retrieve ongoing games: %v", err)
+				time.Sleep(time.Second * 5)
+				os.Exit(1)
 			} else {
 				NotiMessage <- fmt.Sprintf("retrieved ongoing games")
 			}
@@ -59,6 +69,7 @@ func LichessWelcome(screen *ncurses.Window) int {
 	//ticker := time.NewTicker(time.Second)
 	ticker := time.NewTicker(time.Millisecond * 500)
 	LoadingScreen(screen, loading_msg)
+
 blocking_loop:
 	for {
 		select {
@@ -555,129 +566,49 @@ func CreateLichessGame(screen *ncurses.Window) int {
 	}
 }
 
-func WaitForLichessGameResponse(screen *ncurses.Window) int {
-	//svar key ncurses.Key
-	screen.Clear()
-	//height, width := screen.MaxYX()
+// case e := <-StreamChannelForWaiter:
+// 	if e.Id == localid {
+// 		NotiMessage <- fmt.Sprintf("(stream channel)  event id: %v", e.Id)
+// 		ErrorMessage <- fmt.Errorf("(stream channel)  event id: %v", e.Id)
+// 		load_msg = fmt.Sprintf("(stream channel) load event: %v!!!", e.Event)
+// 		screen.Clear()
+// 		screen.Refresh()
+// 		LoadingScreen(screen, load_msg)
+// 		currentGameID = e.Id
+// 		//call stream board state
+// 		// gameStateChan = make(chan BoardState, 1)
+// 		// board_state_sig = make(chan bool, 1)
+// 		// go StreamBoardState(gameStateChan, board_state_sig, e.Id, ErrorMessage)
+// 		// go BoardConsumer(gameStateChan, NotiMessage)
 
-	//done := make(chan struct{})
+// 		//time.Sleep(time.Second * 5)
+// 		return 6
+// 	} else {
+// 		NotiMessage <- fmt.Sprintf("event %v is not your game, it is %v (waiting for %v)", e.Id, e.Event, localid)
+// 	}
+
+func WaitForLichessGameResponse(screen *ncurses.Window) int {
+	screen.Clear()
+
 	var localid string
 	getgameid := make(chan string, 1)
 	ticker := time.NewTicker(time.Second)
 
-	go func(gchan chan<- string) {
-		if UserInfo.ApiToken != "" {
-			NotiMessage <- fmt.Sprintf("type is %v", CurrentChallenge.Type)
-			switch CurrentChallenge.Type {
-			case 0: //random seek
-				//TODO: api call CREATE A SEEK
-				NotiMessage <- fmt.Sprintf("creating a random seek")
-			case 1: //challenge friend
-
-				if CurrentChallenge.OpenEnded {
-					NotiMessage <- fmt.Sprintf("creating an open ended challenge")
-					//TODO: api call CREATE A OPEN END CHALLENGE
-
-				} else {
-					// api call CREATE A CHALLENGE
-					NotiMessage <- fmt.Sprintf("creating a challenge")
-
-					err, id := CreateChallenge(CurrentChallenge)
-					if err != nil {
-						ErrorMessage <- err
-						//os.Exit(1)
-					} else {
-						NotiMessage <- fmt.Sprintf("posted challenge, id: %v", id)
-					}
-					gchan <- id
-				}
-			case 2: //lichess ai
-				NotiMessage <- fmt.Sprintf("challenging the lichess ai")
-				//TODO: api call CHALLENGE THE AI
-			}
-		} else {
-			ErrorMessage <- fmt.Errorf("no token")
-		}
-		//close(done)
-	}(getgameid)
+	//send the request
+	go sendApiRequest(getgameid)
 	NotiMessage <- fmt.Sprintf("sent goroutine ")
-	// load_msg := "requesting game from lichess ... "
-	// LoadingScreen(screen, load_msg)
-	// blocking_loop:
-	// 	for {
-	// 		select {
-	// 		case <-Sigs:
-	// 			tRow, tCol, _ := OsTermSize()
-	// 			ncurses.ResizeTerm(tRow, tCol)
-	// 			LoadingScreen(screen, load_msg)
-	// 		case <-ticker.C:
-	// 			LoadingScreen(screen, load_msg)
-	// 		case <-done:
-	// 			break blocking_loop
-	// 		}
 
-	// 	}
-	//load_msg = fmt.Sprintf("waiting for stream event from lichess...")
 	load_msg := "requesting game from lichess ... "
 	LoadingScreen(screen, load_msg)
 
-	// defer func() { //block on close
-	// 	GameWaiter = false
-	// }()
-
 	for {
 		select {
-		// case <-stream_done:
-		// 	load_msg = fmt.Sprintf("stream closed")
-		// 	LoadingScreen(screen, load_msg)
 		case id := <-getgameid:
 			NotiMessage <- fmt.Sprintf("event %v retrieved from channel", id)
 			localid = id
-			s, b := containedInEventStream(EventStreamArr, id)
 
-			if b {
-				switch s {
-				case "challenge":
-					NotiMessage <- fmt.Sprintf("event: %v:%v", id, s)
-					load_msg = fmt.Sprintf("waiting for %v to accept the challenge %v/%v.", CurrentChallenge.DestUser, hostUrl, id)
-					NotiMessage <- load_msg
-				case "gameFinish":
-					NotiMessage <- fmt.Sprintf("event %v wrong type s", s)
-
-					time.Sleep(time.Second * 3)
-
-					return 2
-				case "challengeCanceled", "challengeDeclined":
-					NotiMessage <- fmt.Sprintf("challenge rejected: %v", s)
-					ErrorMessage <- fmt.Errorf("challenge rejected: %v", s)
-
-					time.Sleep(time.Second * 3)
-					return 2
-				case "gameStart":
-					NotiMessage <- fmt.Sprintf("(direct from challenge) event id: %v", id)
-					load_msg = fmt.Sprintf("(direct from challenge) load event: %v!!!", s)
-					LoadingScreen(screen, load_msg)
-					currentGameID = id
-					//call stream board state
-					gameStateChan = make(chan BoardState, 1)
-					board_state_sig = make(chan bool, 1)
-					go StreamBoardState(gameStateChan, board_state_sig, id, ErrorMessage)
-					go BoardConsumer(gameStateChan, NotiMessage)
-
-					time.Sleep(time.Second * 2)
-					return 6
-				}
-			} else {
-				load_msg = fmt.Sprintf("waiting for %v to accept the challenge %v/%v.", CurrentChallenge.DestUser, hostUrl, id)
-
-				NotiMessage <- fmt.Sprintf("event %v not in stream ... waiting", id)
-
-				time.Sleep(time.Second * 3)
-				//return 2
-			}
-		case e := <-StreamChannel:
+		case e := <-StreamChannel: // receive event directly
 			EventStreamArr = append([]StreamEventType{e}, EventStreamArr...)
-
 			if e.Id == localid {
 				NotiMessage <- fmt.Sprintf("(stream channel)  event id: %v", e.Id)
 				ErrorMessage <- fmt.Errorf("(stream channel)  event id: %v", e.Id)
@@ -686,33 +617,9 @@ func WaitForLichessGameResponse(screen *ncurses.Window) int {
 				screen.Refresh()
 				LoadingScreen(screen, load_msg)
 				currentGameID = e.Id
-				//call stream board state
-				gameStateChan = make(chan BoardState, 1)
-				board_state_sig = make(chan bool, 1)
-				go StreamBoardState(gameStateChan, board_state_sig, e.Id, ErrorMessage)
-				go BoardConsumer(gameStateChan, NotiMessage)
-
-				time.Sleep(time.Second * 5)
-				return 6
-			} else {
-				NotiMessage <- fmt.Sprintf("event %v is not your game, it is %v (waiting for %v)", e.Id, e.Event, localid)
-			}
-		case e := <-StreamChannelForWaiter:
-			if e.Id == localid {
-				NotiMessage <- fmt.Sprintf("(stream channel)  event id: %v", e.Id)
-				ErrorMessage <- fmt.Errorf("(stream channel)  event id: %v", e.Id)
-				load_msg = fmt.Sprintf("(stream channel) load event: %v!!!", e.Event)
+				//time.Sleep(time.Second * 2)
 				screen.Clear()
 				screen.Refresh()
-				LoadingScreen(screen, load_msg)
-				currentGameID = e.Id
-				//call stream board state
-				gameStateChan = make(chan BoardState, 1)
-				board_state_sig = make(chan bool, 1)
-				go StreamBoardState(gameStateChan, board_state_sig, e.Id, ErrorMessage)
-				go BoardConsumer(gameStateChan, NotiMessage)
-
-				time.Sleep(time.Second * 5)
 				return 6
 			} else {
 				NotiMessage <- fmt.Sprintf("event %v is not your game, it is %v (waiting for %v)", e.Id, e.Event, localid)
@@ -724,44 +631,67 @@ func WaitForLichessGameResponse(screen *ncurses.Window) int {
 			LoadingScreen(screen, load_msg)
 		case <-ticker.C:
 			if localid != "" {
-				NotiMessage <- fmt.Sprintf("event %v not in stream ... waiting", localid)
-			} else {
-				NotiMessage <- fmt.Sprintf("ticker")
+				s, b := containedInEventStream(EventStreamArr, localid)
+				if b {
+					switch s {
+					case "challenge":
+						NotiMessage <- fmt.Sprintf("event: %v:%v", localid, s)
+						load_msg = fmt.Sprintf("waiting for %v to accept the challenge %v/%v.", CurrentChallenge.DestUser, hostUrl, localid)
+						NotiMessage <- load_msg
+					case "gameFinish":
+						NotiMessage <- fmt.Sprintf("event %v wrong type s", s)
+						//time.Sleep(time.Second * 3)
+						return 2
+					case "challengeCanceled", "challengeDeclined":
+						NotiMessage <- fmt.Sprintf("challenge rejected: %v", s)
+						ErrorMessage <- fmt.Errorf("challenge rejected: %v", s)
+						//time.Sleep(time.Second * 3)
+						return 2
+					case "gameStart":
+						NotiMessage <- fmt.Sprintf("(direct from challenge) event id: %v", localid)
+						load_msg = fmt.Sprintf("(direct from challenge) load event: %v!!!", s)
+						LoadingScreen(screen, load_msg)
+						currentGameID = localid
+						//time.Sleep(time.Second * 3)
+						screen.Clear()
+						screen.Refresh()
+						return 6
+					}
+				} else {
+					load_msg = fmt.Sprintf("waiting for %v to accept the challenge %v/%v.", CurrentChallenge.DestUser, hostUrl, localid)
+					NotiMessage <- fmt.Sprintf("event %v not in stream ... waiting", localid)
+					//time.Sleep(time.Second * 3)
+				}
 			}
-
-			//load_msg = fmt.Sprintf("waiting for stream event from lichess...")
 			LoadingScreen(screen, load_msg)
-			// case <-done: //normal character loop here
-			// 	key = screen.GetChar()
-			// 	switch key {
-			// 	case CtrlO_Key, OneKey, ZeroKey:
-			// 		UserInputString = ""
-			// 		EnteredPromptStr = ""
-			// 		HasEnteredMove = false
-			// 		if key == CtrlO_Key {
-			// 			return 5
-			// 		} else if key == OneKey {
-			// 			return 1
-			// 		} else {
-			// 			return 0
-			// 		}
-			// 	}
+		default:
 		}
 		screen.Refresh()
 	}
 }
 
+var streamed_move_sequence chan string
+
 //screen for drawing, initialFEN for custom starting positions, and gameID for verifying streamed events
 func LichessGameScreen(screen *ncurses.Window, gameID string) int {
 	var key ncurses.Key
 	screen.Clear()
+	screen.Refresh()
 	height, width := screen.MaxYX()
 	var currentFEN string
+
+	//call stream board state
+	gameStateChan = make(chan BoardState, 1)
+	//board_state_sig = make(chan bool, 1)
+	streamed_move_sequence = make(chan string, 1)
+	go BoardConsumer(gameStateChan, NotiMessage)
+	go StreamBoardState(gameStateChan, gameID, ErrorMessage, streamed_move_sequence)
+
 	//start windows
-	bw_info := WinInfo{(height / 4) * 3, width / 2, 0, 0}
-	iw_info := WinInfo{(height / 4) - 1, width / 2, (height / 4) * 3, 0}
-	pw_info := WinInfo{height / 2, width / 2, 0, width / 2}
-	hw_info := WinInfo{(height / 2) - 1, width / 2, height / 2, width / 2}
+	bw_info := WinInfo{H: (height / 4) * 3, W: width / 2, Y: 0, X: 0}
+	iw_info := WinInfo{H: (height / 4) - 1, W: width / 2, Y: (height / 4) * 3, X: 0}
+	pw_info := WinInfo{H: height / 2, W: width / 2, Y: 0, X: width / 2}
+	hw_info := WinInfo{H: (height / 2) - 1, W: width / 2, Y: height / 2, X: width / 2}
 
 	board_window, _ := ncurses.NewWindow(bw_info.H, bw_info.W, bw_info.Y, bw_info.X)
 	prompt_window, _ := ncurses.NewWindow(pw_info.H, pw_info.W, pw_info.Y, pw_info.X)
@@ -771,14 +701,18 @@ func LichessGameScreen(screen *ncurses.Window, gameID string) int {
 	windows_array := [4]*ncurses.Window{board_window, info_window, prompt_window, history_window}
 	windows_info_arr := [4]WinInfo{bw_info, iw_info, pw_info, hw_info}
 
+	//draw initial screen
 	DrawLichessGame(screen, key, windows_array, windows_info_arr)
-
 	for {
 		select {
-		case <-board_state_sig:
-			//get updated board position from board event
-
-			time.Sleep(time.Second)
+		case <-gameStateChan:
+			return 1
+		case s := <-streamed_move_sequence:
+			ncurses.End()
+			NotiMessage <- s
+			currentFEN = move_translation(s)
+			ncurses.Flash()
+			ncurses.Beep()
 		case <-Sigs:
 			tRow, tCol, _ := OsTermSize()
 			ncurses.ResizeTerm(tRow, tCol)
@@ -787,7 +721,6 @@ func LichessGameScreen(screen *ncurses.Window, gameID string) int {
 			//external function calls
 			UpdateInput(prompt_window, key)
 			if LichessGameLogic(board_window) {
-				<-Ready
 				os.Exit(0) //game done no post lichess screen tho
 			}
 			DrawBoardWindow(board_window, currentFEN)
@@ -816,5 +749,70 @@ func LichessGameScreen(screen *ncurses.Window, gameID string) int {
 				}
 			}
 		}
+	}
+}
+
+func BoardConsumer(event_chan <-chan BoardState, noti chan<- string) {
+	for {
+		select {
+		case e := <-event_chan:
+			//fmt.Printf("consumer: %v %v \n", e.Event, e.Id)
+			BoardStreamArr = append([]BoardState{e}, BoardStreamArr...)
+			noti <- fmt.Sprintf("event %v", e.Type)
+		}
+	}
+}
+
+func move_translation(sequence string) string {
+	sequence_array := strings.Split(sequence, " ")
+	game := chess.NewGame(chess.UseNotation(chess.UCINotation{}))
+
+	for _, move := range sequence_array {
+		if game.Outcome() == chess.NoOutcome {
+			if err := game.MoveStr(move); err != nil {
+				// handle error
+				fmt.Printf("%v\n", err)
+			}
+			continue
+		}
+		break
+	}
+	return game.Position().String()
+}
+
+func sendApiRequest(gchan chan<- string) {
+	if UserInfo.ApiToken != "" {
+		NotiMessage <- fmt.Sprintf("type is %v", CurrentChallenge.Type)
+		switch CurrentChallenge.Type {
+		case 0: //random seek
+			//TODO: api call CREATE A SEEK
+			NotiMessage <- fmt.Sprintf("creating a random seek")
+		case 1: //challenge friend
+
+			if CurrentChallenge.OpenEnded {
+				NotiMessage <- fmt.Sprintf("creating an open ended challenge")
+				//TODO: api call CREATE A OPEN END CHALLENGE
+
+			} else {
+				// api call CREATE A CHALLENGE
+				NotiMessage <- fmt.Sprintf("creating a challenge")
+
+				err, id := CreateChallenge(CurrentChallenge)
+				if err != nil {
+					ErrorMessage <- err
+					gchan <- fmt.Sprintf("%v", err)
+					//os.Exit(1)
+				} else {
+					NotiMessage <- fmt.Sprintf("posted challenge, id: %v", id)
+					gchan <- id
+				}
+
+			}
+		case 2: //lichess ai
+			NotiMessage <- fmt.Sprintf("challenging the lichess ai")
+			//TODO: api call CHALLENGE THE AI
+		}
+	} else {
+		ErrorMessage <- fmt.Errorf("no token")
 	}
 }

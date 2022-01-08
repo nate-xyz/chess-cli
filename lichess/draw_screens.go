@@ -296,17 +296,11 @@ func DrawLichessGame(stdscr *ncurses.Window, key ncurses.Key, windows_array [4]*
 	stdscr.Clear()
 	height, width := stdscr.MaxYX()
 
-	//update window dimensions
-	// windows_info_arr[0] = WinInfo{(height / 4) * 3, width / 2, 0, 0}
-	// windows_info_arr[1] = WinInfo{height / 2, width / 2, 0, width / 2}
-	// windows_info_arr[2] = WinInfo{(height / 4) - 1, width / 2, (height / 4) * 3, 0}
-	// windows_info_arr[3] = WinInfo{(height / 2) - 1, width / 2, height / 2, width / 2}
-
 	//h, w, y, x
-	windows_info_arr[0] = WinInfo{height / 2, width, 0, 0}                                           //bw
-	windows_info_arr[1] = WinInfo{(height / 2) - 1, width / 2, (height / 2), 0}                      //iw
-	windows_info_arr[2] = WinInfo{(height / 4) - 1, width / 2, height / 2, width / 2}                //pw
-	windows_info_arr[3] = WinInfo{(height / 4), width / 2, int(float64(height)*0.75) - 1, width / 2} //hw
+	windows_info_arr[0] = WinInfo{H: height / 2, W: width, Y: 0, X: 0}                                           //bw
+	windows_info_arr[1] = WinInfo{H: (height / 2) - 1, W: width / 2, Y: (height / 2), X: 0}                      //iw
+	windows_info_arr[2] = WinInfo{H: (height / 4) - 1, W: width / 2, Y: height / 2, X: width / 2}                //pw
+	windows_info_arr[3] = WinInfo{H: (height / 4), W: width / 2, Y: int(float64(height)*0.75) - 1, X: width / 2} //hw
 
 	//Clear, refresh, update all windows
 	for i, win := range windows_array {

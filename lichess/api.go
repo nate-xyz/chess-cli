@@ -8,12 +8,13 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	. "github.com/nate-xyz/chess-cli/shared"
 	//	. "github.com/nate-xyz/chess-cli/shared"
 )
 
-func StreamBoardState(event_chan chan<- BoardState, board_state_sig chan<- bool, game string, ErrorMessage chan<- error) error {
+func StreamBoardState(event_chan chan<- BoardState, game string, ErrorMessage chan<- error, move_seq chan<- string) error {
 	//https://lichess.org/api/board/game/stream/{gameId}
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/board/game/stream/%s", hostUrl, game), nil)
 	NotiMessage <- fmt.Sprintf(fmt.Sprintf("board stream started at %s/api/board/game/stream/%s", hostUrl, game))
@@ -55,11 +56,13 @@ func StreamBoardState(event_chan chan<- BoardState, board_state_sig chan<- bool,
 					log.Fatal(err)
 					ErrorMessage <- fmt.Errorf("decode error, not EOF: %v", err)
 					//fmt.Printf("decode error, not EOF\n")
-
+				} else {
+					ErrorMessage <- fmt.Errorf("decode error, EOF: %v", err)
+					//fmt.Printf("decode error, EOF\n")
+					time.Sleep(1)
+					close(event_chan)
+					return nil
 				}
-				ErrorMessage <- fmt.Errorf("decode error, EOF: %v", err)
-				//fmt.Printf("decode error, EOF\n")
-				continue
 			}
 
 			// Type   string
@@ -71,6 +74,7 @@ func StreamBoardState(event_chan chan<- BoardState, board_state_sig chan<- bool,
 				streamEvent = responseData["type"].(string)
 				var bevent BoardState
 				bevent.Type = streamEvent
+				bevent.Moves = ""
 				switch streamEvent {
 				case "gameFull":
 					NotiMessage <- fmt.Sprintf("got a gamestate")
@@ -78,17 +82,20 @@ func StreamBoardState(event_chan chan<- BoardState, board_state_sig chan<- bool,
 					state := responseData["state"].(map[string]interface{})
 					bevent.Moves = state["moves"].(string)
 					bevent.Status = state["status"].(string)
-					board_state_sig <- true
+					//board_state_sig <- true
 				case "gameState":
 					NotiMessage <- fmt.Sprintf("got a gamestate")
 					bevent.Moves = responseData["moves"].(string)
 					bevent.Status = responseData["status"].(string)
-					board_state_sig <- true
+					//board_state_sig <- true
 				case "chatLine":
 					//TODO
 
 				}
 
+				if bevent.Moves == "" {
+					move_seq <- bevent.Moves
+				}
 				event_chan <- bevent
 
 				//fmt.Printf("%v\n", StreamEventID)
@@ -97,17 +104,6 @@ func StreamBoardState(event_chan chan<- BoardState, board_state_sig chan<- bool,
 				ErrorMessage <- fmt.Errorf("no type in stream event")
 				return fmt.Errorf("no type in stream event")
 			}
-		}
-	}
-}
-
-func BoardConsumer(event_chan <-chan BoardState, noti chan<- string) {
-	for {
-		select {
-		case e := <-event_chan:
-			//fmt.Printf("consumer: %v %v \n", e.Event, e.Id)
-			BoardStreamArr = append([]BoardState{e}, BoardStreamArr...)
-			noti <- fmt.Sprintf("event %v", e.Type)
 		}
 	}
 }
@@ -173,9 +169,7 @@ func StreamEvent(event_chan chan<- StreamEventType, got_token chan struct{}) err
 				return fmt.Errorf("no type in stream event")
 			}
 		}
-		NotiMessage <- "stream still open"
-		//fmt.Printf("end loop %v\n", loop_i)
-		//loop_i++
+		//NotiMessage <- "stream still open"
 	}
 }
 
@@ -185,7 +179,7 @@ func StreamConsumer(event_chan <-chan StreamEventType, noti chan<- string) {
 		case e := <-event_chan:
 			//fmt.Printf("consumer: %v %v \n", e.Event, e.Id)
 			EventStreamArr = append([]StreamEventType{e}, EventStreamArr...)
-			StreamChannelForWaiter <- e
+			//StreamChannelForWaiter <- e
 			if e.Event != "gameStart" {
 				noti <- fmt.Sprintf("event %v:%v", e.Event, e.Id)
 			} else {
@@ -211,7 +205,7 @@ func CreateChallenge(challenge CreateChallengeType) (error, string) {
 			"rated":           {challenge.Rated},
 			"clock.limit":     {challenge.ClockLimit},
 			"clock.increment": {challenge.ClockIncrement},
-			"color":           {challenge.Color},
+			"color":           {challenge.Color}, //enum: 0, 1, or 2
 			"variant":         {challenge.Variant},
 			"keepAliveStream": {"true"},
 		}
