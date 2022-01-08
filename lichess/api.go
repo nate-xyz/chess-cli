@@ -586,3 +586,101 @@ func GetFriends() error {
 	}
 
 }
+
+func CreateAiChallenge(challenge CreateAiChallengeType) (error, string) {
+	requestUrl := fmt.Sprintf("%s/api/challenge/ai", hostUrl)
+	var reqParam url.Values
+
+	reqParam = url.Values{
+		"level":           {challenge.Level},
+		"clock.limit":     {challenge.ClockLimit},
+		"clock.increment": {challenge.ClockIncrement},
+		"days":            {challenge.DaysPerTurn},
+		"color":           {challenge.Color},
+		"variant":         {challenge.Variant},
+		"fen":             {challenge.Fen},
+	}
+
+	NotiMessage <- fmt.Sprintf("%s", reqParam)
+	//application/x-www-form-urlencoded
+
+	// create the request and execute it
+	req, err := http.NewRequest("POST", requestUrl, strings.NewReader(reqParam.Encode()))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
+	NotiMessage <- fmt.Sprintf("POST request at %s", requestUrl)
+
+	if err != nil {
+		return err, ""
+	}
+
+	//do http request. must be done in this fashion so we can add the auth bear token headers above
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return err, ""
+	}
+
+	//read resp body
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		err := fmt.Errorf("%v", err)
+		//log.Fatalln(err)
+		return err, ""
+	}
+	defer res.Body.Close()
+
+	//fmt.Printf("%v", res.StatusCode)
+	//fmt.Printf(string(body))
+
+	if res.StatusCode == 400 {
+		err := fmt.Errorf("Challenge creation failed: %v", err)
+		return err, ""
+	}
+	if res.StatusCode != 200 {
+		err := fmt.Errorf("not 200 response: %v", err)
+		return err, ""
+	} else {
+		NotiMessage <- fmt.Sprintf("ai challenge good response: %v", res.StatusCode)
+	}
+	// unmarshal the json into a string map
+	var responseData map[string]interface{}
+	err = json.Unmarshal(body, &responseData)
+	if err != nil {
+		return err, ""
+	}
+
+	// retrieve the access token out of the map, and return to caller
+	if !isNil(responseData["challenge"]) {
+		NotiMessage <- fmt.Sprintf("posted challenge\n")
+		chal := responseData["challenge"].(map[string]interface{})
+		ChallengeId = chal["id"].(string)
+		return nil, ChallengeId
+	}
+	// d := json.NewDecoder(strings.NewReader(string(body)))
+	// for {
+	// 	select {
+	// 	// case <-quit_stream:
+	// 	// 	return nil
+	// 	default:
+	// 		var responseData map[string]map[interface]interface{}
+
+	// 		err := d.Decode(&responseData)
+	// 		if err != nil {
+	// 			if err != io.EOF {
+	// 				log.Fatal(err)
+	// 				return err
+	// 			}
+	// 			continue
+	// 		}
+	// 		if !isNil(responseData["challenge"]) { // retrieve the username out of the map
+	// 			streamEvent = responseData["challenge"]["id"].(string)
+	// 			fmt.Printf(streamEvent)
+	// 			return nil
+	// 		}
+	// 		//fmt.Printf("waiting 2")
+	// 		//return fmt.Errorf("username response interface is nil")
+	// 	}
+	// }
+	return fmt.Errorf("username response interface is nil"), ""
+
+}
