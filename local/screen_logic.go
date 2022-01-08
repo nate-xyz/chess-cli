@@ -11,7 +11,7 @@ func WelcomeScreen(screen *ncurses.Window) ncurses.Key {
 	//start windows
 	//options := []string{"<<press '1' to play locally>>", "<<press '2' to play online>>", "<<press '3' to play stockfish>>", "<<quit>>"}
 
-	options := []string{"play locally", "play online", "play stockfish", "quit", "test"}
+	options := []string{"play locally", "play online", "play stockfish", "quit", "test challenge a friend", "test challenge the ai"}
 	op_info := WinInfo{H: (height / 2) - 4, W: width / 2, Y: (height / 2) + 2, X: width / 4}
 	options_window, _ := ncurses.NewWindow(op_info.H, op_info.W, op_info.Y, op_info.X)
 	windows_array := [1]*ncurses.Window{options_window}
@@ -39,6 +39,8 @@ func WelcomeScreen(screen *ncurses.Window) ncurses.Key {
 				case 3:
 					key = CtrlO_Key
 				case 4:
+					key = TwoKey
+				case 5:
 					key = TwoKey
 				}
 			}
