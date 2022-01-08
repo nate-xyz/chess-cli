@@ -119,7 +119,7 @@ blocking_loop:
 					if option_index == 4 {
 						CurrentChallenge = testChallenge
 					} else {
-						CurrentAiChallenge = testAiChallenge
+						CurrentChallenge = testAiChallenge
 					}
 
 					//LichessScreenHandler(screen, 4)
@@ -817,7 +817,7 @@ func sendApiRequest(gchan chan<- string) {
 		case 2: //lichess ai
 			NotiMessage <- fmt.Sprintf("challenging the lichess ai")
 			//TODO: api call CHALLENGE THE AI
-			err, id := CreateAiChallenge(CurrentAiChallenge)
+			err, id := CreateAiChallenge(CurrentChallenge)
 			if err != nil {
 				ErrorMessage <- err
 				NotiMessage <- fmt.Sprintf("%v", err)
