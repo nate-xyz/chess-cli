@@ -805,8 +805,9 @@ func sendApiRequest(gchan chan<- string) {
 				err, id := CreateChallenge(CurrentChallenge)
 				if err != nil {
 					ErrorMessage <- err
-					gchan <- fmt.Sprintf("%v", err)
-					//os.Exit(1)
+					NotiMessage <- fmt.Sprintf("%v", err)
+					time.Sleep(time.Second * 5)
+					os.Exit(1)
 				} else {
 					NotiMessage <- fmt.Sprintf("posted challenge, id: %v", id)
 					gchan <- id
@@ -819,8 +820,9 @@ func sendApiRequest(gchan chan<- string) {
 			err, id := CreateAiChallenge(CurrentAiChallenge)
 			if err != nil {
 				ErrorMessage <- err
-				gchan <- fmt.Sprintf("%v", err)
-				//os.Exit(1)
+				NotiMessage <- fmt.Sprintf("%v", err)
+				time.Sleep(time.Second * 5)
+				os.Exit(1)
 			} else {
 				NotiMessage <- fmt.Sprintf("posted challenge, id: %v", id)
 				gchan <- id
