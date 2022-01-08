@@ -811,6 +811,7 @@ func sendApiRequest(gchan chan<- string) {
 		case 2: //lichess ai
 			NotiMessage <- fmt.Sprintf("challenging the lichess ai")
 			//TODO: api call CHALLENGE THE AI
+			CreateAiChallenge(CurrentAiChallenge)
 		}
 	} else {
 		ErrorMessage <- fmt.Errorf("no token")
