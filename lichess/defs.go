@@ -3,7 +3,7 @@ package lichess
 import "fmt"
 
 var CurrentChallenge CreateChallengeType
-var CurrentAiChallenge CreateAiChallengeType
+var CurrentAiChallenge CreateChallengeType
 var WaitingAlert chan StreamEventType
 
 //API TYPES
@@ -172,22 +172,23 @@ type CreateChallengeType struct {
 	ColorIndex     int
 	MinTurn        float64
 	OpenEnded      bool
-}
-
-type CreateAiChallengeType struct {
-	Type           int
-	TimeOption     int
 	Level          string
-	ClockLimit     string
-	ClockIncrement string
-	DaysPerTurn    string
-	Days           string
-	Color          string
-	Variant        string
-	Fen            string
 }
 
-var testAiChallenge = CreateAiChallengeType{
+// type CreateAiChallengeType struct {
+// 	Type           int
+// 	TimeOption     int
+// 	Level          string
+// 	ClockLimit     string
+// 	ClockIncrement string
+// 	DaysPerTurn    string
+// 	Days           string
+// 	Color          string
+// 	Variant        string
+// 	Fen            string
+// }
+
+var testAiChallenge = CreateChallengeType{
 	Type:       2,
 	Level:      "1",
 	TimeOption: 2,

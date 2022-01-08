@@ -581,7 +581,7 @@ func GetFriends() error {
 
 }
 
-func CreateAiChallenge(challenge CreateAiChallengeType) (error, string) {
+func CreateAiChallenge(challenge CreateChallengeType) (error, string) {
 	requestUrl := fmt.Sprintf("%s/api/challenge/ai", hostUrl)
 	var reqParam url.Values
 	switch challenge.TimeOption {
