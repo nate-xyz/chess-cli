@@ -175,6 +175,7 @@ type CreateChallengeType struct {
 }
 
 type CreateAiChallengeType struct {
+	Type           int
 	TimeOption     int
 	Level          string
 	ClockLimit     string
@@ -187,6 +188,7 @@ type CreateAiChallengeType struct {
 }
 
 var testAiChallenge = CreateAiChallengeType{
+	Type:       2,
 	Level:      "1",
 	TimeOption: 2,
 	Color:      "black",
