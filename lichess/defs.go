@@ -3,6 +3,7 @@ package lichess
 import "fmt"
 
 var CurrentChallenge CreateChallengeType
+var CurrentAiChallenge CreateAiChallengeType
 var WaitingAlert chan StreamEventType
 
 //API TYPES
@@ -64,6 +65,85 @@ type ChallengeInfo struct {
 	Status string `json: "status"`
 }
 
+type AiChallengeInfo struct {
+	Id         string `json: "id"'`
+	Rated      bool   `json: "rated"`
+	Variant    string `json: "variant"`
+	Speed      string `json: "speed"`
+	Perf       string `json: "perf"`
+	CreatedAt  int    `json: "createdAt"`
+	LastMoveAt int    `json: "lastMoveAt"`
+	Status     string `json: "status"`
+	Players    struct {
+		White struct {
+			User struct {
+				Name   string `json: "name"`
+				Title  string `json: "title"`
+				Patron bool   `json: "patron"`
+				ID     string `json: "id"`
+			}
+			Rating      int    `json: "rating"`
+			RatingDiff  int    `json: "ratingDiff"`
+			Name        string `json: "name"`
+			Provisional bool   `json: "provisional"`
+			AiLevel     int    `json: "aiLevel"`
+			Analysis    struct {
+				Inaccuracy int `json: "inaccuracy"`
+				Mistake    int `json: "mistake"`
+				Blunder    int `json: "blunder"`
+				Acpl       int `json: "acpl"`
+			}
+			Team string `json: "team"`
+		}
+		Black struct {
+			User struct {
+				Name   string `json: "name"`
+				Title  string `json: "title"`
+				Patron bool   `json: "patron"`
+				ID     string `json: "id"`
+			}
+			Rating      int    `json: "rating"`
+			RatingDiff  int    `json: "ratingDiff"`
+			Name        string `json: "name"`
+			Provisional bool   `json: "provisional"`
+			AiLevel     int    `json: "aiLevel"`
+			Analysis    struct {
+				Inaccuracy int `json: "inaccuracy"`
+				Mistake    int `json: "mistake"`
+				Blunder    int `json: "blunder"`
+				Acpl       int `json: "acpl"`
+			}
+			Team string `json: "team"`
+		}
+	}
+	InitialFen string `json: "initialFen"`
+	Winner     string `json: "winner"`
+	Opening    struct {
+		Eco  string `json: "eco"`
+		Name string `json: "name"`
+		Ply  int    `json: "ply"`
+	}
+	Moves       string `json: "moves"`
+	Pgn         string `json: "pgn"`
+	DaysPerTurn int    `json: "daysPerTurn"`
+	Analysis    struct {
+		Eval      int    `json: "eval"`
+		Best      string `json: "best"`
+		Variation string `json: "variation"`
+		Judgement struct {
+			Name    string `json: "name"`
+			Comment string `json: "comment"`
+		}
+	}
+	Tournament string `json: "tournament"`
+	Swiss      string `json: "swiss"`
+	Clock      struct {
+		Initial   int `json: "initial"`
+		Increment int `json: "increment"`
+		TotalTime int `json: "totalTime"`
+	}
+}
+
 type StreamEventType struct {
 	Event string
 	Id    string
@@ -92,6 +172,18 @@ type CreateChallengeType struct {
 	ColorIndex     int
 	MinTurn        float64
 	OpenEnded      bool
+}
+
+type CreateAiChallengeType struct {
+	TimeOption     string
+	Level          string
+	ClockLimit     string
+	ClockIncrement string
+	DaysPerTurn    string
+	Days           string
+	Color          string
+	Variant        string
+	Fen            string
 }
 
 //API VARS
