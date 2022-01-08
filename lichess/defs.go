@@ -3,7 +3,8 @@ package lichess
 import "fmt"
 
 var CurrentChallenge CreateChallengeType
-var CurrentAiChallenge CreateChallengeType
+
+//var CurrentAiChallenge CreateChallengeType
 var WaitingAlert chan StreamEventType
 
 //API TYPES

@@ -157,7 +157,7 @@ func notifier(screen *ncurses.Window, message <-chan string) {
 
 			//win, _ := ncurses.NewWindow(3, 20, 1, width-20)
 
-			timeout := time.After(time.Second * 3)
+			timeout := time.After(time.Second * 1)
 		loop:
 			for tick := range time.Tick(time.Millisecond * 10) {
 				_ = tick
