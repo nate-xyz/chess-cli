@@ -175,7 +175,7 @@ type CreateChallengeType struct {
 }
 
 type CreateAiChallengeType struct {
-	TimeOption     string
+	TimeOption     int
 	Level          string
 	ClockLimit     string
 	ClockIncrement string
@@ -185,6 +185,12 @@ type CreateAiChallengeType struct {
 	Variant        string
 	Fen            string
 }
+
+var testAiChallenge = CreateAiChallengeType{
+	Level:      "1",
+	TimeOption: 2,
+	Color:      "black",
+	Variant:    "standard"}
 
 //API VARS
 var currentGameID string

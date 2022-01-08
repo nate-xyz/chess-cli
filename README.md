@@ -39,6 +39,7 @@ if libraries are missing: go mod tidy
       - [ ] create an open-ended challenge
       - [ ] create a seek (random user)
       - [ ] challenge the ai
+        - [ ] generate CreateAiChallengeType type fields through windows in CreateLichessGame
     - [ ] list of ongoing games
       - [x] request
       - [ ] screen

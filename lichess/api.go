@@ -584,15 +584,33 @@ func GetFriends() error {
 func CreateAiChallenge(challenge CreateAiChallengeType) (error, string) {
 	requestUrl := fmt.Sprintf("%s/api/challenge/ai", hostUrl)
 	var reqParam url.Values
+	switch challenge.TimeOption {
+	case 0: //realtime
+		reqParam = url.Values{
 
-	reqParam = url.Values{
-		"level":           {challenge.Level},
-		"clock.limit":     {challenge.ClockLimit},
-		"clock.increment": {challenge.ClockIncrement},
-		"days":            {challenge.DaysPerTurn},
-		"color":           {challenge.Color},
-		"variant":         {challenge.Variant},
-		"fen":             {challenge.Fen},
+			"level":           {challenge.Level},
+			"clock.limit":     {challenge.ClockLimit},
+			"clock.increment": {challenge.ClockIncrement},
+			"color":           {challenge.Color}, //enum: 0, 1, or 2
+			"variant":         {challenge.Variant},
+			"keepAliveStream": {"true"},
+		}
+	case 1: //corresondesnce
+		reqParam = url.Values{
+			"level":           {challenge.Level},
+			"days":            {challenge.Days},
+			"color":           {challenge.Color},
+			"variant":         {challenge.Variant},
+			"keepAliveStream": {"true"},
+		}
+	case 2: //unlimited
+		reqParam = url.Values{
+			"level":           {challenge.Level},
+			"color":           {challenge.Color},
+			"variant":         {challenge.Variant},
+			"keepAliveStream": {"true"},
+		}
+
 	}
 
 	NotiMessage <- fmt.Sprintf("%s", reqParam)

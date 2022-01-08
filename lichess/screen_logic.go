@@ -87,7 +87,7 @@ blocking_loop:
 
 	//start windows
 	//options := []string{"<<Press 0 to return to welcome screen>>", "<<Press 1 to view / create challenges>>", "<<Press 2 to view / join ongoing games>>", "etc", "quit"}
-	options := []string{"new game", "ongoing games", "back", "quit", "test"}
+	options := []string{"new game", "ongoing games", "back", "quit", "test friend", "test ai"}
 	op_info := WinInfo{H: (height / 2) - 4, W: width / 2, Y: (height / 2) + 2, X: width / 4}
 	options_window, _ := ncurses.NewWindow(op_info.H, op_info.W, op_info.Y, op_info.X)
 	windows_array := [1]*ncurses.Window{options_window}
@@ -115,8 +115,13 @@ blocking_loop:
 					key = ZeroKey //return to welcome screen
 				case 3:
 					key = CtrlO_Key
-				case 4: //testing out lichess requess, skip to wait
-					CurrentChallenge = testChallenge
+				case 4, 5: //testing out lichess requess, skip to wait
+					if option_index == 4 {
+						CurrentChallenge = testChallenge
+					} else {
+						CurrentAiChallenge = testAiChallenge
+					}
+
 					//LichessScreenHandler(screen, 4)
 					func(stdscr *ncurses.Window, option int) {
 						switch option {
@@ -811,7 +816,15 @@ func sendApiRequest(gchan chan<- string) {
 		case 2: //lichess ai
 			NotiMessage <- fmt.Sprintf("challenging the lichess ai")
 			//TODO: api call CHALLENGE THE AI
-			CreateAiChallenge(CurrentAiChallenge)
+			err, id := CreateAiChallenge(CurrentAiChallenge)
+			if err != nil {
+				ErrorMessage <- err
+				gchan <- fmt.Sprintf("%v", err)
+				//os.Exit(1)
+			} else {
+				NotiMessage <- fmt.Sprintf("posted challenge, id: %v", id)
+				gchan <- id
+			}
 		}
 	} else {
 		ErrorMessage <- fmt.Errorf("no token")
