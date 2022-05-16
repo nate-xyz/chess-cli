@@ -1,6 +1,7 @@
-package lichess
+package online
 
 import (
+	"fmt"
 	"strings"
 
 	. "github.com/nate-xyz/chess-cli/shared"
@@ -22,13 +23,21 @@ func LichessGameLogic(board_window *ncurses.Window) bool {
 	if HasEnteredMove {
 		HasEnteredMove = false
 
-		if err := CurrentGame.MoveStr(EnteredPromptStr); err != nil {
-			StatusMessage = "last input is invalid"
+		// if err := CurrentGame.MoveStr(EnteredPromptStr); err != nil {
+		// 	StatusMessage = "last input is invalid"
+		// 	EnteredPromptStr = ""
+		// } else
+
+		if err := MakeMove(BoardFullGame.ID, EnteredPromptStr); err != nil {
+			ErrorMessage <- err
+			StatusMessage = fmt.Sprintf("post request did not function")
 			EnteredPromptStr = ""
 		} else {
 			StatusMessage = "move is legal!"
 			LastMoveString = EnteredPromptStr //set the last move string to be displayed in the info window
+
 			MoveHistoryArray = append([]string{EnteredPromptStr}, MoveHistoryArray...)
+			EnteredPromptStr = ""
 			MoveAmount++ //increment the global move amount for the history window
 			ncurses.Flash()
 			ncurses.Beep()

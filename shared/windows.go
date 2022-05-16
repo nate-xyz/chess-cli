@@ -17,7 +17,7 @@ func DisplayInfoWindow(info_window *ncurses.Window) {
 	info_window.AttrOn(ncurses.ColorPair(3))
 	if CurrentGame.Position().Turn() == chess.White {
 		info_window.MovePrint(1, 1, "white to move")
-	} else if CurrentGame.Position().Turn() == chess.Black {
+	} else {
 		//info_window.AttrOn(ncurses.A_REVERSE)
 		info_window.MovePrint(1, 1, "black to move")
 		//info_window.AttrOff(ncurses.A_REVERSE)
@@ -99,6 +99,8 @@ func DisplayHistoryWindow(history_window *ncurses.Window) {
 
 func DrawBoardWindow(board_window *ncurses.Window, FEN string) {
 	height, width := board_window.MaxYX()
+
+	board_window.MovePrint(1, 1, FEN)
 	//board_FEN := CurrentGame.Position().String()
 	// board_square_coord = {}
 	x_notation_string := "abcdefgh"

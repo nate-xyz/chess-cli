@@ -148,6 +148,7 @@ var loader = map[int64]string{
 	9: "⠏",
 }
 
+//TODO: initialize in the logic function
 var CurrentGame *chess.Game = chess.NewGame()
 
 var alphanumeric *regexp.Regexp = regexp.MustCompile("^[a-zA-Z0-9]*$")

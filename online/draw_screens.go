@@ -1,4 +1,4 @@
-package lichess
+package online
 
 import (
 	"fmt"

@@ -1,8 +1,8 @@
 package main
 
 import (
-	. "github.com/nate-xyz/chess-cli/lichess"
 	. "github.com/nate-xyz/chess-cli/local"
+	. "github.com/nate-xyz/chess-cli/online"
 	. "github.com/nate-xyz/chess-cli/shared"
 	ncurses "github.com/nate-xyz/goncurses_"
 	//	ai "github.com/nate-xyz/chess-cli/stockfish"

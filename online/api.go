@@ -1,4 +1,4 @@
-package lichess
+package online
 
 import (
 	"encoding/json"
@@ -8,194 +8,48 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	. "github.com/nate-xyz/chess-cli/shared"
-	//	. "github.com/nate-xyz/chess-cli/shared"
 )
 
-func StreamBoardState(event_chan chan<- BoardState, game string, ErrorMessage chan<- error, move_seq chan<- string) error {
-	//https://lichess.org/api/board/game/stream/{gameId}
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/board/game/stream/%s", hostUrl, game), nil)
-	NotiMessage <- fmt.Sprintf(fmt.Sprintf("board stream started at %s/api/board/game/stream/%s", hostUrl, game))
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	req.Header.Add("Accept", "application/x-ndjson")
-	if err != nil {
-		ErrorMessage <- fmt.Errorf("stream event get request failed: %v", err)
-		return fmt.Errorf("stream event get request failed: %v", err)
-	}
-
-	//do http request. must be done in this fashion so we can add the auth bear token headers above
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		ErrorMessage <- fmt.Errorf("%v: %v", resp.StatusCode, err)
-		return fmt.Errorf("%v: %v", resp.StatusCode, err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		ErrorMessage <- fmt.Errorf("bad response: %v", resp.StatusCode)
-		return fmt.Errorf("bad response: %v", resp.StatusCode)
-	} else {
-		NotiMessage <- fmt.Sprintf("board stream good response: %v", resp.StatusCode)
-		//ErrorMessage <- fmt.Errorf("good response: %v", resp.StatusCode)
-	}
-
-	d := json.NewDecoder(resp.Body)
-	//loop_i := 0
-	for {
-		select {
-		// case <-quit_stream:
-		// 	return nil
-		default:
-			//fmt.Printf("enter loop %v\n", loop_i)
-			var responseData map[string]interface{}
-			err := d.Decode(&responseData)
-			if err != nil {
-				if err != io.EOF {
-					log.Fatal(err)
-					ErrorMessage <- fmt.Errorf("decode error, not EOF: %v", err)
-					//fmt.Printf("decode error, not EOF\n")
-				} else {
-					ErrorMessage <- fmt.Errorf("decode error, EOF: %v", err)
-					//fmt.Printf("decode error, EOF\n")
-					time.Sleep(1)
-					close(event_chan)
-					return nil
-				}
-			}
-
-			// Type   string
-			// Moves  string
-			// Status string
-			// Rated  string
-
-			if !isNil(responseData["type"]) { // retrieve the username out of the map
-				streamEvent = responseData["type"].(string)
-				var bevent BoardState
-				bevent.Type = streamEvent
-				bevent.Moves = ""
-				switch streamEvent {
-				case "gameFull":
-					NotiMessage <- fmt.Sprintf("got a gamestate")
-					bevent.Rated = responseData["rated"].(bool)
-					state := responseData["state"].(map[string]interface{})
-					bevent.Moves = state["moves"].(string)
-					bevent.Status = state["status"].(string)
-					//board_state_sig <- true
-				case "gameState":
-					NotiMessage <- fmt.Sprintf("got a gamestate")
-					bevent.Moves = responseData["moves"].(string)
-					bevent.Status = responseData["status"].(string)
-					//board_state_sig <- true
-				case "chatLine":
-					//TODO
-
-				}
-
-				if bevent.Moves == "" {
-					move_seq <- bevent.Moves
-				}
-				event_chan <- bevent
-
-				//fmt.Printf("%v\n", StreamEventID)
-				//return nil
-			} else {
-				ErrorMessage <- fmt.Errorf("no type in stream event")
-				return fmt.Errorf("no type in stream event")
-			}
-		}
-	}
-}
-
-func StreamEvent(event_chan chan<- StreamEventType, got_token chan struct{}) error {
-	<-got_token
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/stream/event", hostUrl), nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	req.Header.Add("Accept", "application/x-ndjson")
-	if err != nil {
-		return fmt.Errorf("stream event get request failed: %v", err)
-	}
-	NotiMessage <- fmt.Sprintf("event stream started at %s/api/stream/event", hostUrl)
-	//do http request. must be done in this fashion so we can add the auth bear token headers above
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("%v: %v", resp.StatusCode, err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad response: %v", resp.StatusCode)
-	}
-
-	d := json.NewDecoder(resp.Body)
-	//loop_i := 0
-	for {
-		select {
-		// case <-quit_stream:
-		// 	return nil
-		default:
-			//fmt.Printf("enter loop %v\n", loop_i)
-			var responseData map[string]interface{}
-			err := d.Decode(&responseData)
-			if err != nil {
-				if err != io.EOF {
-					log.Fatal(err)
-					//fmt.Printf("decode error, not EOF\n")
-
-				}
-				//fmt.Printf("decode error, EOF\n")
-				continue
-			}
-			if !isNil(responseData["type"]) { // retrieve the username out of the map
-				streamEvent = responseData["type"].(string)
-				//fmt.Printf("received stream event! -> %v: ", streamEvent)
-				var streamEventID string
-				switch streamEvent {
-				case "gameStart", "gameFinish":
-					chal := responseData["game"].(map[string]interface{})
-					streamEventID = chal["id"].(string)
-				case "challenge", "challengeCanceled", "challengeDeclined":
-					chal := responseData["challenge"].(map[string]interface{})
-					streamEventID = chal["id"].(string)
-
-				}
-				event_chan <- StreamEventType{streamEvent, streamEventID}
-
-				//ErrorMessage <- fmt.Errorf("%v, %v", streamEvent, streamEventID)
-				//fmt.Printf("%v\n", StreamEventID)
-				//return nil
-			} else {
-				return fmt.Errorf("no type in stream event")
-			}
-		}
-		//NotiMessage <- "stream still open"
-	}
-}
-
-func StreamConsumer(event_chan <-chan StreamEventType, noti chan<- string) {
-	for {
-		select {
-		case e := <-event_chan:
-			//fmt.Printf("consumer: %v %v \n", e.Event, e.Id)
-			EventStreamArr = append([]StreamEventType{e}, EventStreamArr...)
-			//StreamChannelForWaiter <- e
-			if e.Event != "gameStart" {
-				noti <- fmt.Sprintf("event %v:%v", e.Event, e.Id)
-			} else {
-				if !containedInOngoingGames(OngoingGames, e.Id) {
-					noti <- fmt.Sprintf("new game! %v:%v", e.Event, e.Id)
-				}
-			}
-			//noti <- fmt.Sprintf("event %v:%v", e.Event, e.Id)
-			//CheckGlobal = e.Id
-
-			//TODO: add to global data structure storing all events
-		}
-	}
-}
-
 //create a challenge against a specific user or get the url
+func MakeMove(gameid string, move string) error {
+	requestUrl := fmt.Sprintf("%s/api/board/game/%s/move/%s", hostUrl, gameid, move)
+
+	//NotiMessage <- fmt.Sprintf("%s", reqParam)
+
+	// create the request and execute it
+	req, err := http.NewRequest("POST", requestUrl, nil)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
+	NotiMessage <- fmt.Sprintf("POST request at %s", requestUrl)
+
+	if err != nil {
+		return err
+	}
+
+	//do http request. must be done in this fashion so we can add the auth bear token headers above
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	//read resp body
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		err := fmt.Errorf("%v", err)
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != 200 {
+		err := fmt.Errorf("reponse %v: %v", res.StatusCode, string(body))
+		return err
+	}
+	return nil
+}
+
+//create a challenge against a specific user or get the url (POST)
 func CreateChallenge(challenge CreateChallengeType) (error, string) {
 	requestUrl := fmt.Sprintf("%s/api/challenge/%s", hostUrl, challenge.DestUser)
 	var reqParam url.Values
@@ -258,11 +112,11 @@ func CreateChallenge(challenge CreateChallengeType) (error, string) {
 	//fmt.Printf(string(body))
 
 	if res.StatusCode == 400 {
-		err := fmt.Errorf("Challenge creation failed: %v", err)
+		err := fmt.Errorf("reponse %v: %v", res.StatusCode, string(body))
 		return err, ""
 	}
 	if res.StatusCode != 200 {
-		err := fmt.Errorf("not 200 response: %v", err)
+		err := fmt.Errorf("%v response: %v", res.StatusCode, err)
 		return err, ""
 	} else {
 		NotiMessage <- fmt.Sprintf("challenge good response: %v", res.StatusCode)

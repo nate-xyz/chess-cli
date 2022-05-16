@@ -3,6 +3,7 @@ package local
 import (
 	. "github.com/nate-xyz/chess-cli/shared"
 	ncurses "github.com/nate-xyz/goncurses_"
+	"github.com/notnil/chess"
 )
 
 func WelcomeScreen(screen *ncurses.Window) ncurses.Key {
@@ -104,7 +105,12 @@ func LocalGameScreen(stdscr *ncurses.Window) int {
 			if game_logic(board_window) {
 				return 2
 			}
-			DrawBoardWindow(board_window, CurrentGame.Position().String())
+			if CurrentGame.Position().Turn() == chess.Black {
+				DrawBoardWindow(board_window, CurrentGame.Position().Board().Flip(chess.UpDown).Flip(chess.LeftRight).String())
+			} else {
+				DrawBoardWindow(board_window, CurrentGame.Position().String())
+			}
+
 			DisplayInfoWindow(info_window)
 			DisplayHistoryWindow(history_window)
 			//board_window_mouse_input(board_window, key, width, height)

@@ -16,6 +16,7 @@ if libraries are missing: go mod tidy
   - [ ] fixed with mouse input active
 - [ ] non unicode support for tty
 - [ ] windows support with pancurses
+- [ ] fix board flipping visual errors when black to move
 
 ### local
 - [x] fix legal move list on info window ✓
@@ -50,8 +51,11 @@ if libraries are missing: go mod tidy
     - [x] implemented lichess screen handler
   - [ ] (after challenge or join ongoing game) lichess game screen w/ working request loop and translation of move sequence into FEN string
     - [ ] tranlate move sequence into FEN w local chess lib
-    - [ ] update FEN on board event from stream
-    - [ ] make move
+    - [x] update FEN on board event from stream
+    - [x] make move
+    - [ ] handles lichess game abort
+    - [ ] handle game end
+    - [ ] handle custom starting positions
 
 ### ai
 - [ ] get stockfish working through lichess? wip
@@ -69,5 +73,7 @@ https://pkg.go.dev/github.com/notnil/chess?utm_source=godoc for go chess
 https://pkg.go.dev/github.com/rthornton128/goncurses for goncurses
 
 https://pkg.go.dev/net/http for http
+
+https://mholt.github.io/json-to-go/
 
 ♞♞♞♞♞♞♞♞♞♞♞
