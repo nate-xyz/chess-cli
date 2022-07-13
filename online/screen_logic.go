@@ -221,7 +221,7 @@ func WaitForLichessGameResponse(screen *ncurses.Window) int {
 				NotiMessage <- fmt.Sprintf("event %v is not your game, it is %v (waiting for %v)", e.Id, e.Event, localid)
 			}
 		case <-Sigs:
-			NotiMessage <- fmt.Sprintf("resize")
+			//NotiMessage <- fmt.Sprintf("resize")
 			tRow, tCol, _ := OsTermSize()
 			ncurses.ResizeTerm(tRow, tCol)
 			LoadingScreen(screen, load_msg)
