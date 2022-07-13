@@ -50,7 +50,7 @@ if libraries are missing: go mod tidy
   - [x] screen handler at different depth? maybe a generic handler with functions passed as parameters
     - [x] implemented lichess screen handler
   - [ ] (after challenge or join ongoing game) lichess game screen w/ working request loop and translation of move sequence into FEN string
-    - [ ] tranlate move sequence into FEN w local chess lib
+    - [x] translate move sequence into FEN w local chess lib
     - [x] update FEN on board event from stream
     - [x] make move
     - [ ] handles lichess game abort
