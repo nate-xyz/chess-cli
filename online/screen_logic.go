@@ -274,7 +274,7 @@ func LichessGameScreen(screen *ncurses.Window, gameID string) int {
 	screen.Refresh()
 	height, width := screen.MaxYX()
 	var currentFEN string
-
+	var black bool = false
 	// ticker := time.NewTicker(time.Second)
 
 	// case <-ticker.C
@@ -308,26 +308,30 @@ func LichessGameScreen(screen *ncurses.Window, gameID string) int {
 	for {
 		select {
 		case b := <-gameStateChan:
+
 			switch b {
 			case GameFull:
+
 				// if BoardFullGame.InitialFen == "startpos" {
 				// 	currentFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
 				// } else {
 				// 	currentFEN = BoardFullGame.InitialFen
 				// }
+				if BoardFullGame.Black.Name == Username {
+					black = true
+				}
 				currentFEN = MoveTranslation(BoardFullGame.State.Moves)
 				if currentFEN != "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR" {
 					fen, _ := chess.FEN(currentFEN)
 					CurrentGame = chess.NewGame(fen)
 				}
-				DrawBoardWindow(board_window, currentFEN)
+				DrawBoardWindow(board_window, currentFEN, black)
 				DisplayLichessInfoWindow(info_window)
 				DisplayLichessHistoryWindow(history_window)
 
 			case GameState:
-
 				currentFEN = MoveTranslation(BoardGameState.Moves)
-				DrawBoardWindow(board_window, currentFEN)
+				DrawBoardWindow(board_window, currentFEN, black)
 				DisplayLichessInfoWindow(info_window)
 				DisplayLichessHistoryWindow(history_window)
 
@@ -338,6 +342,7 @@ func LichessGameScreen(screen *ncurses.Window, gameID string) int {
 			}
 			// ncurses.End()
 			// NotiMessage <- s
+			DrawLichessGame(screen, key, windows_array, windows_info_arr)
 
 			board_window.NoutRefresh()
 			info_window.NoutRefresh()
@@ -349,13 +354,14 @@ func LichessGameScreen(screen *ncurses.Window, gameID string) int {
 			tRow, tCol, _ := OsTermSize()
 			ncurses.ResizeTerm(tRow, tCol)
 			DrawLichessGame(screen, key, windows_array, windows_info_arr)
+
 		default: //normal character loop here
 			//external function calls
 			UpdateInput(prompt_window, key)
 			if LichessGameLogic(board_window) {
 				os.Exit(0) //game done no post lichess screen tho
 			}
-			DrawBoardWindow(board_window, currentFEN)
+			DrawBoardWindow(board_window, currentFEN, black)
 
 			DisplayLichessInfoWindow(info_window)
 
@@ -371,6 +377,8 @@ func LichessGameScreen(screen *ncurses.Window, gameID string) int {
 			// var prompt_window *ncurses.Window
 			// var info_window *ncurses.Window
 			// var history_window *ncurses.Window
+
+			//get key
 			key = screen.GetChar()
 			switch key {
 			case CtrlO_Key, ZeroKey:

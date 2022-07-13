@@ -106,9 +106,9 @@ func LocalGameScreen(stdscr *ncurses.Window) int {
 				return 2
 			}
 			if CurrentGame.Position().Turn() == chess.Black {
-				DrawBoardWindow(board_window, CurrentGame.Position().Board().Flip(chess.UpDown).Flip(chess.LeftRight).String())
+				DrawBoardWindow(board_window, CurrentGame.Position().Board().Flip(chess.UpDown).Flip(chess.LeftRight).String(), true)
 			} else {
-				DrawBoardWindow(board_window, CurrentGame.Position().String())
+				DrawBoardWindow(board_window, CurrentGame.Position().String(), false)
 			}
 
 			DisplayInfoWindow(info_window)
@@ -161,7 +161,7 @@ func PostScreen(screen *ncurses.Window) int {
 			ncurses.ResizeTerm(tRow, tCol)
 			DrawPostScreen(screen, key, windows_array, windows_info_arr)
 		default: //normal character loop here
-			DrawBoardWindow(board_post_window, CurrentGame.Position().String())
+			DrawBoardWindow(board_post_window, CurrentGame.Position().String(), false)
 			//UpdateInput(prompt_post_window, key)
 			for _, win := range windows_array {
 				win.NoutRefresh()

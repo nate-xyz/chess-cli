@@ -97,7 +97,7 @@ func DisplayHistoryWindow(history_window *ncurses.Window) {
 	}
 }
 
-func DrawBoardWindow(board_window *ncurses.Window, FEN string) {
+func DrawBoardWindow(board_window *ncurses.Window, FEN string, flip bool) {
 	height, width := board_window.MaxYX()
 
 	board_window.MovePrint(1, 1, FEN)
@@ -105,6 +105,11 @@ func DrawBoardWindow(board_window *ncurses.Window, FEN string) {
 	// board_square_coord = {}
 	x_notation_string := "abcdefgh"
 	y_notation_string := "87654321"
+
+	if flip {
+		y_notation_string = Reverse(y_notation_string)
+	}
+
 	_ = y_notation_string
 	// 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'
 	// rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
