@@ -126,22 +126,26 @@ func DisplayLichessInfoWindow(info_window *ncurses.Window) {
 func DisplayLichessHistoryWindow(history_window *ncurses.Window) {
 	height, width := history_window.MaxYX()
 	var historyString string
+
 	if len(BoardFullGame.State.Moves) > len(BoardGameState.Moves) {
 		historyString = BoardFullGame.State.Moves
 	} else {
 		historyString = BoardGameState.Moves
 	}
+
 	y := 1
-	for y < height {
-		history_window.MovePrint(y, 1, historyString)
-		y++
-		for len(historyString)-width > 0 && y < height {
-			historyString = historyString[width-2:]
+	for len(historyString) > 0 {
+		if y >= height {
+			y = 1
+		}
+		if len(historyString) < width-1 {
 			history_window.MovePrint(y, 1, historyString)
+			break
+		} else {
+			history_window.MovePrint(y, 1, historyString[:width-2])
+			historyString = historyString[width-2:]
 			y++
 		}
-		if y > height {
-			break
-		}
+
 	}
 }
