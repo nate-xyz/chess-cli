@@ -149,3 +149,32 @@ func DisplayLichessHistoryWindow(history_window *ncurses.Window) {
 
 	}
 }
+
+func DisplayLichessPostHistoryWindow(history_window *ncurses.Window, moves string) {
+	height, width := history_window.MaxYX()
+	var historyString string
+
+	if len(BoardFullGame.State.Moves) > len(BoardGameState.Moves) {
+		historyString = BoardFullGame.State.Moves
+	} else {
+		historyString = BoardGameState.Moves
+	}
+	result_str, result_str_name := GameOutcome(moves)
+	history_window.MovePrint(1, 1, result_str)
+	history_window.MovePrint(2, 1, result_str_name)
+	y := 3
+	for len(historyString) > 0 {
+		if y >= height {
+			y = 2
+		}
+		if len(historyString) < width-1 {
+			history_window.MovePrint(y, 1, historyString)
+			break
+		} else {
+			history_window.MovePrint(y, 1, historyString[:width-2])
+			historyString = historyString[width-2:]
+			y++
+		}
+
+	}
+}

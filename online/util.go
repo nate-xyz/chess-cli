@@ -9,6 +9,32 @@ import (
 	"github.com/notnil/chess"
 )
 
+func GameOutcome(sequence string) (string, string) {
+	sequence_array := strings.Split(sequence, " ")
+	game := chess.NewGame(chess.UseNotation(chess.UCINotation{}))
+
+	for _, move := range sequence_array {
+		if game.Outcome() == chess.NoOutcome {
+			err := game.MoveStr(move)
+			if err != nil {
+				// handle error
+				fmt.Printf("%v\n", err)
+			}
+			continue
+		}
+	}
+	outcome_str := fmt.Sprintf("Game completed. %s by %s.\n", game.Outcome(), game.Method())
+	var name_str string
+	if game.Outcome()[0] == '1' {
+		name_str = fmt.Sprintf("White (%s) wins.\n", BoardFullGame.White.Name)
+	}
+	if game.Outcome()[0] == '0' {
+		name_str = fmt.Sprintf("Black (%s) wins.\n", BoardFullGame.Black.Name)
+	}
+
+	return outcome_str, name_str
+}
+
 func MoveTranslation(sequence string) string {
 	sequence_array := strings.Split(sequence, " ")
 	game := chess.NewGame(chess.UseNotation(chess.UCINotation{}))

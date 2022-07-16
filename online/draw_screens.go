@@ -356,3 +356,67 @@ func DrawLichessGame(stdscr *ncurses.Window, key ncurses.Key, windows_array [4]*
 	}
 	ncurses.Update()
 }
+
+func DrawLichessPostGame(stdscr *ncurses.Window, windows_array [3]*ncurses.Window, windows_info_arr [3]WinInfo) {
+	//Clear and refresh the screen for a blank canvas
+	stdscr.Clear()
+	height, width := stdscr.MaxYX()
+
+	//h, w, y, x
+	windows_info_arr[0] = WinInfo{H: (height / 3) * 2, W: (width / 3) * 2, Y: 0, X: 0}
+	windows_info_arr[1] = WinInfo{H: (height / 3) * 2, W: (width / 3), Y: 0, X: (width / 3) * 2}
+	windows_info_arr[2] = WinInfo{H: (height / 3), W: width, Y: (height / 3) * 2, X: 0}
+
+	//Clear, refresh, update all windows
+	for i, win := range windows_array {
+		win.Clear()
+		info := windows_info_arr[i]
+		win.Resize(info.H, info.W)     //Resize windows based on new dimensions
+		win.MoveWindow(info.Y, info.X) //move windows to appropriate locations
+		win.NoutRefresh()
+	}
+
+	//get mouse location
+	// cursor_x := math.Min(width-1, math.Max(0, cursor_x))
+	// cursor_y := math.Min(height-1, math.Max(0, cursor_y))
+
+	// Declaration of strings
+	board_title := "board"
+	info_title := "choices"
+	history_title := "move_history"
+	title_array := []string{board_title, info_title, history_title}
+	//keystr := fmt.Sprintf("Last key pressed: %v", key)
+	statusbarstr := "CHESS-CLI | LICHESS CLIENT | Press 'Ctrl+o' to exit"
+	// if key == ZeroKey {
+	// 	keystr = "No key press detected..."
+	// }
+	statusbarfull := fmt.Sprintf("%s", statusbarstr)
+
+	// Turning on attributes for title
+	for i, win := range windows_array {
+		win.Box('|', '-')
+		// Rendering title
+		win.AttrOn(ncurses.ColorPair(2))
+		win.AttrOn(ncurses.A_BOLD)
+		win.MovePrint(0, 1, title_array[i])
+		win.AttrOff(ncurses.ColorPair(2))
+		win.AttrOff(ncurses.A_BOLD)
+	}
+
+	// Render status bar
+	stdscr.AttrOn(ncurses.ColorPair(3))
+	stdscr.MovePrint(height-1, 0, statusbarfull)
+	var padding string
+	if (width - len(statusbarstr) - 1) > 0 {
+		padding = fmt.Sprintf("%s", strings.Repeat(" ", (width-len(statusbarstr)-1)))
+	}
+	stdscr.MovePrint(height-1, len(statusbarfull), padding)
+	stdscr.AttrOff(ncurses.ColorPair(3))
+
+	// Refresh the screen
+	stdscr.NoutRefresh()
+	for _, win := range windows_array {
+		win.NoutRefresh()
+	}
+	ncurses.Update()
+}

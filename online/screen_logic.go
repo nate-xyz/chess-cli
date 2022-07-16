@@ -317,6 +317,7 @@ func LichessGameScreen(screen *ncurses.Window, gameID string) int {
 				// } else {
 				// 	currentFEN = BoardFullGame.InitialFen
 				// }
+
 				if BoardFullGame.Black.Name == Username {
 					black = true
 				}
@@ -329,15 +330,30 @@ func LichessGameScreen(screen *ncurses.Window, gameID string) int {
 				DisplayLichessInfoWindow(info_window)
 				DisplayLichessHistoryWindow(history_window)
 
+				if BoardFullGame.State.Status != "started" {
+					//the game has ended.
+					return LichessPostGameScreen(screen, black, currentFEN, BoardFullGame.State.Moves)
+
+				}
+
 			case GameState:
+
 				currentFEN = MoveTranslation(BoardGameState.Moves)
 				DrawBoardWindow(board_window, currentFEN, black)
 				DisplayLichessInfoWindow(info_window)
 				DisplayLichessHistoryWindow(history_window)
 
+				if BoardGameState.Status != "started" {
+					//the game has ended.
+					return LichessPostGameScreen(screen, black, currentFEN, BoardGameState.Moves)
+
+				}
+
 			case ChatLine:
 			case ChatLineSpectator:
 			case GameStateResign:
+				//the game has ended.
+				return LichessPostGameScreen(screen, black, currentFEN, BoardResign.Moves)
 
 			}
 			// ncurses.End()
@@ -358,9 +374,14 @@ func LichessGameScreen(screen *ncurses.Window, gameID string) int {
 		default: //normal character loop here
 			//external function calls
 			UpdateInput(prompt_window, key)
+
 			if LichessGameLogic(board_window) {
-				os.Exit(0) //game done no post lichess screen tho
+				continue
+				// LichessPostGameScreen(screen)
+
+				// os.Exit(0)
 			}
+
 			DrawBoardWindow(board_window, currentFEN, black)
 
 			DisplayLichessInfoWindow(info_window)
@@ -380,6 +401,90 @@ func LichessGameScreen(screen *ncurses.Window, gameID string) int {
 
 			//get key
 			key = screen.GetChar()
+			switch key {
+			case CtrlO_Key, ZeroKey:
+				UserInputString = ""
+				EnteredPromptStr = ""
+				HasEnteredMove = false
+				if key == CtrlO_Key {
+					return 5
+				} else {
+					return 1
+				}
+			}
+		}
+	}
+}
+
+func LichessPostGameScreen(screen *ncurses.Window, flip bool, finalFEN string, finalMoves string) int {
+	var key ncurses.Key
+	screen.Clear()
+	screen.Refresh()
+	height, width := screen.MaxYX()
+	var option_index int = 0
+	var selected bool
+
+	//start windows
+	bw_info := WinInfo{H: (height / 3) * 2, W: (width / 3) * 2, Y: 0, X: 0}
+	op_info := WinInfo{H: (height / 3) * 2, W: (width / 3), Y: 0, X: (width / 3) * 2}
+	hw_info := WinInfo{H: (height / 3), W: width, Y: (height / 3) * 2, X: 0}
+
+	board_window, _ := ncurses.NewWindow(bw_info.H, bw_info.W, bw_info.Y, bw_info.X)
+	options_window, _ := ncurses.NewWindow(op_info.H, op_info.W, op_info.Y, op_info.X)
+	history_window, _ := ncurses.NewWindow(hw_info.H, hw_info.W, hw_info.Y, hw_info.X)
+
+	windows_array := [3]*ncurses.Window{board_window, options_window, history_window}
+	windows_info_arr := [3]WinInfo{bw_info, op_info, hw_info}
+
+	options := []string{"request rematch", "create a new game", "lichess home", "chess-cli home", "quit"}
+
+	//draw initial screen
+	DrawLichessPostGame(screen, windows_array, windows_info_arr)
+
+	//loop
+	for {
+		select {
+		case <-Sigs:
+			tRow, tCol, _ := OsTermSize()
+			ncurses.ResizeTerm(tRow, tCol)
+			DrawLichessPostGame(screen, windows_array, windows_info_arr)
+
+		default: //normal character loop here
+			key = screen.GetChar()
+			option_index, selected = OptionsInput(options_window, key, options, option_index)
+			if selected { //return to LichessScreenHandler
+				switch option_index {
+				case 0: //rematch
+				case 1: //new game (construct challenge window)
+					return 3
+				case 2: //lichess home
+					return 2
+				case 3: //chess-cli home
+					return 0
+				case 4: //quit
+					return 5
+				}
+			}
+
+			//external function calls
+
+			DrawBoardWindow(board_window, finalFEN, flip)
+
+			DisplayLichessPostHistoryWindow(history_window, finalMoves)
+
+			//board_window_mouse_input(board_window, key, width, height)
+
+			//TODO: move refresh call to within window function
+			for _, win := range windows_array {
+				win.NoutRefresh()
+			}
+			ncurses.Update() // var board_window *ncurses.Window
+			// var prompt_window *ncurses.Window
+			// var info_window *ncurses.Window
+			// var history_window *ncurses.Window
+
+			//get key
+
 			switch key {
 			case CtrlO_Key, ZeroKey:
 				UserInputString = ""
