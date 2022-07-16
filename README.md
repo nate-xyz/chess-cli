@@ -22,7 +22,6 @@ if libraries are missing: go mod tidy
 - [x] fix legal move list on info window ✓
 - [ ] choose notation to start?
   - [ ] maybe settings screen for notation / color to start / unicode on or off, accessible through escape
-- [ ] choose color to start
 - [ ] get mouse input working in board window
 - [x] local game screen handler
 
@@ -31,8 +30,10 @@ if libraries are missing: go mod tidy
 - [ ] oauth
   - [x] get oauth working ✓
   - [ ] check if token is expired and get new one if so
+  - [ ] check if already logged in
 - [ ] api
   - [ ] get lichess requests working? wip
+    - [ ] sometimes flips requested color?
     - [x] get profile info ✓
     - [x] get challenges
     - [ ] make challenges
@@ -46,7 +47,9 @@ if libraries are missing: go mod tidy
       - [ ] screen
    - [x] stream incoming events
      - [x] start as goroutine initially in main and implement notifications for every screen
+     - [ ] exit option on challenge waiting screen
 - [ ] game client
+  - [ ] prompt being refreshed
   - [x] screen handler at different depth? maybe a generic handler with functions passed as parameters
     - [x] implemented lichess screen handler
   - [ ] (after challenge or join ongoing game) lichess game screen w/ working request loop and translation of move sequence into FEN string
@@ -54,8 +57,14 @@ if libraries are missing: go mod tidy
     - [x] update FEN on board event from stream
     - [x] make move
     - [ ] handles lichess game abort
-    - [ ] handle game end
+    - [x] handle game end
+      - [ ] post game options
+        - [ ] rematch
+        - [ ] new game
+        - [ ] back to lichess home
+        - [ ] back to chess-cli home
     - [ ] handle custom starting positions
+    - [ ] rematches
 
 ### ai
 - [ ] get stockfish working through lichess? wip
