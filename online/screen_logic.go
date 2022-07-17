@@ -106,7 +106,7 @@ blocking_loop:
 			option_index, selected = OptionsInput(options_window, key, options, option_index)
 			if selected {
 				switch option_index {
-				case 0: //view / create challenges
+				case 0: //new game / create challenges
 					key = OneKey
 				case 1: //view / join ongoing games
 					//key = TwoKey
@@ -121,42 +121,7 @@ blocking_loop:
 						CurrentChallenge = testAiChallenge
 					}
 
-					//LichessScreenHandler(screen, 4)
-					func(stdscr *ncurses.Window, option int) {
-						switch option {
-						case 0:
-							//return -1, ZeroKey //go back to welcome screen
-						case 1:
-							option = LichessWelcome(stdscr)
-						case 2:
-							option = LichessChallenges(stdscr) //go to challenge screen
-						case 3:
-							option = CreateLichessGame(stdscr)
-						case 4:
-							option = WaitForLichessGameResponse(stdscr)
-						case 5:
-							//return -1, CtrlO_Key //quit game
-						case 6:
-							screen.Clear()
-							l, b := getEvents(EventStreamArr, currentGameID)
-							if b {
-								for i, e := range l {
-									message := fmt.Sprintf("IN STREAM W/ ID: %v", e.Event)
-									_, w := screen.MaxYX()
-									screen.MovePrint(1+i, w/2, message)
-									screen.Refresh()
-									time.Sleep(time.Second)
-									NotiMessage <- message
-								}
-							} else {
-								os.Exit(2)
-							}
-							option = LichessGameScreen(stdscr, currentGameID)
-
-						}
-						os.Exit(1)
-					}(screen, WaitForLichessGameResponse(screen))
-
+					LichessScreenHandler(screen, 4)
 				}
 			}
 			switch key {
@@ -226,6 +191,7 @@ func WaitForLichessGameResponse(screen *ncurses.Window) int {
 			ncurses.ResizeTerm(tRow, tCol)
 			LoadingScreen(screen, load_msg)
 		case <-ticker.C:
+
 			if localid != "" {
 				s, b := containedInEventStream(EventStreamArr, localid)
 				if b {
