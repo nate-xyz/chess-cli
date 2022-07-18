@@ -298,7 +298,7 @@ func LichessGameScreen(screen *ncurses.Window, gameID string) int {
 
 				if BoardFullGame.State.Status != "started" {
 					//the game has ended.
-					return LichessPostGameScreen(screen, black, currentFEN, BoardFullGame.State.Moves)
+					return LichessPostGameScreen(screen, black, currentFEN, BoardFullGame.State.Moves, "Game Ended.")
 
 				}
 
@@ -311,7 +311,7 @@ func LichessGameScreen(screen *ncurses.Window, gameID string) int {
 
 				if BoardGameState.Status != "started" {
 					//the game has ended.
-					return LichessPostGameScreen(screen, black, currentFEN, BoardGameState.Moves)
+					return LichessPostGameScreen(screen, black, currentFEN, BoardGameState.Moves, "Game Ended.")
 
 				}
 
@@ -319,7 +319,10 @@ func LichessGameScreen(screen *ncurses.Window, gameID string) int {
 			case ChatLineSpectator:
 			case GameStateResign:
 				//the game has ended.
-				return LichessPostGameScreen(screen, black, currentFEN, BoardResign.Moves)
+				return LichessPostGameScreen(screen, black, currentFEN, BoardResign.Moves, "Opponent Resigned.")
+			case EOF:
+				close(gameStateChan)
+				return LichessPostGameScreen(screen, black, currentFEN, BoardResign.Moves, "Game Connection Aborted.")
 
 			}
 			// ncurses.End()
@@ -382,7 +385,7 @@ func LichessGameScreen(screen *ncurses.Window, gameID string) int {
 	}
 }
 
-func LichessPostGameScreen(screen *ncurses.Window, flip bool, finalFEN string, finalMoves string) int {
+func LichessPostGameScreen(screen *ncurses.Window, flip bool, finalFEN string, finalMoves string, finalEvent string) int {
 	var key ncurses.Key
 	screen.Clear()
 	screen.Refresh()
@@ -436,7 +439,7 @@ func LichessPostGameScreen(screen *ncurses.Window, flip bool, finalFEN string, f
 
 			DrawBoardWindow(board_window, finalFEN, flip)
 
-			DisplayLichessPostHistoryWindow(history_window, finalMoves)
+			DisplayLichessPostHistoryWindow(history_window, finalMoves, finalEvent)
 
 			//board_window_mouse_input(board_window, key, width, height)
 

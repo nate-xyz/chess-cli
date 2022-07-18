@@ -56,10 +56,10 @@ func StreamBoardState(event_chan chan<- BoardEvent, game string, ErrorMessage ch
 					ErrorMessage <- fmt.Errorf("decode error, not EOF: %v", err)
 					//fmt.Printf("decode error, not EOF\n")
 				} else {
-					ErrorMessage <- fmt.Errorf("decode error, EOF: %v", err)
+					// ErrorMessage <- fmt.Errorf("decode error, EOF: %v", err)
 					//fmt.Printf("decode error, EOF\n")
 					time.Sleep(1)
-					close(event_chan)
+					// close(event_chan)
 					return nil
 				}
 			}

@@ -18,6 +18,7 @@ const (
 	ChatLine
 	ChatLineSpectator
 	GameStateResign
+	EOF
 )
 
 var streamed_move_sequence chan string
@@ -31,6 +32,8 @@ var BoardResign StreamBoardResign
 var WaitingAlert chan StreamEventType
 
 //API TYPES
+
+//https://lichess.org/api#operation/boardGameStream
 type StreamBoardResign struct {
 	Type   string `json:"type"`
 	Moves  string `json:"moves"`
@@ -42,6 +45,7 @@ type StreamBoardResign struct {
 	Winner string `json:"winner"`
 }
 
+//https://lichess.org/api#operation/boardGameStream
 type StreamBoardChat struct {
 	Type     string `json:"type"`
 	Username string `json:"username"`
@@ -49,6 +53,7 @@ type StreamBoardChat struct {
 	Room     string `json:"room"`
 }
 
+//https://lichess.org/api#operation/boardGameStream
 type StreamBoardGameState struct {
 	Type   string `json:"type"`
 	Moves  string `json:"moves"`
@@ -59,6 +64,7 @@ type StreamBoardGameState struct {
 	Status string `json:"status"`
 }
 
+//https://lichess.org/api#operation/boardGameStream
 type StreamBoardGameFull struct {
 	Type    string `json:"type"`
 	ID      string `json:"id"`

@@ -150,7 +150,7 @@ func DisplayLichessHistoryWindow(history_window *ncurses.Window) {
 	}
 }
 
-func DisplayLichessPostHistoryWindow(history_window *ncurses.Window, moves string) {
+func DisplayLichessPostHistoryWindow(history_window *ncurses.Window, moves string, finalEvent string) {
 	height, width := history_window.MaxYX()
 	var historyString string
 
@@ -160,9 +160,18 @@ func DisplayLichessPostHistoryWindow(history_window *ncurses.Window, moves strin
 		historyString = BoardGameState.Moves
 	}
 	result_str, result_str_name := GameOutcome(moves)
-	history_window.MovePrint(1, 1, result_str)
-	history_window.MovePrint(2, 1, result_str_name)
-	y := 3
+
+	if historyString != "" {
+		historyString = fmt.Sprintf("Move History: %s", historyString)
+	}
+	if finalEvent == "" {
+		historyString = fmt.Sprintf("%s %s %s", result_str, result_str_name, historyString)
+	} else if result_str == "" {
+		historyString = fmt.Sprintf("%s %s", finalEvent, historyString)
+	} else {
+		historyString = fmt.Sprintf("%s %s %s %s", finalEvent, result_str, result_str_name, historyString)
+	}
+	y := 1
 	for len(historyString) > 0 {
 		if y >= height {
 			y = 2

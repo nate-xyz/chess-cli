@@ -18,18 +18,19 @@ func GameOutcome(sequence string) (string, string) {
 			err := game.MoveStr(move)
 			if err != nil {
 				// handle error
-				fmt.Printf("%v\n", err)
+				//fmt.Printf("%v\n", err)
+				return "", ""
 			}
 			continue
 		}
 	}
-	outcome_str := fmt.Sprintf("Game completed. %s by %s.\n", game.Outcome(), game.Method())
+	outcome_str := fmt.Sprintf("Game completed. %s by %s.", game.Outcome(), game.Method())
 	var name_str string
 	if game.Outcome()[0] == '1' {
-		name_str = fmt.Sprintf("White (%s) wins.\n", BoardFullGame.White.Name)
+		name_str = fmt.Sprintf("White (%s) wins.", BoardFullGame.White.Name)
 	}
 	if game.Outcome()[0] == '0' {
-		name_str = fmt.Sprintf("Black (%s) wins.\n", BoardFullGame.Black.Name)
+		name_str = fmt.Sprintf("Black (%s) wins.", BoardFullGame.Black.Name)
 	}
 
 	return outcome_str, name_str
