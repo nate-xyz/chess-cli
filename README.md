@@ -56,7 +56,7 @@ if libraries are missing: go mod tidy
     - [x] translate move sequence into FEN w local chess lib
     - [x] update FEN on board event from stream
     - [x] make move
-    - [ ] handles lichess game abort
+    - [x] handles lichess game abort
     - [x] handle game end
       - [ ] post game options
         - [ ] rematch
