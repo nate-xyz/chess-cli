@@ -1,4 +1,12 @@
-# chess-cli ♟️
+<h1 align='center'>chess-cli ♟️</h1>
+<p align="center">
+  <b>chess ncurses tui app written in Go</b><br/>
+  <sub>Play locally with a friend or online with Lichess!</a></sub>
+</p>
+<br />
+
+
+<!-- # chess-cli ♟️ -->
 
 ## tips
 
