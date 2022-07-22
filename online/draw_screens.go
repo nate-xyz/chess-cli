@@ -93,7 +93,7 @@ func DrawLichessWelcome(screen *ncurses.Window, key ncurses.Key, windows_array [
 
 	screen.NoutRefresh()
 	for _, win := range windows_array {
-		win.Box('|', '-')
+		win.Box(0, 0)
 		win.NoutRefresh()
 	}
 	ncurses.Update()
@@ -151,7 +151,7 @@ func DrawLichessChallenges(screen *ncurses.Window, key ncurses.Key, windows_arra
 
 	// Turning on attributes for title
 	for i, win := range windows_array {
-		win.Box('|', '-')
+		win.Box(0, 0)
 		// Rendering title
 		win.AttrOn(ncurses.ColorPair(2))
 		win.AttrOn(ncurses.A_BOLD)
@@ -269,7 +269,7 @@ func DrawCreateGame(screen *ncurses.Window, op []string, sel []string, title str
 
 	// print windows
 	//win_title := title_array[len(sel)]
-	win.Box('|', '-')
+	win.Box(0, 0)
 	// Rendering title
 	win.AttrOn(ncurses.ColorPair(2))
 	win.AttrOn(ncurses.A_BOLD)
@@ -330,7 +330,7 @@ func DrawLichessGame(stdscr *ncurses.Window, key ncurses.Key, windows_array [4]*
 
 	// Turning on attributes for title
 	for i, win := range windows_array {
-		win.Box('|', '-')
+		win.Box(0, 0)
 		// Rendering title
 		win.AttrOn(ncurses.ColorPair(2))
 		win.AttrOn(ncurses.A_BOLD)
@@ -394,7 +394,7 @@ func DrawLichessPostGame(stdscr *ncurses.Window, windows_array [3]*ncurses.Windo
 
 	// Turning on attributes for title
 	for i, win := range windows_array {
-		win.Box('|', '-')
+		win.Box(0, 0)
 		// Rendering title
 		win.AttrOn(ncurses.ColorPair(2))
 		win.AttrOn(ncurses.A_BOLD)

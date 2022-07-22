@@ -100,7 +100,7 @@ func DrawWelcomeScreen(screen *ncurses.Window, key ncurses.Key, windows_array [1
 	//prompt_welcome_window.Box('|', '-')
 	screen.NoutRefresh()
 	for _, win := range windows_array {
-		win.Box('|', '-')
+		win.Box(0, 0)
 		win.NoutRefresh()
 	}
 	ncurses.Update()
@@ -167,7 +167,7 @@ func DrawLocalGameScreen(stdscr *ncurses.Window, key ncurses.Key, windows_array 
 
 	// Turning on attributes for title
 	for i, win := range windows_array {
-		win.Box('|', '-')
+		win.Box(0, 0)
 		// Rendering title
 		win.AttrOn(ncurses.ColorPair(2))
 		win.AttrOn(ncurses.A_BOLD)
@@ -276,7 +276,7 @@ func DrawPostScreen(screen1 *ncurses.Window, key ncurses.Key, windows_array [2]*
 
 	// Turning on attributes for title
 	for i, win := range windows_array {
-		win.Box('|', '-')
+		win.Box(0, 0)
 		// Rendering title
 		win.AttrOn(ncurses.ColorPair(2))
 		win.AttrOn(ncurses.A_BOLD)
