@@ -146,6 +146,7 @@ func notifier(screen *ncurses.Window, message <-chan string) {
 	for {
 		select {
 		case m := <-message:
+			continue
 			title := "notification"
 			_, s_width := screen.MaxYX()
 			//x := rand.Intn(width) + 1
@@ -167,7 +168,7 @@ func notifier(screen *ncurses.Window, message <-chan string) {
 				// 	x := s_width - w - 1
 				// 	win.Clear()
 				// 	win.MoveWindow(1, x) //move windows to appropriate locations
-				// 	win.Box('|', '-')
+				// 	win.Box(0, 0)
 				// 	win.AttrOn(ncurses.ColorPair(2))
 				// 	win.AttrOn(ncurses.A_BOLD)
 				// 	win.MovePrint(0, 1, title)
@@ -179,7 +180,7 @@ func notifier(screen *ncurses.Window, message <-chan string) {
 					break loop
 				default:
 					win, _ := ncurses.NewWindow(3, w, 1, x)
-					win.Box('|', '-')
+					win.Box(0, 0)
 					win.AttrOn(ncurses.ColorPair(2))
 					win.AttrOn(ncurses.A_BOLD)
 					win.MovePrint(0, 1, title)
@@ -225,7 +226,7 @@ func ncurses_print_error(screen *ncurses.Window, message <-chan error) {
 					break loop
 				default:
 					win, _ := ncurses.NewWindow(3, w, y, x)
-					win.Box('|', '-')
+					win.Box(0, 0)
 					win.AttrOn(ncurses.ColorPair(2))
 					win.AttrOn(ncurses.A_BOLD)
 					win.MovePrint(0, 1, title)
