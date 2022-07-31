@@ -178,4 +178,4 @@ go.work
 LICENSE
 LICENSE.md
 
-__debug_bin/
+__debug_bin

@@ -1,4 +1,4 @@
-package online
+package main
 
 import "fmt"
 
@@ -380,6 +380,7 @@ var testAiChallenge = CreateChallengeType{
 var currentGameID string
 var UserEmail string
 var Username string
+
 var UserProfile map[string]interface{}
 var UserFriends string
 var allFriends []string
@@ -390,6 +391,7 @@ var OngoingGames []OngoingGameInfo
 var IncomingChallenges []ChallengeInfo
 var OutgoingChallenges []ChallengeInfo
 var BoardStreamArr []BoardState
+
 var EventStreamArr []StreamEventType
 var gameStateChan chan BoardEvent
 var board_state_sig chan bool
@@ -421,6 +423,7 @@ var Scopes = []string{
 	"study:read",
 	"study:write",
 	"puzzle:read",
+	"follow:read",
 	"follow:write",
 	"msg:write",
 	"board:play",
@@ -432,6 +435,7 @@ var TokenURL string = fmt.Sprintf("%s/api/token", hostUrl)
 var RedirectURL string
 var redirectPort int
 var json_path = "user_config.json"
+
 var StreamChannel chan StreamEventType
 var StreamChannelForWaiter chan StreamEventType
 

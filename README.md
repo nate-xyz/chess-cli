@@ -1,6 +1,6 @@
 <h1 align='center'>chess-cli ♟️</h1>
 <p align="center">
-  <b>A chess ncurses tui app written in Go.</b><br/>
+  <b>A chess tui app written in Go.</b><br/>
   <sub>Play locally with a friend or online with Lichess!</a></sub>
 </p>
 <br />
@@ -16,70 +16,7 @@ if libraries are missing: `go mod tidy`
 
 ♞♞♞♞♞♞♞♞♞♞♞
 
-## TODO:
 
-
-### all
-- [x] fix prompt window breaking in alacritty
-  - [ ] fixed with mouse input active
-- [ ] non unicode support for tty
-- [ ] windows support with pancurses
-- [ ] fix board flipping visual errors when black to move
-
-### local
-- [x] fix legal move list on info window ✓
-- [ ] choose notation to start?
-  - [ ] maybe settings screen for notation / color to start / unicode on or off, accessible through escape
-- [ ] get mouse input working in board window
-- [x] local game screen handler
-
-### lichess
-
-- [ ] oauth
-  - [x] get oauth working ✓
-  - [ ] check if token is expired and get new one if so
-  - [ ] check if already logged in
-- [ ] api
-  - [ ] get lichess requests working? wip
-    - [ ] sometimes flips requested color?
-    - [x] get profile info ✓
-    - [x] get challenges
-    - [ ] make challenges
-      - [x] create a challenge (specific user)
-      - [ ] create an open-ended challenge
-      - [ ] create a seek (random user)
-      - [ ] challenge the ai
-        - [ ] generate CreateAiChallengeType type fields through windows in CreateLichessGame
-    - [ ] list of ongoing games
-      - [x] request
-      - [ ] screen
-   - [x] stream incoming events
-     - [x] start as goroutine initially in main and implement notifications for every screen
-     - [ ] exit option on challenge waiting screen
-- [ ] game client
-  - [ ] prompt being refreshed
-  - [x] screen handler at different depth? maybe a generic handler with functions passed as parameters
-    - [x] implemented lichess screen handler
-  - [ ] (after challenge or join ongoing game) lichess game screen w/ working request loop and translation of move sequence into FEN string
-    - [x] translate move sequence into FEN w local chess lib
-    - [x] update FEN on board event from stream
-    - [x] make move
-    - [x] handles lichess game abort
-    - [x] handle game end
-      - [ ] post game options
-        - [ ] rematch
-        - [ ] new game
-        - [ ] back to lichess home
-        - [ ] back to chess-cli home
-    - [ ] handle custom starting positions
-    - [ ] rematches
-
-### ai
-- [ ] get stockfish working through lichess? wip
-
-
-
-♞♞♞♞♞♞♞♞♞♞♞
 
 ## DEV DOCS:
 
@@ -87,10 +24,62 @@ https://lichess.org/api for lichess
 
 https://pkg.go.dev/github.com/notnil/chess?utm_source=godoc for go chess
 
-https://pkg.go.dev/github.com/rthornton128/goncurses for goncurses
+https://docs.rocketnine.space/code.rocketnine.space/tslocum/cview/ CVIEW
+
+https://code.rocketnine.space/tslocum/cview/src/branch/master/demos CVIEW DEMOS
 
 https://pkg.go.dev/net/http for http
 
-https://mholt.github.io/json-to-go/
+https://mholt.github.io/json-to-go/ JSON
 
 ♞♞♞♞♞♞♞♞♞♞♞
+
+
+## TODO:
+
+
+### local
+- [ ] choose notation to start?
+  - [ ] maybe settings screen for notation / color to start / unicode on or off, accessible through escape
+- [ ] get mouse input working in board window
+- [ ] captured pieces window
+
+### lichess
+
+- [ ] oauth
+  - [ ] check if token is expired and get new one if so
+  - [ ] handle if oauth process rejected
+- [ ] api
+  - [ ] sometimes flips requested color?
+  - [ ] make challenges
+    - [ ] set default interval position
+    - [x] create a challenge (specific user)
+    - [ ] create an open-ended challenge
+    - [ ] create a seek (random user)
+    - [ ] challenge the ai
+        - [ ] generate CreateAiChallengeType type fields through windows in CreateLichessGame
+    - [ ] list of ongoing games
+      - [ ] request
+      - [ ] screen
+
+- [ ] game client
+  - [ ] exit option on challenge waiting screen
+  - [ ] add timers and update them from stream
+  - [x] translate move sequence into FEN w local chess lib
+  - [x] update FEN on board event from stream
+  - [x] make move
+  - [x] handles lichess game abort
+  - [x] handle game end
+    - [ ] post game options
+      - [ ] rematch
+      - [ ] new game
+      - [ ] back to lichess home
+      - [ ] back to chess-cli home
+    - [ ] handle custom starting positions
+    - [ ] rematches
+
+### ai
+- [ ] get stockfish working through lichess? wip
+
+♞♞♞♞♞♞♞♞♞♞♞
+

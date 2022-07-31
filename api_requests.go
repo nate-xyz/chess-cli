@@ -1,4 +1,4 @@
-package online
+package main
 
 import (
 	"encoding/json"
@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-
-	. "github.com/nate-xyz/chess-cli/shared"
 )
 
 //create a challenge against a specific user or get the url
@@ -21,7 +19,6 @@ func MakeMove(gameid string, move string) error {
 	// create the request and execute it
 	req, err := http.NewRequest("POST", requestUrl, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	NotiMessage <- fmt.Sprintf("POST request at %s", requestUrl)
 
 	if err != nil {
 		return err
@@ -78,15 +75,14 @@ func CreateChallenge(challenge CreateChallengeType) (error, string) {
 			"variant":         {challenge.Variant},
 			"keepAliveStream": {"true"},
 		}
-
 	}
-	NotiMessage <- fmt.Sprintf("%s", reqParam)
+
 	//application/x-www-form-urlencoded
 
-	// create the request and execute it
+	// create the request and add headers
 	req, err := http.NewRequest("POST", requestUrl, strings.NewReader(reqParam.Encode()))
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	NotiMessage <- fmt.Sprintf("POST request at %s", requestUrl)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	if err != nil {
 		return err, ""
@@ -98,9 +94,8 @@ func CreateChallenge(challenge CreateChallengeType) (error, string) {
 	if err != nil {
 		return err, ""
 	}
-
 	//read resp body
-	body, err := io.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body) //TODO: display body error on loading screen
 	if err != nil {
 		err := fmt.Errorf("%v", err)
 		//log.Fatalln(err)
@@ -118,49 +113,33 @@ func CreateChallenge(challenge CreateChallengeType) (error, string) {
 	if res.StatusCode != 200 {
 		err := fmt.Errorf("%v response: %v", res.StatusCode, err)
 		return err, ""
-	} else {
-		NotiMessage <- fmt.Sprintf("challenge good response: %v", res.StatusCode)
-	}
-	// unmarshal the json into a string map
-	var responseData map[string]interface{}
-	err = json.Unmarshal(body, &responseData)
-	if err != nil {
-		return err, ""
 	}
 
-	// retrieve the access token out of the map, and return to caller
-	if !isNil(responseData["challenge"]) {
-		NotiMessage <- fmt.Sprintf("posted challenge\n")
-		chal := responseData["challenge"].(map[string]interface{})
-		ChallengeId = chal["id"].(string)
-		return nil, ChallengeId
+	d := json.NewDecoder(strings.NewReader(string(body)))
+	for {
+		select {
+		// case <-quit_stream:
+		// 	return nil
+		default:
+			var responseData map[string]interface{}
+			err = d.Decode(&responseData)
+			if err != nil {
+				if err != io.EOF {
+					log.Fatal(err)
+					return err, ""
+				}
+				continue
+			}
+			if !isNil(responseData["challenge"]) { // retrieve the username out of the map
+				challenge := responseData["challenge"].(map[string]interface{})
+				ChallengeId = challenge["id"].(string)
+				return nil, ChallengeId
+			}
+			//fmt.Printf("waiting 2")
+			//return fmt.Errorf("username response interface is nil")
+		}
 	}
-	// d := json.NewDecoder(strings.NewReader(string(body)))
-	// for {
-	// 	select {
-	// 	// case <-quit_stream:
-	// 	// 	return nil
-	// 	default:
-	// 		var responseData map[string]map[interface]interface{}
-
-	// 		err := d.Decode(&responseData)
-	// 		if err != nil {
-	// 			if err != io.EOF {
-	// 				log.Fatal(err)
-	// 				return err
-	// 			}
-	// 			continue
-	// 		}
-	// 		if !isNil(responseData["challenge"]) { // retrieve the username out of the map
-	// 			streamEvent = responseData["challenge"]["id"].(string)
-	// 			fmt.Printf(streamEvent)
-	// 			return nil
-	// 		}
-	// 		//fmt.Printf("waiting 2")
-	// 		//return fmt.Errorf("username response interface is nil")
-	// 	}
-	// }
-	return fmt.Errorf("username response interface is nil"), ""
+	//return fmt.Errorf("username response interface is nil"), ""
 }
 
 func CreateAiChallenge(challenge CreateChallengeType) (error, string) {
@@ -194,14 +173,12 @@ func CreateAiChallenge(challenge CreateChallengeType) (error, string) {
 
 	}
 
-	NotiMessage <- fmt.Sprintf("%s", reqParam)
 	//application/x-www-form-urlencoded
 
 	// create the request and execute it
 	req, err := http.NewRequest("POST", requestUrl, strings.NewReader(reqParam.Encode()))
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
 	req.Header.Add("Accept", "application/x-www-form-urlencoded")
-	NotiMessage <- fmt.Sprintf("POST request at %s", requestUrl)
 
 	if err != nil {
 		return err, ""
@@ -229,8 +206,6 @@ func CreateAiChallenge(challenge CreateChallengeType) (error, string) {
 	if res.StatusCode != 200 {
 		err := fmt.Errorf("reponse %v: %v", res.StatusCode, string(body))
 		return err, ""
-	} else {
-		NotiMessage <- fmt.Sprintf("ai challenge good response: %v", res.StatusCode)
 	}
 	// unmarshal the json into a string map
 	var responseData map[string]interface{}
@@ -241,7 +216,7 @@ func CreateAiChallenge(challenge CreateChallengeType) (error, string) {
 
 	// retrieve the access token out of the map, and return to caller
 	if !isNil(responseData["challenge"]) {
-		NotiMessage <- fmt.Sprintf("posted challenge\n")
+
 		chal := responseData["challenge"].(map[string]interface{})
 		ChallengeId = chal["id"].(string)
 		return nil, ChallengeId
@@ -508,11 +483,11 @@ func GetFriends() error {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("%v: %v", resp.StatusCode, err)
+		return fmt.Errorf("GET FRIENDS %v: %v", resp.StatusCode, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad response: %v", resp.StatusCode)
+		return fmt.Errorf("GET FRIENDS bad response: %v", resp.StatusCode)
 	}
 
 	d := json.NewDecoder(resp.Body)

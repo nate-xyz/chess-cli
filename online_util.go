@@ -1,9 +1,7 @@
-package online
+package main
 
 import (
 	"fmt"
-	"log"
-	"os"
 	"strings"
 
 	"github.com/notnil/chess"
@@ -36,28 +34,21 @@ func GameOutcome(sequence string) (string, string) {
 	return outcome_str, name_str
 }
 
-func MoveTranslation(sequence string) string {
+func MoveTranslationToFEN(sequence string) (string, error) {
 	sequence_array := strings.Split(sequence, " ")
 	game := chess.NewGame(chess.UseNotation(chess.UCINotation{}))
-
-	for _, move := range sequence_array {
-		if game.Outcome() == chess.NoOutcome {
-			err := game.MoveStr(move)
-			if err != nil {
-				// handle error
-				fmt.Printf("%v\n", err)
+	if sequence != "" {
+		for _, move := range sequence_array {
+			if game.Outcome() == chess.NoOutcome {
+				err := game.MoveStr(move)
+				if err != nil {
+					return "", err // handle error
+				}
+				continue
 			}
-			continue
 		}
-		//break
 	}
-
-	//
-
-	if BoardFullGame.Black.Name == Username {
-		return game.Position().Board().Flip(chess.UpDown).String()
-	}
-	return game.Position().String()
+	return game.Position().String(), nil
 }
 
 func containedInOngoingGames(a []OngoingGameInfo, gameid string) bool {
@@ -89,21 +80,4 @@ func getEvents(a []StreamEventType, gameid string) ([]StreamEventType, bool) {
 		return n, true
 	}
 	return n, false
-}
-
-//writes to a local text file
-func WriteLocal(title string, payload string) {
-	f, err := os.Create(fmt.Sprintf("%s.txt", title))
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer f.Close()
-
-	_, err2 := f.WriteString(payload)
-
-	if err2 != nil {
-		log.Fatal(err2)
-	}
 }

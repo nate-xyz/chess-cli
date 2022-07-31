@@ -1,4 +1,4 @@
-package online
+package main
 
 import (
 	"encoding/json"
@@ -13,13 +13,13 @@ import (
 	"reflect"
 	"strings"
 
-	cv "github.com/jimlambrt/go-oauth-pkce-code-verifier"
+	pkce "github.com/jimlambrt/go-oauth-pkce-code-verifier"
 	"github.com/skratchdot/open-golang/open"
 )
 
 //TODO: check if token is expired
 
-func do_oauth() {
+func PerformOAuth() {
 	err := checkForJSON()
 	if err != nil {
 		//fmt.Printf("can't read/write to JSON: %s\n", err)
@@ -49,7 +49,7 @@ func AuthUser() {
 	//fmt.Printf("RedirectURL %v\n", RedirectURL)
 
 	// initialize the code verifier
-	var CodeVerifier, _ = cv.CreateCodeVerifier()
+	var CodeVerifier, _ = pkce.CreateCodeVerifier()
 
 	// Create code_challenge with S256 method
 	codeChallenge := CodeVerifier.CodeChallengeS256()
@@ -243,7 +243,7 @@ func findPort() (int, error) {
 		}
 	}
 
-	err := fmt.Errorf("Unable to find an open port, failing")
+	err := fmt.Errorf("unable to find an open port, failing")
 	return 0, err
 
 }
@@ -285,4 +285,36 @@ func checkForJSON() error {
 	}
 	//fmt.Printf("json checking done no errors\n")
 	return nil
+}
+
+func GetLichessUserInfo() {
+	if UserInfo.ApiToken != "" {
+		if UserEmail == "" {
+			err := GetEmail()
+			if err != nil {
+				WriteLocal("Get Email Error", fmt.Sprintf("%v", err))
+				log.Fatal(err)
+				os.Exit(1)
+			}
+		}
+		if Username == "" {
+			err := GetUsername()
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		err := GetChallenges()
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = GetOngoingGames()
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = GetFriends()
+		if err != nil {
+			log.Fatal(err)
+		}
+		Ready <- struct{}{}
+	}
 }
