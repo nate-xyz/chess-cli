@@ -168,7 +168,7 @@ cython_debug/
 
 # Go
 go.work
-go.sum
+# go.sum
 
 #config files with json
 *.json
