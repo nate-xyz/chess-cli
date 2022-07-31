@@ -37,7 +37,6 @@ func SendChallengeRequest(gchan chan<- string, errchan chan<- error) {
 			if err != nil {
 				errchan <- err
 			} else {
-
 				gchan <- id
 			}
 		}
@@ -57,21 +56,6 @@ func LichessGame(gameID string) {
 
 			switch b {
 			case GameFull: //full game state json
-				MoveArr := strings.Split(BoardFullGame.State.Moves, " ")
-				if len(MoveArr)%2 != 0 { //white to move
-					if BoardFullGame.White.Name == Username {
-						canMove = true
-					} else {
-						canMove = false
-					}
-				} else {
-					if BoardFullGame.Black.Name == Username {
-						canMove = true
-					} else {
-						canMove = false
-					}
-				}
-
 				currentFEN, err := MoveTranslationToFEN(BoardFullGame.State.Moves) //get the current FEN from the move history
 				if err != nil {
 					WriteLocal("BoardStateError MoveTranslation", fmt.Sprintf("%v ", err)+currentFEN)
@@ -101,19 +85,6 @@ func LichessGame(gameID string) {
 
 			case GameState: // game state json
 				MoveArr := strings.Split(BoardGameState.Moves, " ")
-				if len(MoveArr)%2 != 0 { //white to move
-					if BoardFullGame.White.Name == Username {
-						canMove = true
-					} else {
-						canMove = false
-					}
-				} else {
-					if BoardFullGame.Black.Name == Username {
-						canMove = true
-					} else {
-						canMove = false
-					}
-				}
 
 				currentFEN, err := MoveTranslationToFEN(BoardGameState.Moves)
 				if err != nil {

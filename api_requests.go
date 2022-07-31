@@ -170,15 +170,14 @@ func CreateAiChallenge(challenge CreateChallengeType) (error, string) {
 			"variant":         {challenge.Variant},
 			"keepAliveStream": {"true"},
 		}
-
 	}
 
 	//application/x-www-form-urlencoded
 
-	// create the request and execute it
+	// create the request and add headers
 	req, err := http.NewRequest("POST", requestUrl, strings.NewReader(reqParam.Encode()))
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	req.Header.Add("Accept", "application/x-www-form-urlencoded")
+	req.Header.Add("Content-type", "application/x-www-form-urlencoded")
 
 	if err != nil {
 		return err, ""
@@ -192,7 +191,7 @@ func CreateAiChallenge(challenge CreateChallengeType) (error, string) {
 	}
 
 	//read resp body
-	body, err := io.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body) //TODO: display body error on loading screen
 	if err != nil {
 		err := fmt.Errorf("%v", err)
 		//log.Fatalln(err)
@@ -203,51 +202,35 @@ func CreateAiChallenge(challenge CreateChallengeType) (error, string) {
 	//fmt.Printf("%v", res.StatusCode)
 	//fmt.Printf(string(body))
 
-	if res.StatusCode != 200 {
+	if res.StatusCode != 200 && res.StatusCode != 201 {
 		err := fmt.Errorf("reponse %v: %v", res.StatusCode, string(body))
 		return err, ""
 	}
-	// unmarshal the json into a string map
-	var responseData map[string]interface{}
-	err = json.Unmarshal(body, &responseData)
-	if err != nil {
-		return err, ""
+
+	d := json.NewDecoder(strings.NewReader(string(body)))
+	for {
+		select {
+		// case <-quit_stream:
+		// 	return nil
+		default:
+			var responseData map[string]interface{}
+			err = d.Decode(&responseData)
+			if err != nil {
+				if err != io.EOF {
+					log.Fatal(err)
+					return err, ""
+				}
+				continue
+			}
+			if !isNil(responseData["id"]) { // retrieve the username out of the map
+				ChallengeId := responseData["id"].(string)
+				return nil, ChallengeId
+			}
+			//fmt.Printf("waiting 2")
+			//return fmt.Errorf("username response interface is nil")
+		}
 	}
-
-	// retrieve the access token out of the map, and return to caller
-	if !isNil(responseData["challenge"]) {
-
-		chal := responseData["challenge"].(map[string]interface{})
-		ChallengeId = chal["id"].(string)
-		return nil, ChallengeId
-	}
-	// d := json.NewDecoder(strings.NewReader(string(body)))
-	// for {
-	// 	select {
-	// 	// case <-quit_stream:
-	// 	// 	return nil
-	// 	default:
-	// 		var responseData map[string]map[interface]interface{}
-
-	// 		err := d.Decode(&responseData)
-	// 		if err != nil {
-	// 			if err != io.EOF {
-	// 				log.Fatal(err)
-	// 				return err
-	// 			}
-	// 			continue
-	// 		}
-	// 		if !isNil(responseData["challenge"]) { // retrieve the username out of the map
-	// 			streamEvent = responseData["challenge"]["id"].(string)
-	// 			fmt.Printf(streamEvent)
-	// 			return nil
-	// 		}
-	// 		//fmt.Printf("waiting 2")
-	// 		//return fmt.Errorf("username response interface is nil")
-	// 	}
-	// }
-	return fmt.Errorf("username response interface is nil"), ""
-
+	//return fmt.Errorf("username response interface is nil"), ""
 }
 
 func GetOngoingGames() error {

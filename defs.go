@@ -55,7 +55,6 @@ var (
 	Sigs         chan os.Signal
 	Ready        chan struct{}
 	Online       bool                = false
-	canMove      bool                = false
 	NewChessGame *chess.Game         //used in online.go in the LichessGame() function to update the board position from new stream event
 	newChallenge CreateChallengeType //used initUI.go in initConstruct() in order to save settings from a challenge construction
 )

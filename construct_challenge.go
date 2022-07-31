@@ -25,6 +25,7 @@ func initConstruct() *cv.Grid {
 	//title_array := []string{"options", "variants", "time options", "time interval", "rated/casual", "choose color", "select friend to challenge", "submit challenge"}
 
 	var firstOption func()
+	var BotPowerLevelOption func()
 	var variantSecondOption func()
 	var timeThirdOption func()
 	var fourthIntervalOption func()
@@ -35,6 +36,7 @@ func initConstruct() *cv.Grid {
 	var Minutes float64 = 0.25
 	var Seconds int
 	var Days int = 1
+	var BotPowerLevel int = 1
 	//choose the type of challenge
 	firstOption = func() {
 		list.Clear()
@@ -159,46 +161,10 @@ func initConstruct() *cv.Grid {
 		switch newChallenge.TimeOption {
 		case 0: //realtime
 			//minute array
-			m := []float64{0.25, 0.5, 0.75, 1.0, 1.5}
-			lof, hif := 2, 20
-			m_ := make([]float64, hif-lof+1)
-			for i := range m_ {
-				m_[i] = float64(i + lof)
-			}
-			m = append(m, m_...)
-			lof, hif = 25, 45
-			m_ = make([]float64, ((hif-lof+1)/5)+1)
-			for i := range m_ {
-				m_[i] = float64(i*5 + lof)
-			}
-			m = append(m, m_...)
-			lof, hif = 60, 180
-			m_ = make([]float64, ((hif-lof+1)/15)+1)
-			for i := range m_ {
-				m_[i] = float64(i*15 + lof)
-			}
-			m = append(m, m_...)
+			m := []float64{0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25, 30, 35, 40, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180}
 
 			//second array
-			s := []int{}
-			lof, hif = 0, 20
-			s_ := make([]int, hif-lof+1)
-			for i := range s_ {
-				s_[i] = int(i + lof)
-			}
-			s = append(s, s_...)
-			lof, hif = 25, 45
-			s_ = make([]int, ((hif-lof+1)/5)+1)
-			for i := range s_ {
-				s_[i] = int(i*5 + lof)
-			}
-			s = append(s, s_...)
-			lof, hif = 60, 180
-			s_ = make([]int, ((hif-lof+1)/15)+1)
-			for i := range m_ {
-				s_[i] = int(i*15 + lof)
-			}
-			s = append(s, s_...)
+			s := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25, 30, 35, 40, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180}
 
 			//slider 1: Minutes per side
 			slider1 := cv.NewSlider()
@@ -329,7 +295,14 @@ func initConstruct() *cv.Grid {
 				newChallenge.ColorIndex = list.GetCurrentItemIndex()
 				//clear the list
 				//add the new list
-				seventhfriendsOptions()
+				switch newChallenge.Type {
+				case 0:
+				case 1:
+					seventhfriendsOptions()
+				case 2:
+					BotPowerLevelOption()
+				}
+
 			})
 			list.AddItem(item)
 		}
@@ -396,6 +369,44 @@ func initConstruct() *cv.Grid {
 		list.AddItem(quitItem)
 	}
 
+	BotPowerLevelOption = func() {
+		list.Clear()
+		grid.Clear()
+		form := cv.NewForm()
+		p := []int{1, 2, 3, 4, 5, 6, 7, 8}
+		slider1 := cv.NewSlider()
+		slider1.SetLabel("AI Strength:   1")
+		slider1.SetChangedFunc(func(value int) {
+			BotPowerLevel = p[value]
+			slider1.SetLabel(fmt.Sprintf("AI Strength:   %3v", p[value]))
+		})
+		slider1.SetMax(len(p) - 1)
+		slider1.SetIncrement(1)
+
+		form.AddFormItem(slider1)
+
+		form.AddButton("Submit", func() {
+
+			newChallenge.Level = fmt.Sprintf("%v", BotPowerLevel)
+
+			grid.Clear()
+			grid.AddItem(list, 0, 0, 1, 1, 0, 0, true)
+			eightSubmitOption()
+		})
+		form.AddButton("Back", func() {
+			grid.Clear()
+			grid.AddItem(list, 0, 0, 1, 1, 0, 0, true)
+			sixthColorOption()
+		})
+		form.AddButton("Home", gotoLichessAfterLogin)
+		form.AddButton("Quit", root.app.Stop)
+		//form.SetBorder(true)
+		form.SetTitle("Choose bot power level:")
+		form.SetTitleAlign(cv.AlignCenter)
+
+		grid.AddItem(form, 0, 0, 1, 1, 0, 0, true)
+	}
+
 	eightSubmitOption = func() {
 		list.Clear()
 
@@ -408,9 +419,17 @@ func initConstruct() *cv.Grid {
 
 		//add back
 		item := cv.NewListItem("Back")
-		item.SetSecondaryText("Back to selecting the FRIEND to send the challenge to")
+		item.SetSecondaryText("Back to previous selection to send the challenge to")
 		item.SetShortcut(rune('y'))
-		item.SetSelectedFunc(seventhfriendsOptions)
+		item.SetSelectedFunc(func() {
+			switch newChallenge.Type {
+			case 0:
+			case 1:
+				seventhfriendsOptions()
+			case 2:
+				BotPowerLevelOption()
+			}
+		})
 		list.AddItem(item)
 
 		//add back

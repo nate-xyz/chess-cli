@@ -426,6 +426,7 @@ var Scopes = []string{
 	"follow:read",
 	"follow:write",
 	"msg:write",
+	"bot:play",
 	"board:play",
 }
 

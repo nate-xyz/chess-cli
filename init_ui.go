@@ -240,12 +240,10 @@ func initLichessGameGrid() *cv.Grid {
 	inputBox.SetDoneFunc(func(key tc.Key) {
 		root.currentLocalGame.NextMove = inputBox.GetText()
 		inputBox.SetText("")
+		//TODO: print response status body to window if invalid
 		if key == tc.KeyEnter {
 			if contains(root.currentLocalGame.LegalMoves, root.currentLocalGame.NextMove) {
 				OnlineGameDoMove()
-			} else if !canMove {
-				root.currentLocalGame.Status += "[red]Cannot move yet, wait for your opponent.[white]\n"
-				UpdateGameStatus(root.OnlineStatus)
 			} else {
 				root.currentLocalGame.Status += "Last input [red]invalid.[white]\n"
 				UpdateGameStatus(root.OnlineStatus)
