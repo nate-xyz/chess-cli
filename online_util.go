@@ -62,17 +62,26 @@ func containedInOngoingGames(a []OngoingGameInfo, gameid string) bool {
 
 func containedInEventStream(a []StreamEventType, gameid string) (string, bool) {
 	for _, e := range a {
-		if e.Id == gameid {
-			return e.Event, true
+		if e.GameID == gameid {
+			return e.EventType, true
 		}
 	}
 	return "", false
 }
 
+func EventContainedInEventStream(a []StreamEventType, eventtype string) (StreamEventType, bool) {
+	for _, e := range a {
+		if e.EventType == eventtype {
+			return e, true
+		}
+	}
+	return StreamEventType{}, false
+}
+
 func getEvents(a []StreamEventType, gameid string) ([]StreamEventType, bool) {
 	n := make([]StreamEventType, 0)
 	for _, e := range a {
-		if e.Id == gameid {
+		if e.GameID == gameid {
 			n = append(n, e)
 		}
 	}

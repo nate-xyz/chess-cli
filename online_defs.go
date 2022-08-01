@@ -326,8 +326,9 @@ type AiChallengeInfo struct {
 }
 
 type StreamEventType struct {
-	Event string
-	Id    string
+	EventType string
+	GameID    string
+	Source    string
 }
 
 type BoardState struct {
@@ -386,7 +387,8 @@ var UserFriends string
 var allFriends []string
 var FriendsMap map[string]bool
 var ChallengeId string
-var streamEvent string
+
+//var streamEvent string
 var OngoingGames []OngoingGameInfo
 var IncomingChallenges []ChallengeInfo
 var OutgoingChallenges []ChallengeInfo

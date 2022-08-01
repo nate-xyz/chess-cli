@@ -12,36 +12,131 @@ import (
 
 func SendChallengeRequest(gchan chan<- string, errchan chan<- error) {
 	if UserInfo.ApiToken != "" {
+		var err error
+		var id string
 		switch CurrentChallenge.Type {
-		case 0: //random seek
-			//TODO: api call CREATE A SEEK
+		case 0:
+			err = CreateSeek(CurrentChallenge)
+			if err == nil {
+				gchan <- "Seek created. Searching for opponent..."
+				return
+			}
 		case 1: //challenge friend
-
-			if CurrentChallenge.OpenEnded {
-				//TODO: api call CREATE A OPEN END CHALLENGE
-
-			} else {
-				// api call CREATE A CHALLENGE
-				err, id := CreateChallenge(CurrentChallenge)
-				if err != nil {
-					errchan <- err
-				} else {
-					gchan <- id
-				}
-
-			}
+			err, id = CreateChallenge(CurrentChallenge)
 		case 2: //lichess ai
-
-			//TODO: api call CHALLENGE THE AI
-			err, id := CreateAiChallenge(CurrentChallenge)
-			if err != nil {
-				errchan <- err
-			} else {
-				gchan <- id
-			}
+			err, id = CreateAiChallenge(CurrentChallenge)
+		}
+		if err != nil {
+			errchan <- err
+		} else {
+			gchan <- id
 		}
 	} else {
 		log.Fatal(fmt.Errorf("tried to send api request with no api token"))
+	}
+}
+
+func WaitForLichessGameResponse() {
+	var localid string
+	getgameid := make(chan string, 1)
+	ticker := time.NewTicker(time.Millisecond * 250)
+	var icon_index int = 0
+	RequestError := make(chan error, 1)
+	var RandomSeek bool = CurrentChallenge.Type == 0
+
+	go SendChallengeRequest(getgameid, RequestError) //send the request
+
+	load_msg := "requesting game from lichess ... "
+	UpdateLoaderMsg(load_msg)
+
+	for {
+		select {
+		case e := <-RequestError:
+			load_msg = fmt.Sprintf("ERROR: %v", e)
+			UpdateLoaderMsg(load_msg)
+			go func() {
+				time.Sleep(time.Second * 5)
+				root.app.QueueUpdate(gotoLichessAfterLogin)
+			}()
+		case id := <-getgameid:
+			if !RandomSeek {
+				localid = id
+			} else {
+				load_msg = id
+				UpdateLoaderMsg(load_msg)
+			}
+		case e := <-StreamChannel: // receive event directly
+			EventStreamArr = append([]StreamEventType{e}, EventStreamArr...)
+			if !RandomSeek {
+				if e.GameID == localid {
+					load_msg = fmt.Sprintf("(Stream channel) load event: %v!!!", e.EventType)
+					UpdateLoaderMsg(load_msg)
+					currentGameID = e.GameID
+
+					//goto game
+					root.app.QueueUpdate(startNewOnlineGame)
+					return
+
+				}
+			} else {
+				if e.EventType == "gameStart" && e.Source != "friend" { //TODO: check to make sure match random seek request
+					UpdateLoaderMsg("Found random opponent!")
+					currentGameID = e.GameID
+					root.app.QueueUpdate(startNewOnlineGame)
+					return
+
+				}
+			}
+
+		case <-ticker.C:
+			if !RandomSeek {
+				if localid != "" {
+					s, b := containedInEventStream(EventStreamArr, localid)
+					if b {
+						switch s {
+						case "challenge":
+
+							load_msg = fmt.Sprintf("Waiting for %v to accept the challenge %v/%v.", CurrentChallenge.DestUser, hostUrl, localid)
+							UpdateLoaderMsg(load_msg)
+						case "gameFinish":
+							// log.Fatal(fmt.Errorf("event %v wrong type s", s))
+							return
+						case "challengeCanceled", "challengeDeclined":
+
+							// log.Fatal(fmt.Errorf("challenge rejected: %v", s))
+
+							return
+						case "gameStart":
+
+							load_msg = fmt.Sprintf("(Direct from challenge) load event: %v!!!", s)
+							UpdateLoaderMsg(load_msg)
+							currentGameID = localid
+
+							///goto game
+
+							root.app.QueueUpdate(startNewOnlineGame)
+							return
+
+						}
+					} else {
+						load_msg = fmt.Sprintf("Waiting for %v to accept the challenge %v/%v.", CurrentChallenge.DestUser, hostUrl, localid)
+						UpdateLoaderMsg(load_msg)
+
+					}
+				}
+			} else {
+				e, b := EventContainedInEventStream(EventStreamArr, "gameStart") //TODO: check to make sure match random seek request
+				if b && (e.Source != "friend") {
+					currentGameID = e.GameID
+					root.app.QueueUpdate(startNewOnlineGame)
+					return
+				}
+			}
+
+			icon_index = UpdateLoaderIcon(icon_index)
+		default:
+			UpdateLoaderMsg(load_msg)
+		}
 	}
 }
 
@@ -129,85 +224,6 @@ func LichessGame(gameID string) {
 
 			}
 
-		}
-	}
-}
-
-func WaitForLichessGameResponse() {
-	var localid string
-	getgameid := make(chan string, 1)
-	ticker := time.NewTicker(time.Millisecond * 250)
-	var icon_index int = 0
-	RequestError := make(chan error, 1)
-	//send the request
-	go SendChallengeRequest(getgameid, RequestError)
-
-	load_msg := "requesting game from lichess ... "
-	UpdateLoaderMsg(load_msg)
-
-	for {
-		select {
-		case e := <-RequestError:
-			load_msg = fmt.Sprintf("ERROR: %v", e)
-			UpdateLoaderMsg(load_msg)
-
-			go func() {
-				time.Sleep(time.Second * 5)
-				os.Exit(1)
-			}()
-
-		case id := <-getgameid:
-			localid = id
-		case e := <-StreamChannel: // receive event directly
-			EventStreamArr = append([]StreamEventType{e}, EventStreamArr...)
-			if e.Id == localid {
-				load_msg = fmt.Sprintf("(Stream channel) load event: %v!!!", e.Event)
-				UpdateLoaderMsg(load_msg)
-				currentGameID = e.Id
-
-				//goto game
-				root.app.QueueUpdate(startNewOnlineGame)
-				return
-
-			}
-		case <-ticker.C:
-			if localid != "" {
-				s, b := containedInEventStream(EventStreamArr, localid)
-				if b {
-					switch s {
-					case "challenge":
-
-						load_msg = fmt.Sprintf("Waiting for %v to accept the challenge %v/%v.", CurrentChallenge.DestUser, hostUrl, localid)
-						UpdateLoaderMsg(load_msg)
-					case "gameFinish":
-						// log.Fatal(fmt.Errorf("event %v wrong type s", s))
-						return
-					case "challengeCanceled", "challengeDeclined":
-
-						// log.Fatal(fmt.Errorf("challenge rejected: %v", s))
-
-						return
-					case "gameStart":
-
-						load_msg = fmt.Sprintf("(Direct from challenge) load event: %v!!!", s)
-						UpdateLoaderMsg(load_msg)
-						currentGameID = localid
-
-						///goto game
-
-						root.app.QueueUpdate(startNewOnlineGame)
-						return
-
-					}
-				} else {
-					load_msg = fmt.Sprintf("Waiting for %v to accept the challenge %v/%v.", CurrentChallenge.DestUser, hostUrl, localid)
-					UpdateLoaderMsg(load_msg)
-
-				}
-			}
-			icon_index = UpdateLoaderIcon(icon_index)
-		default:
-			UpdateLoaderMsg(load_msg)
 		}
 	}
 }

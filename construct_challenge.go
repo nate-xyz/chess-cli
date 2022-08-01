@@ -297,6 +297,7 @@ func initConstruct() *cv.Grid {
 				//add the new list
 				switch newChallenge.Type {
 				case 0:
+					eightSubmitOption()
 				case 1:
 					seventhfriendsOptions()
 				case 2:
@@ -424,6 +425,7 @@ func initConstruct() *cv.Grid {
 		item.SetSelectedFunc(func() {
 			switch newChallenge.Type {
 			case 0:
+				sixthColorOption()
 			case 1:
 				seventhfriendsOptions()
 			case 2:

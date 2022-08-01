@@ -233,6 +233,74 @@ func CreateAiChallenge(challenge CreateChallengeType) (error, string) {
 	//return fmt.Errorf("username response interface is nil"), ""
 }
 
+func CreateSeek(challenge CreateChallengeType) error {
+	requestUrl := fmt.Sprintf("%s/api/board/seek", hostUrl)
+	var reqParam url.Values
+	switch challenge.TimeOption {
+	case 0: //realtime
+		reqParam = url.Values{
+			"rated":           {challenge.Rated},
+			"clock.limit":     {challenge.ClockLimit},
+			"clock.increment": {challenge.ClockIncrement},
+			"color":           {challenge.Color}, //enum: 0, 1, or 2
+			"variant":         {challenge.Variant},
+			"keepAliveStream": {"true"},
+		}
+	case 1: //corresondesnce
+		reqParam = url.Values{
+			"rated":           {challenge.Rated},
+			"days":            {challenge.Days},
+			"color":           {challenge.Color},
+			"variant":         {challenge.Variant},
+			"keepAliveStream": {"true"},
+		}
+	case 2: //unlimited
+		reqParam = url.Values{
+			"rated":           {challenge.Rated},
+			"color":           {challenge.Color},
+			"variant":         {challenge.Variant},
+			"keepAliveStream": {"true"},
+		}
+	}
+
+	//application/x-www-form-urlencoded
+
+	// create the request and add headers
+	req, err := http.NewRequest("POST", requestUrl, strings.NewReader(reqParam.Encode()))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
+	req.Header.Add("Content-type", "application/x-www-form-urlencoded")
+
+	if err != nil {
+		return err
+	}
+
+	//do http request. must be done in this fashion so we can add the auth bear token headers above
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	//read resp body
+	body, err := io.ReadAll(res.Body) //TODO: display body error on loading screen
+	if err != nil {
+		err := fmt.Errorf("%v", err)
+		//log.Fatalln(err)
+		return err
+	}
+	defer res.Body.Close()
+
+	//fmt.Printf("%v", res.StatusCode)
+	//fmt.Printf(string(body))
+
+	if res.StatusCode != 200 {
+		err := fmt.Errorf("reponse %v: %v", res.StatusCode, string(body))
+		return err
+	} else {
+		return nil
+	}
+}
+
 func GetOngoingGames() error {
 
 	// var reqParam url.Values

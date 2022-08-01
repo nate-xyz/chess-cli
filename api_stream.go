@@ -37,35 +37,30 @@ func StreamEvent(event_chan chan<- StreamEventType, got_token chan struct{}) err
 	Online = true
 	d := json.NewDecoder(resp.Body)
 
-	//loop_i := 0
 	for {
 		select {
 		// case <-quit_stream:
 		// 	return nil
 		default:
-			//fmt.Printf("enter loop %v\n", loop_i)
 			var responseData map[string]interface{}
 			err := d.Decode(&responseData)
 			if err != nil {
 				if err != io.EOF {
-					//log.Fatal(err)
-					//fmt.Printf("decode error, not EOF\n")
 					return err
 				}
-				//fmt.Printf("decode error, EOF\n")
 				continue
 			}
 			if !isNil(responseData["type"]) {
 
-				streamEvent = responseData["type"].(string)
-				//fmt.Printf("received stream event! -> %v: ", streamEvent)
+				streamEvent := responseData["type"].(string)
 				var streamEventID string
+				var streamSource string
 				switch streamEvent {
 				case "gameStart", "gameFinish": //game type stream event
 					game := responseData["game"].(map[string]interface{})
 					streamEventID = game["id"].(string)
+					streamSource = game["source"].(string)
 
-					// CurrentStreamEventGame = responseData["game"].(StreamEventGame)
 					jsonStr, err := json.Marshal(responseData)
 					if err != nil {
 						log.Fatal(err)
@@ -78,7 +73,6 @@ func StreamEvent(event_chan chan<- StreamEventType, got_token chan struct{}) err
 					challenge := responseData["challenge"].(map[string]interface{})
 					streamEventID = challenge["id"].(string)
 
-					// CurrentStreamEventChallenge = responseData["challenge"].(StreamEventChallenge)
 					jsonStr, err := json.Marshal(responseData)
 					if err != nil {
 						log.Fatal(err)
@@ -88,11 +82,7 @@ func StreamEvent(event_chan chan<- StreamEventType, got_token chan struct{}) err
 					}
 
 				}
-				event_chan <- StreamEventType{streamEvent, streamEventID}
-
-				//ErrorMessage <- fmt.Errorf("%v, %v", streamEvent, streamEventID)
-				//fmt.Printf("%v\n", StreamEventID)
-				//return nil
+				event_chan <- StreamEventType{streamEvent, streamEventID, streamSource}
 			} else {
 				Online = false
 				return fmt.Errorf("invalid stream event")
@@ -113,10 +103,10 @@ func StreamConsumer(event_chan <-chan StreamEventType) {
 			// WriteLocal(fmt.Sprintf("StreamEvent_%v", time.Now().Format("2006-01-02_15:04:05")),
 			// 	fmt.Sprintf("%v\n%v", e.Id, e.Event))
 
-			if e.Event != "gameStart" {
+			if e.EventType != "gameStart" {
 				// noti <- fmt.Sprintf("event %v:%v", e.Event, e.Id)
 			} else {
-				if !containedInOngoingGames(OngoingGames, e.Id) {
+				if !containedInOngoingGames(OngoingGames, e.GameID) {
 					// noti <- fmt.Sprintf("new game! %v:%v", e.Event, e.Id)
 				}
 			}
@@ -179,7 +169,7 @@ func StreamBoardState(event_chan chan<- BoardEvent, game string) error {
 			}
 
 			if !isNil(responseData["type"]) { //make sure response is valid
-				streamEvent = responseData["type"].(string)
+				streamEvent := responseData["type"].(string)
 				var bevent BoardEvent
 				// bevent.Type = streamEvent
 				// bevent.Moves = ""
