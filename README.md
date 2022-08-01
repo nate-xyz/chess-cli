@@ -49,15 +49,11 @@ https://mholt.github.io/json-to-go/ JSON
 - [ ] oauth
   - [ ] check if token is expired and get new one if so
   - [ ] handle if oauth process rejected
+
 - [ ] api
-  - [ ] sometimes flips requested color?
   - [ ] make challenges
     - [ ] set default interval position
-    - [x] create a challenge (specific user)
     - [ ] create an open-ended challenge
-    - [ ] create a seek (random user)
-    - [ ] challenge the ai
-        - [ ] generate CreateAiChallengeType type fields through windows in CreateLichessGame
     - [ ] list of ongoing games
       - [ ] request
       - [ ] screen
@@ -65,10 +61,6 @@ https://mholt.github.io/json-to-go/ JSON
 - [ ] game client
   - [ ] exit option on challenge waiting screen
   - [ ] add timers and update them from stream
-  - [x] translate move sequence into FEN w local chess lib
-  - [x] update FEN on board event from stream
-  - [x] make move
-  - [x] handles lichess game abort
   - [x] handle game end
     - [ ] post game options
       - [ ] rematch
