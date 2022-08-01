@@ -42,10 +42,14 @@ func initWelcomeScreen() *cv.Grid {
 
 	//list construction
 	welcomeList := cv.NewList()
-	choices := []string{"Local", "Online", "Stockfish", "Quit"}
-	explain := []string{"Play a local chess game", "Play a game on lichess", "Play a game against AI", "Press to exit"}
-	shortcuts := []rune{'a', 'b', 'c', 'q'}
-	selectFunc := []ListSelectedFunc{startNewLocalGame, gotoLichess, doNothing, root.app.Stop}
+	// choices := []string{"Local", "Online", "Stockfish", "Quit"}
+	// explain := []string{"Play a local chess game", "Play a game on lichess", "Play a game against AI", "Press to exit"}
+	// shortcuts := []rune{'a', 'b', 'c', 'q'}
+	choices := []string{"Local", "Online", "Quit"}
+	explain := []string{"Play a local chess game", "Play a game on lichess", "Press to exit"}
+	shortcuts := []rune{'a', 'b', 'q'}
+
+	selectFunc := []ListSelectedFunc{startNewLocalGame, gotoLichess, root.app.Stop}
 	welcomeList.SetWrapAround(true)
 	for i := 0; i < len(choices); i++ {
 		item := cv.NewListItem(choices[i])
@@ -223,17 +227,25 @@ func initWelcomeLichess() *cv.Grid {
 
 func initLichessGameGrid() *cv.Grid {
 	grid := cv.NewGrid()
-	grid.SetColumns(-2, -1)
-	grid.SetRows(-1, -1, 1, 1)
+	grid.SetColumns(-1, -2, -1)
+	grid.SetRows(-1, -1, 10, 1)
 	grid.SetBorders(false)
 	gameBox := boardPrimitive()
 
 	statusBox := cv.NewTextView()
 	statusBox.SetWordWrap(true)
 	statusBox.SetDynamicColors(true)
+
 	historyBox := cv.NewTextView()
 	historyBox.SetWordWrap(true)
 	historyBox.SetDynamicColors(true)
+
+	timerBox := cv.NewTextView()
+	timerBox.SetTextAlign(cv.AlignLeft)
+	timerBox.SetVerticalAlign(cv.AlignCenter)
+	timerBox.SetDynamicColors(true)
+
+	//timerBox.SetText("TIME")
 
 	inputBox := cv.NewInputField()
 
@@ -256,15 +268,17 @@ func initLichessGameGrid() *cv.Grid {
 
 	Ribbon := ribbonPrimitive(gameOnlineRibbonstr)
 
-	grid.AddItem(inputBox, 2, 0, 1, 1, 0, 0, true)
-	grid.AddItem(Center(28, 10, gameBox), 0, 0, 2, 1, 0, 0, false)
-	grid.AddItem(statusBox, 0, 1, 1, 1, 0, 0, false)
-	grid.AddItem(historyBox, 1, 1, 2, 1, 0, 0, false)
-	grid.AddItem(Ribbon, 3, 0, 1, 2, 0, 0, false)
+	grid.AddItem(inputBox, 2, 1, 1, 1, 0, 0, true)
+	grid.AddItem(Center(28, 10, gameBox), 0, 1, 2, 1, 0, 0, false)
+	grid.AddItem(statusBox, 0, 0, 1, 1, 0, 0, false)
+	grid.AddItem(historyBox, 1, 0, 2, 1, 0, 0, false)
+	grid.AddItem(timerBox, 0, 2, 3, 1, 0, 0, false)
+	grid.AddItem(Ribbon, 3, 0, 1, 3, 0, 0, false)
 
 	root.OnlineBoard = gameBox
 	root.OnlineStatus = statusBox
 	root.OnlineHistory = historyBox
+	root.OnlineTime = timerBox
 
 	return grid
 }

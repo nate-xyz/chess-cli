@@ -397,13 +397,6 @@ var BoardStreamArr []BoardState
 var EventStreamArr []StreamEventType
 var gameStateChan chan BoardEvent
 var board_state_sig chan bool
-var testChallenge = CreateChallengeType{
-	Type:       1,
-	TimeOption: 2,
-	DestUser:   "",
-	Rated:      "false",
-	Color:      "black",
-	Variant:    "standard"}
 
 //OAUTH TYPES
 

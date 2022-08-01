@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	cv "code.rocketnine.space/tslocum/cview"
@@ -38,11 +39,12 @@ type State struct {
 	OnlinePostStatus  *cv.TextView
 	OnlinePostBoard   *cv.Table
 	OnlinePostHistory *cv.TextView
+	OnlineTime        *cv.TextView
 }
 
 const (
 	ApplicationTitle string = `[blue]chess-cli ♟️ [white]
-play locally with a [yellow]friend[white], against [yellow]stockfish[white], or online with [red]lichess!`
+Play locally with a [yellow]friend[white] or online with [red]Lichess!`
 	LichessTitle        string = "[blue]chess-cli[white]: [red]lichess[white] client"
 	LichessRibbon       string = "CHESS-CLI | LICHESS CLIENT | Press 'Ctrl-c' to quit"
 	welcomeRibbonstr    string = "WELCOME TO CHESS-CLI ! | Press 'Ctrl-c' to quit"
@@ -55,12 +57,18 @@ var (
 	root         = new(State)
 	Sigs         chan os.Signal
 	Ready        chan struct{}
-	Online       bool                = false
 	NewChessGame *chess.Game         //used in online.go in the LichessGame() function to update the board position from new stream event
 	newChallenge CreateChallengeType //used initUI.go in initConstruct() in order to save settings from a challenge construction
+	Online       bool                = false
+	MoveCount    int
 )
 
 type ListSelectedFunc func() //used to easily add functions to list items in initUI.go
+
+type BothInc struct {
+	wtime int64
+	btime int64
+}
 
 type LocalGame struct {
 	Game             *chess.Game
@@ -173,3 +181,33 @@ var rand_quote_map = map[int]string{
 	55: "“The most important move in chess, as in life, is the one you just made.” - Unknown",
 	56: "“I like chess.” - H.F. Witte",
 }
+
+var testChallenge = CreateChallengeType{
+	Type:           1, //friend
+	TimeOption:     0, //real time
+	DestUser:       "",
+	Rated:          "false",
+	Color:          "black",
+	Variant:        "standard",
+	ClockLimit:     fmt.Sprintf("%v", int(3*60)), //minutes
+	ClockIncrement: fmt.Sprintf("%v", 0),         //seconds
+}
+
+// var testChallenge = CreateChallengeType{
+// 	Type:       1, //friend
+// 	TimeOption: 1, //Correspondence
+// 	DestUser:   "",
+// 	Rated:      "false",
+// 	Color:      "black",
+// 	Variant:    "standard",
+// 	Days:       "5",
+// }
+
+// var testChallenge = CreateChallengeType{
+// 	Type:       1, //friend
+// 	TimeOption: 2, //unlimited
+// 	DestUser:   "",
+// 	Rated:      "false",
+// 	Color:      "black",
+// 	Variant:    "standard",
+// }

@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 func UpdateLichessTitle() {
 	var titlestr string = LichessTitle
@@ -17,8 +20,7 @@ func UpdateLichessTitle() {
 	}
 
 	root.LichessTitle.SetText(titlestr)
-	root.app.QueueUpdateDraw(func() {
-	})
+	root.app.QueueUpdateDraw(func() {}, root.LichessTitle)
 }
 
 func UpdateOnline() {
@@ -80,4 +82,104 @@ func OnlineGameDoMove() {
 
 func UpdateChessGame() {
 	root.currentLocalGame.Game = NewChessGame
+}
+
+func UpdateOnlineTimeView() {
+	b := int64(BoardFullGame.State.Btime)
+	w := int64(BoardFullGame.State.Wtime)
+	LiveUpdateOnlineTimeView(b, w)
+}
+
+func LiveUpdateOnlineTimeView(b int64, w int64) {
+	var timestr string
+
+	binc := int64(BoardGameState.Binc)
+	winc := int64(BoardGameState.Winc)
+
+	if BoardFullGame.White.Name == Username {
+		if BoardFullGame.Speed == "unlimited" {
+			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n\n[blue]%v[white]\n(white)",
+				BoardFullGame.Black.Name,
+				BoardFullGame.White.Name)
+		} else if BoardFullGame.Speed == "correspondence" {
+			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n%v\n\n\n%v\n[blue]%v[white]\n(white)",
+				BoardFullGame.Black.Name,
+				timeFormat(b),
+				timeFormat(w),
+				BoardFullGame.White.Name)
+		} else {
+			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n%v+%v\n\n\n%v+%v\n[blue]%v[white]\n(white)",
+				BoardFullGame.Black.Name,
+				timeFormat(b),
+				timeFormat(binc),
+				timeFormat(w),
+				timeFormat(winc),
+				BoardFullGame.White.Name)
+		}
+
+	} else {
+		if BoardFullGame.Speed == "unlimited" {
+			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n\n[blue]%v[white]\n(white)",
+				BoardFullGame.White.Name,
+				BoardFullGame.Black.Name)
+		} else if BoardFullGame.Speed == "correspondence" {
+			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n%v\n\n\n%v\n[blue]%v[white]\n(white)",
+				BoardFullGame.White.Name,
+				timeFormat(w),
+				timeFormat(b),
+				BoardFullGame.Black.Name)
+		} else {
+			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n%v+%v\n\n\n%v+%v\n[blue]%v[white]\n(white)",
+				BoardFullGame.White.Name,
+				timeFormat(w),
+				timeFormat(winc),
+				timeFormat(b),
+				timeFormat(binc),
+				BoardFullGame.Black.Name)
+		}
+	}
+	var ratestr string
+	if BoardFullGame.Rated {
+		ratestr = "Rated"
+	} else {
+		ratestr = "Casual"
+	}
+	if BoardFullGame.Speed == "correspondence" {
+		timestr += fmt.Sprintf("\n\n%v • %v\n",
+			ratestr,
+			strings.Title(BoardFullGame.Speed))
+	} else {
+		timestr += fmt.Sprintf("\n\n%v+%v • %v • %v\n",
+			timeFormat(int64(BoardFullGame.Clock.Initial)),
+			timeFormat(int64(BoardFullGame.Clock.Increment)),
+			ratestr,
+			strings.Title(BoardFullGame.Speed))
+	}
+	root.OnlineTime.SetText(timestr)
+}
+
+func timeFormat(time int64) string {
+	if time == 0 {
+		return "0"
+	}
+	ms := time % 1000
+	time /= 1000
+	sec := time % 60
+	time /= 60
+	min := time % 60
+	hours := time / 60
+	if hours == 0 && min == 0 && sec <= 10 {
+		return fmt.Sprintf("%02d:%02d:%03d", min, sec, ms)
+	} else if hours == 0 {
+		return fmt.Sprintf("%02d:%02d", min, sec)
+	}
+	days := hours / 24
+	hours = hours % 24
+	if days == 0 {
+		return fmt.Sprintf("%d Hours", hours)
+	} else if hours == 0 {
+		return fmt.Sprintf("%d Days", days)
+	} else {
+		return fmt.Sprintf("%d Days %d Hours", days, hours)
+	}
 }

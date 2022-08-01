@@ -98,20 +98,12 @@ func CreateChallenge(challenge CreateChallengeType) (error, string) {
 	body, err := io.ReadAll(res.Body) //TODO: display body error on loading screen
 	if err != nil {
 		err := fmt.Errorf("%v", err)
-		//log.Fatalln(err)
 		return err, ""
 	}
 	defer res.Body.Close()
 
-	//fmt.Printf("%v", res.StatusCode)
-	//fmt.Printf(string(body))
-
-	if res.StatusCode == 400 {
-		err := fmt.Errorf("reponse %v: %v", res.StatusCode, string(body))
-		return err, ""
-	}
 	if res.StatusCode != 200 {
-		err := fmt.Errorf("%v response: %v", res.StatusCode, err)
+		err := fmt.Errorf("bad response %v %v", res.StatusCode, string(body))
 		return err, ""
 	}
 
@@ -525,7 +517,7 @@ func GetFriends() error {
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/rel/following", hostUrl), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	req.Header.Add("Accept", "application/x-ndjson")
+	req.Header.Add("Content-Type", "application/x-ndjson")
 	if err != nil {
 		return err
 	}

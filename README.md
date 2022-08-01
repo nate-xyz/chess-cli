@@ -43,6 +43,7 @@ https://mholt.github.io/json-to-go/ JSON
   - [ ] maybe settings screen for notation / color to start / unicode on or off, accessible through escape
 - [ ] get mouse input working in board window
 - [ ] captured pieces window
+- [ ] go back to online after going back to start page from online page bug
 
 ### lichess
 
@@ -51,16 +52,16 @@ https://mholt.github.io/json-to-go/ JSON
   - [ ] handle if oauth process rejected
 
 - [ ] api
-  - [ ] make challenges
-    - [ ] set default interval position
-    - [ ] create an open-ended challenge
-    - [ ] list of ongoing games
-      - [ ] request
-      - [ ] screen
+  - [ ] BULLET CHALLENGES BUG: when minutes are < 3 minutes for a realtime challenge, api provides an empty json for the GameFull event.
+  - [ ] set default interval position
+  - [ ] list of ongoing games
+    - [ ] request
+    - [ ] screen
+  - [ ] custom starting position option for challenges
 
 - [ ] game client
   - [ ] exit option on challenge waiting screen
-  - [ ] add timers and update them from stream
+  - [x] add timers and update them from stream
   - [x] handle game end
     - [ ] post game options
       - [ ] rematch
@@ -69,9 +70,6 @@ https://mholt.github.io/json-to-go/ JSON
       - [ ] back to chess-cli home
     - [ ] handle custom starting positions
     - [ ] rematches
-
-### ai
-- [ ] get stockfish working through lichess? wip
 
 ♞♞♞♞♞♞♞♞♞♞♞
 

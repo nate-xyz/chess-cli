@@ -48,14 +48,20 @@ func gotoLichessAfterLogin() {
 	root.nav.SetCurrentPanel("lichesswelcome")
 }
 
+// func gotoLoader() {
+// 	root.nav.SetCurrentPanel("loader")
+// 	time.Sleep(2 * time.Second)
+// }
+
 func startNewOnlineGame() {
 	root.currentLocalGame = new(LocalGame)
 	root.currentLocalGame.Init()
 	root.nav.SetCurrentPanel("onlinegame")
+	UpdateOnline()
 
-	UpdateBoard(root.OnlineBoard, BoardFullGame.White.Name == Username)
+	// UpdateBoard(root.OnlineBoard, BoardFullGame.White.Name == Username)
+	// UpdateGameStatus(root.Status)
 
-	UpdateGameStatus(root.Status)
 	go LichessGame(currentGameID)
 }
 
