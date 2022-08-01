@@ -80,10 +80,13 @@ func WaitForLichessGameResponse() {
 				}
 			} else {
 				if e.EventType == "gameStart" && e.Source != "friend" { //TODO: check to make sure match random seek request
-					UpdateLoaderMsg("Found random opponent!")
-					currentGameID = e.GameID
-					root.app.QueueUpdate(startNewOnlineGame)
-					return
+					load_msg = "Found random opponent!"
+					UpdateLoaderMsg(load_msg)
+					go func() {
+						currentGameID = e.GameID
+						time.Sleep(time.Second)
+						root.app.QueueUpdate(startNewOnlineGame)
+					}()
 
 				}
 			}
@@ -127,9 +130,13 @@ func WaitForLichessGameResponse() {
 			} else {
 				e, b := EventContainedInEventStream(EventStreamArr, "gameStart") //TODO: check to make sure match random seek request
 				if b && (e.Source != "friend") {
-					currentGameID = e.GameID
-					root.app.QueueUpdate(startNewOnlineGame)
-					return
+					load_msg = "Found random opponent!"
+					UpdateLoaderMsg(load_msg)
+					go func() {
+						currentGameID = e.GameID
+						time.Sleep(time.Second)
+						root.app.QueueUpdate(startNewOnlineGame)
+					}()
 				}
 			}
 

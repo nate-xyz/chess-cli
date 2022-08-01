@@ -8,12 +8,24 @@ import (
 
 func initConstruct() *cv.Grid {
 	grid := cv.NewGrid()
-	grid.SetColumns(-1)
-	grid.SetRows(-1)
+
 	grid.SetBorders(false)
+
+	tv := cv.NewTextView()
+	tv.SetTextAlign(cv.AlignCenter)
+	tv.SetVerticalAlign(cv.AlignCenter)
+	tv.SetDynamicColors(true)
+
+	tree := cv.NewTreeView()
+	treeRoot := cv.NewTreeNode("New Challenge")
+	tree.SetRoot(treeRoot)
+
+	path := []string{}
+
 	list := cv.NewList()
 	list.SetWrapAround(true)
-	//selection := []int{}
+
+	Ribbon := ribbonPrimitive(challengeRibbonstr)
 
 	challengeTypeOption := []string{"Random", "Friend", "AI"}
 	challengeTypeOptionExplain := []string{"Seek a random player.", "Challenge a friend.", "Play against lichess bot."}
@@ -22,34 +34,42 @@ func initConstruct() *cv.Grid {
 	ratedOption := []string{"casual", "rated"}
 	colorOptions := []string{"random", "white", "black"}
 
-	//title_array := []string{"options", "variants", "time options", "time interval", "rated/casual", "choose color", "select friend to challenge", "submit challenge"}
-
 	var firstOption func()
-	var BotPowerLevelOption func()
 	var variantSecondOption func()
 	var timeThirdOption func()
 	var fourthIntervalOption func()
 	var fifthRatedOption func()
 	var sixthColorOption func()
+	var BotPowerLevelOption func()
 	var seventhfriendsOptions func()
 	var eightSubmitOption func()
+	var updateTree func([]string)
 	var Minutes float64 = 0.25
 	var Seconds int
 	var Days int = 1
 	var BotPowerLevel int = 1
+
+	goHome := func() {
+		path = []string{}
+		firstOption()
+		gotoLichessAfterLogin()
+	}
+
 	//choose the type of challenge
 	firstOption = func() {
 		list.Clear()
+		updateTree(challengeTypeOption)
+		tv.SetText("Select challenge type.")
 		for i := 0; i < len(challengeTypeOption); i++ {
 			item := cv.NewListItem(challengeTypeOption[i])
 			item.SetSecondaryText(challengeTypeOptionExplain[i])
 			item.SetShortcut(rune('a' + i))
+
 			item.SetSelectedFunc(func() {
-				//store the choice
-				newChallenge.Type = list.GetCurrentItemIndex()
-				//clear the list
-				//add the new list
-				variantSecondOption()
+				newChallenge.Type = list.GetCurrentItemIndex() //store the choice
+				path = append(path, challengeTypeOption[list.GetCurrentItemIndex()])
+				updateTree(variantOption)
+				variantSecondOption() //add the new list
 			})
 			list.AddItem(item)
 		}
@@ -57,7 +77,7 @@ func initConstruct() *cv.Grid {
 		item := cv.NewListItem("Back")
 		item.SetSecondaryText("Back to Lichess Welcome")
 		item.SetShortcut(rune('z'))
-		item.SetSelectedFunc(gotoLichessAfterLogin)
+		item.SetSelectedFunc(goHome)
 		list.AddItem(item)
 
 		//add quit
@@ -73,15 +93,19 @@ func initConstruct() *cv.Grid {
 
 	variantSecondOption = func() {
 		list.Clear()
+
+		tv.SetText("Select challenge variant.")
 		for i := 0; i < len(variantOption); i++ {
 			item := cv.NewListItem(variantOption[i])
 			item.SetShortcut(rune('a' + i))
 			item.SetSelectedFunc(func() {
-				//store the choice
-				newChallenge.Variant = variantOption[list.GetCurrentItemIndex()]
-				//clear the list
-				//add the new list
-				timeThirdOption()
+
+				newChallenge.Variant = variantOption[list.GetCurrentItemIndex()] //store the choice
+
+				path = append(path, variantOption[list.GetCurrentItemIndex()])
+				updateTree(timeOptions)
+
+				timeThirdOption() //add the new list
 			})
 			list.AddItem(item)
 		}
@@ -89,14 +113,20 @@ func initConstruct() *cv.Grid {
 		item := cv.NewListItem("Back")
 		item.SetSecondaryText("Back to selecting the CHALLENGE type.")
 		item.SetShortcut(rune('y'))
-		item.SetSelectedFunc(firstOption)
+		item.SetSelectedFunc(func() {
+			if len(path) > 0 {
+				path = path[:len(path)-1]
+			}
+			updateTree(challengeTypeOption)
+			firstOption()
+		})
 		list.AddItem(item)
 
-		//add back
+		//add home
 		item = cv.NewListItem("Home")
 		item.SetSecondaryText("Back to Lichess Welcome")
 		item.SetShortcut(rune('z'))
-		item.SetSelectedFunc(gotoLichessAfterLogin)
+		item.SetSelectedFunc(goHome)
 		list.AddItem(item)
 
 		//add quit
@@ -112,35 +142,47 @@ func initConstruct() *cv.Grid {
 
 	timeThirdOption = func() {
 		list.Clear()
+
+		tv.SetText("Select time variant.")
+
 		for i := 0; i < len(timeOptions); i++ {
 			item := cv.NewListItem(timeOptions[i])
 			item.SetShortcut(rune('a' + i))
 			item.SetSelectedFunc(func() {
-				//store the choice
-				newChallenge.TimeOption = list.GetCurrentItemIndex()
+				newChallenge.TimeOption = list.GetCurrentItemIndex() //store the choice
+
+				path = append(path, timeOptions[list.GetCurrentItemIndex()])
+
 				//clear the list
-				//add the new list
-				if newChallenge.TimeOption < 2 {
+				if newChallenge.TimeOption < 2 { //add the new list
+					updateTree([]string{"Select interval."})
 					fourthIntervalOption()
 				} else {
+					updateTree(ratedOption)
 					fifthRatedOption()
 				}
-
 			})
+
 			list.AddItem(item)
 		}
 		//add back
 		item := cv.NewListItem("Back")
 		item.SetSecondaryText("Back to selecting the VARIANT type.")
 		item.SetShortcut(rune('y'))
-		item.SetSelectedFunc(variantSecondOption)
+		item.SetSelectedFunc(func() {
+			if len(path) > 0 {
+				path = path[:len(path)-1]
+			}
+			updateTree(variantOption)
+			variantSecondOption()
+		})
 		list.AddItem(item)
 
-		//add back
+		//add home
 		item = cv.NewListItem("Home")
 		item.SetSecondaryText("Back to Lichess Welcome")
 		item.SetShortcut(rune('z'))
-		item.SetSelectedFunc(gotoLichessAfterLogin)
+		item.SetSelectedFunc(goHome)
 		list.AddItem(item)
 
 		//add quit
@@ -156,6 +198,8 @@ func initConstruct() *cv.Grid {
 	fourthIntervalOption = func() {
 		list.Clear()
 		grid.Clear()
+
+		tv.SetText("Select time interval.")
 		form := cv.NewForm()
 
 		switch newChallenge.TimeOption {
@@ -211,46 +255,75 @@ func initConstruct() *cv.Grid {
 				newChallenge.MinTurn = Minutes
 				newChallenge.ClockLimit = fmt.Sprintf("%v", int(Minutes*60)) //minutes
 				newChallenge.ClockIncrement = fmt.Sprintf("%v", Seconds)     //seconds
+				path = append(path, fmt.Sprintf("%v minutes, %v seconds", Minutes, Seconds))
+
 			case 1:
 				newChallenge.Days = fmt.Sprintf("%v", Days) //days
+				path = append(path, fmt.Sprintf("%v days per turn", Days))
+
 			}
 
+			updateTree(ratedOption)
+
 			grid.Clear()
-			grid.AddItem(list, 0, 0, 1, 1, 0, 0, true)
+			grid.AddItem(tv, 0, 0, 1, 2, 0, 0, false)
+			grid.AddItem(list, 1, 1, 1, 1, 0, 0, true)
+			grid.AddItem(Ribbon, 2, 0, 1, 2, 0, 0, false)
+			grid.AddItem(tree, 1, 0, 1, 1, 0, 0, false)
 			fifthRatedOption()
 		})
 		form.AddButton("Back", func() {
 			grid.Clear()
-			grid.AddItem(list, 0, 0, 1, 1, 0, 0, true)
+			grid.AddItem(tv, 0, 0, 1, 2, 0, 0, false)
+			grid.AddItem(list, 1, 1, 1, 1, 0, 0, true)
+			grid.AddItem(Ribbon, 2, 0, 1, 2, 0, 0, false)
+			grid.AddItem(tree, 1, 0, 1, 1, 0, 0, false)
+			if len(path) > 0 {
+				path = path[:len(path)-1]
+			}
+			updateTree(timeOptions)
 			timeThirdOption()
 		})
-		form.AddButton("Home", gotoLichessAfterLogin)
+		form.AddButton("Home", goHome)
 		form.AddButton("Quit", root.app.Stop)
 		//form.SetBorder(true)
 		form.SetTitle("Choose time interval option:")
 		form.SetTitleAlign(cv.AlignCenter)
 
-		grid.AddItem(form, 0, 0, 1, 1, 0, 0, true)
+		grid.AddItem(tv, 0, 0, 1, 2, 0, 0, false)
+		grid.AddItem(form, 1, 1, 1, 1, 0, 0, true)
+		grid.AddItem(Ribbon, 2, 0, 1, 2, 0, 0, false)
+		grid.AddItem(tree, 1, 0, 1, 1, 0, 0, false)
 	}
 
 	fifthRatedOption = func() {
 		list.Clear()
+
+		tv.SetText("Rated game?")
 		for i := 0; i < len(ratedOption); i++ {
 			item := cv.NewListItem(ratedOption[i])
 			item.SetShortcut(rune('a' + i))
 			item.SetSelectedFunc(func() {
+
 				//store the choice
 				if list.GetCurrentItemIndex() == 0 {
 					newChallenge.Rated = "false"
 					newChallenge.RatedBool = false
+
 				} else {
 					newChallenge.Rated = "true"
 					newChallenge.RatedBool = true
+
 				}
+
+				path = append(path, ratedOption[list.GetCurrentItemIndex()])
+				updateTree(colorOptions)
+
 				//clear the list
 				//add the new list
 				sixthColorOption()
 			})
+
 			list.AddItem(item)
 		}
 		//add back
@@ -258,19 +331,24 @@ func initConstruct() *cv.Grid {
 		item.SetSecondaryText("Back to previous selction")
 		item.SetShortcut(rune('y'))
 		item.SetSelectedFunc(func() {
+			if len(path) > 0 {
+				path = path[:len(path)-1]
+			}
 			if newChallenge.TimeOption < 2 {
+				updateTree([]string{"Select interval."})
 				fourthIntervalOption()
 			} else {
+				updateTree(timeOptions)
 				timeThirdOption()
 			}
 		})
 		list.AddItem(item)
 
-		//add back
+		//add home
 		item = cv.NewListItem("Home")
 		item.SetSecondaryText("Back to Lichess Welcome")
 		item.SetShortcut(rune('z'))
-		item.SetSelectedFunc(gotoLichessAfterLogin)
+		item.SetSelectedFunc(goHome)
 		list.AddItem(item)
 
 		//add quit
@@ -285,6 +363,8 @@ func initConstruct() *cv.Grid {
 
 	sixthColorOption = func() {
 		list.Clear()
+
+		tv.SetText("Select your color.")
 		for i := 0; i < len(colorOptions); i++ {
 			item := cv.NewListItem(colorOptions[i])
 			item.SetShortcut(rune('a' + i))
@@ -293,32 +373,44 @@ func initConstruct() *cv.Grid {
 				//store the choice
 				newChallenge.Color = colorOptions[list.GetCurrentItemIndex()]
 				newChallenge.ColorIndex = list.GetCurrentItemIndex()
+
+				path = append(path, colorOptions[list.GetCurrentItemIndex()])
+
 				//clear the list
 				//add the new list
 				switch newChallenge.Type {
 				case 0:
 					eightSubmitOption()
 				case 1:
+					updateTree(allFriends)
 					seventhfriendsOptions()
 				case 2:
+					updateTree([]string{"Select AI power level."})
 					BotPowerLevelOption()
 				}
 
 			})
+
 			list.AddItem(item)
 		}
 		//add back
 		item := cv.NewListItem("Back")
 		item.SetSecondaryText("Back to selecting the RATED type.")
 		item.SetShortcut(rune('y'))
-		item.SetSelectedFunc(fifthRatedOption)
+		item.SetSelectedFunc(func() {
+			if len(path) > 0 {
+				path = path[:len(path)-1]
+			}
+			updateTree(ratedOption)
+			fifthRatedOption()
+		})
 		list.AddItem(item)
 
-		//add back
+		//add home
 		item = cv.NewListItem("Home")
 		item.SetSecondaryText("Back to Lichess Welcome")
 		item.SetShortcut(rune('z'))
-		item.SetSelectedFunc(gotoLichessAfterLogin)
+		item.SetSelectedFunc(goHome)
 		list.AddItem(item)
 
 		//add quit
@@ -333,31 +425,42 @@ func initConstruct() *cv.Grid {
 
 	seventhfriendsOptions = func() {
 		list.Clear()
+
+		tv.SetText("Select friend to challenge.")
 		for i := 0; i < len(allFriends); i++ {
 			item := cv.NewListItem(allFriends[i])
 			item.SetShortcut(rune('a' + i))
 			item.SetSelectedFunc(func() {
-				//store the choice
-				newChallenge.DestUser = allFriends[list.GetCurrentItemIndex()]
-				newChallenge.OpenEnded = false //TODO: open ended
-				//clear the list
-				//add the new list
-				eightSubmitOption()
+
+				newChallenge.DestUser = allFriends[list.GetCurrentItemIndex()] //store the choice
+				newChallenge.OpenEnded = false                                 //TODO: open ended
+
+				path = append(path, allFriends[list.GetCurrentItemIndex()])
+				updateTree([]string{})
+
+				eightSubmitOption() //add the new list
 			})
+
 			list.AddItem(item)
 		}
 		//add back
 		item := cv.NewListItem("Back")
 		item.SetSecondaryText("Back to selecting the COLOR type.")
 		item.SetShortcut(rune('y'))
-		item.SetSelectedFunc(sixthColorOption)
+		item.SetSelectedFunc(func() {
+			if len(path) > 0 {
+				path = path[:len(path)-1]
+			}
+			updateTree(colorOptions)
+			sixthColorOption()
+		})
 		list.AddItem(item)
 
-		//add back
+		//add home
 		item = cv.NewListItem("Home")
 		item.SetSecondaryText("Back to Lichess Welcome")
 		item.SetShortcut(rune('z'))
-		item.SetSelectedFunc(gotoLichessAfterLogin)
+		item.SetSelectedFunc(goHome)
 		list.AddItem(item)
 
 		//add quit
@@ -373,7 +476,9 @@ func initConstruct() *cv.Grid {
 	BotPowerLevelOption = func() {
 		list.Clear()
 		grid.Clear()
+
 		form := cv.NewForm()
+		tv.SetText("Select bot power level.")
 		p := []int{1, 2, 3, 4, 5, 6, 7, 8}
 		slider1 := cv.NewSlider()
 		slider1.SetLabel("AI Strength:   1")
@@ -387,30 +492,47 @@ func initConstruct() *cv.Grid {
 		form.AddFormItem(slider1)
 
 		form.AddButton("Submit", func() {
-
 			newChallenge.Level = fmt.Sprintf("%v", BotPowerLevel)
 
 			grid.Clear()
-			grid.AddItem(list, 0, 0, 1, 1, 0, 0, true)
+			grid.AddItem(tv, 0, 0, 1, 2, 0, 0, false)
+			grid.AddItem(list, 1, 1, 1, 1, 0, 0, true)
+			grid.AddItem(Ribbon, 2, 0, 1, 2, 0, 0, false)
+			grid.AddItem(tree, 1, 0, 1, 1, 0, 0, false)
+
+			path = append(path, fmt.Sprintf("AI Strength: %v", BotPowerLevel))
+			updateTree([]string{})
+
 			eightSubmitOption()
 		})
 		form.AddButton("Back", func() {
 			grid.Clear()
-			grid.AddItem(list, 0, 0, 1, 1, 0, 0, true)
+			grid.AddItem(tv, 0, 0, 1, 2, 0, 0, false)
+			grid.AddItem(list, 1, 1, 1, 1, 0, 0, true)
+			grid.AddItem(Ribbon, 2, 0, 1, 2, 0, 0, false)
+			grid.AddItem(tree, 1, 0, 1, 1, 0, 0, false)
+
+			if len(path) > 0 {
+				path = path[:len(path)-1]
+			}
+			updateTree(colorOptions)
 			sixthColorOption()
 		})
-		form.AddButton("Home", gotoLichessAfterLogin)
+		form.AddButton("Home", goHome)
 		form.AddButton("Quit", root.app.Stop)
 		//form.SetBorder(true)
 		form.SetTitle("Choose bot power level:")
 		form.SetTitleAlign(cv.AlignCenter)
 
-		grid.AddItem(form, 0, 0, 1, 1, 0, 0, true)
+		grid.AddItem(tv, 0, 0, 1, 2, 0, 0, false)
+		grid.AddItem(form, 1, 1, 1, 1, 0, 0, true)
+		grid.AddItem(Ribbon, 2, 0, 1, 2, 0, 0, false)
+		grid.AddItem(tree, 1, 0, 1, 1, 0, 0, false)
 	}
 
 	eightSubmitOption = func() {
 		list.Clear()
-
+		tv.SetText("Review and submit your challenge.")
 		//add
 		submit := cv.NewListItem("challenge ok? submit")
 		submit.SetSecondaryText("Submit your constructed challenge.")
@@ -423,22 +545,28 @@ func initConstruct() *cv.Grid {
 		item.SetSecondaryText("Back to previous selection to send the challenge to")
 		item.SetShortcut(rune('y'))
 		item.SetSelectedFunc(func() {
+			if len(path) > 0 {
+				path = path[:len(path)-1]
+			}
 			switch newChallenge.Type {
 			case 0:
+				updateTree(colorOptions)
 				sixthColorOption()
 			case 1:
+				updateTree(allFriends)
 				seventhfriendsOptions()
 			case 2:
+				updateTree([]string{"Select AI power level."})
 				BotPowerLevelOption()
 			}
 		})
 		list.AddItem(item)
 
-		//add back
+		//add home
 		item = cv.NewListItem("Home")
 		item.SetSecondaryText("Back to Lichess Welcome")
 		item.SetShortcut(rune('z'))
-		item.SetSelectedFunc(gotoLichessAfterLogin)
+		item.SetSelectedFunc(goHome)
 		list.AddItem(item)
 
 		//add quit
@@ -451,8 +579,30 @@ func initConstruct() *cv.Grid {
 		list.AddItem(quitItem)
 	}
 
+	updateTree = func(new []string) {
+		treeRoot.AddChild(cv.NewTreeNode(""))
+		treeRoot.ClearChildren()
+		var c *cv.TreeNode = treeRoot
+		for _, n := range path {
+			temp := cv.NewTreeNode(n)
+			c.AddChild(temp)
+			c = temp
+		}
+		for _, n := range new {
+			c.AddChild(cv.NewTreeNode(n))
+		}
+
+	}
+
 	firstOption()
 
-	grid.AddItem(list, 0, 0, 1, 1, 0, 0, true)
+	grid.SetColumns(-1, -1)
+	grid.SetRows(-1, -2, 1)
+
+	grid.AddItem(list, 1, 1, 1, 1, 0, 0, true)
+	grid.AddItem(tv, 0, 0, 1, 2, 0, 0, false)
+	grid.AddItem(tree, 1, 0, 1, 1, 0, 0, false)
+	grid.AddItem(Ribbon, 2, 0, 1, 2, 0, 0, false)
+
 	return grid
 }

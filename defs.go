@@ -47,6 +47,7 @@ play locally with a [yellow]friend[white], against [yellow]stockfish[white], or 
 	LichessRibbon       string = "CHESS-CLI | LICHESS CLIENT | Press 'Ctrl-c' to quit"
 	welcomeRibbonstr    string = "WELCOME TO CHESS-CLI ! | Press 'Ctrl-c' to quit"
 	gameRibbonstr       string = "CHESS-CLI -> local game | Press 'Ctrl-c' to quit"
+	challengeRibbonstr  string = "CHESS-CLI -> create a challenge | Press 'Ctrl-c' to quit"
 	gameOnlineRibbonstr string = "CHESS-CLI -> online game | Press 'Ctrl-c' to quit"
 )
 
