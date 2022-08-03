@@ -67,7 +67,7 @@ https://mholt.github.io/json-to-go/ JSON
   
 
 ### oauth
-  - check if token is expired and get new one if so
+  ✔️ check if token is expired and get new one if so
   - handle if oauth process rejected
 
 ### api
