@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 //stream event variables
 //https://lichess.org/api#operation/apiStreamEvent
@@ -395,7 +398,9 @@ var board_state_sig chan bool
 
 //type for storing user info into a json
 type UserConfig struct {
-	ApiToken string
+	ApiToken            string
+	TokenCreationDate   time.Time
+	TokenExpirationDate time.Time
 }
 
 //OAUTH VARS
@@ -418,7 +423,7 @@ var Scopes = []string{
 	"board:play",
 }
 
-var UserInfo = UserConfig{ApiToken: ""}
+var UserInfo = UserConfig{ApiToken: "", TokenCreationDate: time.Now(), TokenExpirationDate: time.Now().AddDate(1, 0, 0)}
 var AuthURL string = fmt.Sprintf("%s/oauth", hostUrl)
 var TokenURL string = fmt.Sprintf("%s/api/token", hostUrl)
 var RedirectURL string
