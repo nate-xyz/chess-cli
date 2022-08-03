@@ -92,6 +92,9 @@ type LocalGame struct {
 	MoveHistoryArray []string
 	LegalMoves       []string
 	Status           string
+	MoveCount        int
+	WhiteCaptured    []string
+	BlackCaptured    []string
 }
 
 func (l *LocalGame) Init() {
@@ -111,7 +114,7 @@ var PiecesMap = map[rune]string{
 	'r': "♜",
 	'b': "♝",
 	'n': "♞",
-	'p': "♙",
+	'p': "🨾",
 }
 
 var KnightIconMap = map[int]string{

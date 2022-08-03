@@ -74,18 +74,26 @@ func UpdateOnlineStatus(s *cv.TextView) {
 }
 
 func UpdateUserInfo() {
-	var OppName string
-	var UserString string = "\n[blue]%v[white]"
-	var OppString string = "[red]%v[white]"
+	var (
+		OppName      string
+		UserString   string = "\n[blue]%v[white]"
+		OppString    string = "\n[red]%v[white]"
+		BlackCapture string = strings.Join(root.currentLocalGame.BlackCaptured, "") + " \t"
+		WhiteCapture string = strings.Join(root.currentLocalGame.WhiteCaptured, "") + " \t"
+	)
 
 	if BoardFullGame.White.Name == Username {
 		OppName = BoardFullGame.Black.Name
 		UserString = UserString + " (white)\n"
+		UserString += WhiteCapture
 		OppString = OppString + " (black)\n"
+		OppString = BlackCapture + OppString
 	} else {
 		OppName = BoardFullGame.White.Name
 		OppString = OppString + " (white)\n"
+		OppString = WhiteCapture + OppString
 		UserString = UserString + " (black)\n"
+		UserString += BlackCapture
 	}
 
 	if CurrentChallenge.Type == 2 {
@@ -134,25 +142,17 @@ func OnlineGameDoMove(move string) error {
 		}
 	}()
 
-	//do the move
-	err := MakeMove(currentGameID, move)
+	err := MakeMove(currentGameID, move) //do the move
 	if err != nil {
 		return err
 	}
 	root.app.GetScreen().Beep()
-	// err = root.currentLocalGame.Game.MoveStr(root.currentLocalGame.NextMove)
 
 	UpdateBoard(root.OnlineBoard, BoardFullGame.White.Name == Username)
 
 	root.currentLocalGame.NextMove = "" //clear the next move
 	UpdateGameStatus(root.OnlineStatus)
 
-	//check if game is done
-
-	// if root.currentLocalGame.Game.Outcome() != chess.NoOutcome {
-	// 	gotoPostOnline()
-	// }
-	//MOVED TO LICHESS GAME, (wait for api stream)
 	return nil
 }
 
@@ -197,8 +197,9 @@ func TimerLoop(d <-chan bool, v *time.Ticker, t *time.Ticker, bi <-chan BothInc)
 				if currB < 10000 || currW < 1000 { //start drawing millis when less than ten seconds
 					if MoveCount%2 == 0 {
 						currW -= time.Since(start).Milliseconds()
+						LiveUpdateOnlineTimeView(currB, currW)
 					} else {
-						currB -= time.Since(start).Milliseconds()
+
 					}
 					LiveUpdateOnlineTimeView(currB, currW)
 					root.app.QueueUpdateDraw(func() {}, root.OnlineTimeUser, root.OnlineTimeOppo)
@@ -240,13 +241,25 @@ func LiveUpdateOnlineTimeView(b int64, w int64) { //MoveCount
 
 	if MoveCount > 1 {
 		if MoveCount%2 == 0 {
-			UserStr += " ⏲️\t"
-			root.OnlineTimeUser.SetBackgroundColor(tc.ColorSeaGreen)
-			root.OnlineTimeOppo.SetBackgroundColor(tc.ColorBlack.TrueColor())
+			if White {
+				UserStr += " ⏲️\t"
+				root.OnlineTimeUser.SetBackgroundColor(tc.ColorSeaGreen)
+				root.OnlineTimeOppo.SetBackgroundColor(tc.ColorBlack.TrueColor())
+			} else {
+				OppoStr += " ⏲️\t"
+				root.OnlineTimeOppo.SetBackgroundColor(tc.ColorSeaGreen)
+				root.OnlineTimeUser.SetBackgroundColor(tc.ColorBlack.TrueColor())
+			}
 		} else {
-			OppoStr += " ⏲️\t"
-			root.OnlineTimeOppo.SetBackgroundColor(tc.ColorSeaGreen)
-			root.OnlineTimeUser.SetBackgroundColor(tc.ColorBlack.TrueColor())
+			if !White {
+				UserStr += " ⏲️\t"
+				root.OnlineTimeUser.SetBackgroundColor(tc.ColorSeaGreen)
+				root.OnlineTimeOppo.SetBackgroundColor(tc.ColorBlack.TrueColor())
+			} else {
+				OppoStr += " ⏲️\t"
+				root.OnlineTimeOppo.SetBackgroundColor(tc.ColorSeaGreen)
+				root.OnlineTimeUser.SetBackgroundColor(tc.ColorBlack.TrueColor())
+			}
 		}
 	}
 

@@ -20,19 +20,26 @@ func UpdateGameStatus(s *cv.TextView) {
 	root.currentLocalGame.Status = ""
 
 	if root.currentLocalGame.Game.Position().Turn() == chess.White {
-		status += "white to move!\n\n"
+		status += "White's turn. \n\n"
 	} else {
-		status += "black to move!\n\n"
+		status += "Black's turn. \n\n"
 	}
 	UpdateLegalMoves()
-	status += "valid moves: [green]" + strings.Join(root.currentLocalGame.LegalMoves, ", ") + "[white]\n"
+	status += "Valid Moves: [green]" + strings.Join(root.currentLocalGame.LegalMoves, ", ") + "[white]\n"
 	s.SetText(status)
 }
 
 func UpdateGameHistory(win *cv.TextView) {
 	var text string
-	for i := len(root.currentLocalGame.MoveHistoryArray) - 1; i >= 0; i-- {
-		text += fmt.Sprintf("%v: %v", i, root.currentLocalGame.MoveHistoryArray[i])
+	moveArr := root.currentLocalGame.MoveHistoryArray
+	pieceArr, err := GetPieceArr(moveArr)
+	if err != nil {
+		text += fmt.Sprintf("%v", err)
+		pieceArr = []string{}
+	}
+	for i := len(moveArr) - 1; i >= 0; i-- {
+		move := moveArr[i]
+		text += fmt.Sprintf("\t%v: %v %v", i, pieceArr[i], move)
 		if i%2 == 0 {
 			text += " ⬜\n"
 		} else {
@@ -43,24 +50,38 @@ func UpdateGameHistory(win *cv.TextView) {
 }
 
 func UpdateLegalMoves() {
-
 	root.currentLocalGame.LegalMoves = []string{}
-
 	for _, move := range root.currentLocalGame.Game.ValidMoves() {
 		root.currentLocalGame.LegalMoves = append(root.currentLocalGame.LegalMoves, move.String())
 	}
-
 }
+
 func LocalGameDoMove(m string) error {
 	//do the move
+	move, _ := GetMoveType(m, root.currentLocalGame.Game)
 	err := root.currentLocalGame.Game.MoveStr(m)
 	if err == nil {
-		//clear the next move
+
+		if move.HasTag(chess.Check) {
+			root.currentLocalGame.Status += "Check!"
+		}
+
+		if move.HasTag(chess.Capture) {
+			//get piece
+			p := GetPiece(m[2:], root.currentLocalGame.Game.Clone()).String()
+			if len(root.currentLocalGame.MoveHistoryArray)%2 == 0 {
+				root.currentLocalGame.WhiteCaptured = append(root.currentLocalGame.WhiteCaptured, p)
+			} else {
+				root.currentLocalGame.BlackCaptured = append(root.currentLocalGame.BlackCaptured, p)
+			}
+		}
+
 		root.currentLocalGame.MoveHistoryArray = append(root.currentLocalGame.MoveHistoryArray, m)
 		UpdateGameHistory(root.History)
 		UpdateBoard(root.Board, root.currentLocalGame.Game.Position().Turn() == chess.White)
-		root.currentLocalGame.NextMove = ""
+		root.currentLocalGame.NextMove = "" //clear the next move
 		UpdateGameStatus(root.Status)
+		UpdateLocalTime()
 		root.app.GetScreen().Beep()
 		if root.currentLocalGame.Game.Outcome() != chess.NoOutcome { //check if game is done
 			gotoPostLocal()
@@ -70,9 +91,24 @@ func LocalGameDoMove(m string) error {
 	return err
 }
 
+func UpdateLocalTime() {
+	t := root.Time
+	var txt string
+	txt += "\nBLACK CAPTURE:\n"
+	for _, p := range root.currentLocalGame.BlackCaptured {
+		txt += p
+	}
+	txt += "\t"
+	txt += "\nWHITE CAPTURE:\n"
+	for _, wp := range root.currentLocalGame.WhiteCaptured {
+		txt += wp
+	}
+	txt += "\t"
+	t.SetText(txt)
+}
+
 func UpdateBoard(table *cv.Table, white bool) {
 	var FEN string
-
 	if white {
 		FEN = root.currentLocalGame.Game.Position().String()
 		for i := 0; i < 8; i++ {

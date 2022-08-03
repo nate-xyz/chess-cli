@@ -5,7 +5,10 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
+
+	"github.com/notnil/chess"
 )
 
 func contains(s []string, str string) bool {
@@ -95,4 +98,89 @@ func translateAlgtoCell(alg string, white bool) (r, c int) {
 		col = -int(file) + 105
 	}
 	return row, col
+}
+
+func GetPiece(p string, g *chess.Game) chess.Piece {
+	getFile := map[string]chess.File{
+		"a": chess.FileA,
+		"b": chess.FileB,
+		"c": chess.FileC,
+		"d": chess.FileD,
+		"e": chess.FileE,
+		"f": chess.FileF,
+		"g": chess.FileG,
+		"h": chess.FileH,
+	}
+	getRank := map[string]chess.Rank{
+		"1": chess.Rank1,
+		"2": chess.Rank2,
+		"3": chess.Rank3,
+		"4": chess.Rank4,
+		"5": chess.Rank5,
+		"6": chess.Rank6,
+		"7": chess.Rank7,
+		"8": chess.Rank8,
+	}
+	board := g.Position().Board()
+	file := getFile[string(p[0])]
+	rank := getRank[string(p[1])]
+	return board.Piece(chess.NewSquare(file, rank))
+}
+
+func GetPieceArr(moveArr []string) ([]string, error) {
+	pieceArray := []string{}
+	game := chess.NewGame(chess.UseNotation(chess.UCINotation{}))
+	for _, move := range moveArr {
+		if game.Outcome() == chess.NoOutcome {
+			piece := GetPiece(move, game)
+			pieceArray = append(pieceArray, piece.String())
+			err := game.MoveStr(move)
+			if err != nil {
+				return pieceArray, err
+			}
+			continue
+		}
+	}
+	return pieceArray, nil
+}
+
+func GetCapturePiecesArr(seq string) error {
+	if seq == "" {
+		return nil
+	}
+	root.currentLocalGame.WhiteCaptured = []string{}
+	root.currentLocalGame.BlackCaptured = []string{}
+	moveArr := strings.Split(seq, " ")
+	game := chess.NewGame(chess.UseNotation(chess.UCINotation{}))
+	for i, mStr := range moveArr {
+		if game.Outcome() == chess.NoOutcome {
+			move, _ := GetMoveType(mStr, game)
+			if move.HasTag(chess.Capture) {
+				//get piece
+				p := GetPiece(mStr[2:], game).String()
+				if i%2 == 0 {
+					root.currentLocalGame.WhiteCaptured = append(root.currentLocalGame.WhiteCaptured, p)
+				} else {
+					root.currentLocalGame.BlackCaptured = append(root.currentLocalGame.BlackCaptured, p)
+				}
+			}
+			err := game.MoveStr(mStr)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+	}
+	return nil
+}
+
+func GetMoveType(movestr string, g *chess.Game) (*chess.Move, error) {
+	pos := g.Clone().Position()
+	for _, n := range []chess.Notation{chess.LongAlgebraicNotation{}, chess.AlgebraicNotation{}, chess.UCINotation{}} {
+		m, err := n.Decode(pos, movestr)
+		if err == nil {
+			return m, nil
+		}
+	}
+	return new(chess.Move), fmt.Errorf("unable to decode move string")
 }

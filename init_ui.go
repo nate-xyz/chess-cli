@@ -87,6 +87,8 @@ func initGameScreen() *cv.Grid {
 	timerBox := cv.NewTextView()
 	timerBox.SetWordWrap(true)
 	timerBox.SetDynamicColors(true)
+	timerBox.SetTextAlign(cv.AlignLeft)
+	timerBox.SetVerticalAlign(cv.AlignMiddle)
 
 	inputBox := cv.NewInputField()
 
@@ -304,6 +306,7 @@ func initLichessGameGrid() *cv.Grid {
 				root.currentLocalGame.Status += "Last input [red]invalid.[white]\n"
 				UpdateGameStatus(root.OnlineStatus)
 			}
+
 		} else {
 			root.currentLocalGame.NextMove = ""
 		}

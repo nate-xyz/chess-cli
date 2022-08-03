@@ -207,7 +207,7 @@ func LichessGame(gameID string) {
 			case GameState: // game state json
 				MoveArr := strings.Split(BoardGameState.Moves, " ")
 				MoveCount = len(MoveArr)
-
+				_ = GetCapturePiecesArr(BoardGameState.Moves)
 				currentFEN, err := MoveTranslationToFEN(BoardGameState.Moves)
 				if err != nil {
 					stopTicker <- true
