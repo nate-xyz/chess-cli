@@ -278,7 +278,6 @@ func TimerLoop(d <-chan bool, v *time.Ticker, t *time.Ticker, bi <-chan BothInc)
 			start = time.Now()
 		case <-d:
 			return
-
 		case <-v.C: //every half second
 			var currB int64 = Btime
 			var currW int64 = Wtime
@@ -286,7 +285,6 @@ func TimerLoop(d <-chan bool, v *time.Ticker, t *time.Ticker, bi <-chan BothInc)
 				if MoveCount%2 == 0 {
 					currW -= time.Since(start).Milliseconds()
 				} else {
-					//Btime -= 1
 					currB -= time.Since(start).Milliseconds()
 				}
 				LiveUpdateOnlineTimeView(currB, currW)
@@ -298,13 +296,10 @@ func TimerLoop(d <-chan bool, v *time.Ticker, t *time.Ticker, bi <-chan BothInc)
 			if MoveCount >= 2 {
 				if currB < 10000 || currW < 1000 { //start drawing millis when less than ten seconds
 					if MoveCount%2 == 0 {
-						//Wtime -= 1
 						currW -= time.Since(start).Milliseconds()
 					} else {
-						//Btime -= 1
 						currB -= time.Since(start).Milliseconds()
 					}
-
 					LiveUpdateOnlineTimeView(currB, currW)
 					root.app.QueueUpdateDraw(func() {}, root.OnlineTime)
 				}

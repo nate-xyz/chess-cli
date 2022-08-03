@@ -33,8 +33,13 @@ func quoutePrimitive(text string) cv.Primitive {
 	return tv
 }
 
-func boardPrimitive() *cv.Table {
+func boardPrimitive(handler func(row, col int)) *cv.Table {
 	table := cv.NewTable()
+	table.SetSelectable(true, true)
+	//table.SetSelectedFunc(tableHandler)
+	table.SetSelectionChangedFunc(handler)
+	table.SetSortClicked(false)
+	table.SetFixed(11, 11)
 	return table
 }
 

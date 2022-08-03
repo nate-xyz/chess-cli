@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	cv "code.rocketnine.space/tslocum/cview"
 	tc "github.com/gdamore/tcell/v2"
 )
@@ -66,19 +68,25 @@ func initWelcomeScreen() *cv.Grid {
 	return grid
 }
 
+//local game grid
 func initGameScreen() *cv.Grid {
 	grid := cv.NewGrid()
-	grid.SetColumns(-2, -1)
-	grid.SetRows(-1, -1, 1, 1)
+	grid.SetColumns(-1, -2, -1)
+	grid.SetRows(-1, -1, 10, 1)
 	grid.SetBorders(false)
-	gameBox := boardPrimitive()
+	gameBox := boardPrimitive(LocalTableHandler)
 
 	statusBox := cv.NewTextView()
 	statusBox.SetWordWrap(true)
 	statusBox.SetDynamicColors(true)
+
 	historyBox := cv.NewTextView()
 	historyBox.SetWordWrap(true)
 	historyBox.SetDynamicColors(true)
+
+	timerBox := cv.NewTextView()
+	timerBox.SetWordWrap(true)
+	timerBox.SetDynamicColors(true)
 
 	inputBox := cv.NewInputField()
 
@@ -86,9 +94,12 @@ func initGameScreen() *cv.Grid {
 		root.currentLocalGame.NextMove = inputBox.GetText()
 		inputBox.SetText("")
 		if key == tc.KeyEnter {
-
 			if contains(root.currentLocalGame.LegalMoves, root.currentLocalGame.NextMove) {
-				LocalGameDoMove()
+				err := LocalGameDoMove(root.currentLocalGame.NextMove)
+				if err != nil {
+					root.currentLocalGame.Status += fmt.Sprintf("%v", err)
+					UpdateGameStatus(root.Status)
+				}
 			} else {
 				root.currentLocalGame.Status += "Last input [red]invalid.[white]\n"
 				UpdateGameStatus(root.Status)
@@ -101,15 +112,23 @@ func initGameScreen() *cv.Grid {
 
 	Ribbon := ribbonPrimitive(gameRibbonstr)
 
-	grid.AddItem(inputBox, 2, 0, 1, 1, 0, 0, true)
-	grid.AddItem(Center(28, 10, gameBox), 0, 0, 2, 1, 0, 0, false)
-	grid.AddItem(statusBox, 0, 1, 1, 1, 0, 0, false)
-	grid.AddItem(historyBox, 1, 1, 2, 1, 0, 0, false)
-	grid.AddItem(Ribbon, 3, 0, 1, 2, 0, 0, false)
+	// grid.AddItem(inputBox, 2, 0, 1, 1, 0, 0, true)
+	// grid.AddItem(Center(28, 10, gameBox), 0, 0, 2, 1, 0, 0, false)
+	// grid.AddItem(statusBox, 0, 1, 1, 1, 0, 0, false)
+	// grid.AddItem(historyBox, 1, 1, 2, 1, 0, 0, false)
+	// grid.AddItem(Ribbon, 3, 0, 1, 2, 0, 0, false)
+
+	grid.AddItem(inputBox, 2, 1, 1, 1, 0, 0, true)
+	grid.AddItem(Center(30, 10, gameBox), 0, 1, 2, 1, 0, 0, false)
+	grid.AddItem(statusBox, 0, 0, 1, 1, 0, 0, false)
+	grid.AddItem(historyBox, 1, 0, 2, 1, 0, 0, false)
+	grid.AddItem(timerBox, 0, 2, 3, 1, 0, 0, false)
+	grid.AddItem(Ribbon, 3, 0, 1, 3, 0, 0, false)
 
 	root.Board = gameBox
 	root.Status = statusBox
 	root.History = historyBox
+	root.Time = timerBox
 
 	return grid
 }
@@ -119,7 +138,11 @@ func initPostGame() *cv.Grid {
 	grid.SetColumns(-2, -1)
 	grid.SetRows(-1, -3, -1, 1)
 	grid.SetBorders(false)
-	gameBox := boardPrimitive()
+
+	gameBox := cv.NewTable()
+	gameBox.SetSelectable(false, false)
+	gameBox.SetSortClicked(false)
+	gameBox.SetFixed(10, 10)
 
 	historyBox := cv.NewTextView()
 	historyBox.SetWordWrap(true)
@@ -205,7 +228,7 @@ func initWelcomeLichess() *cv.Grid {
 	choices := []string{"New Game", "Ongoing Games", "Back", "Quit", "Test Friend", "Test AI"}
 	explain := []string{"Construct a new game request", "Select from your active games", "Back to welcome screen", "Press to exit", "aaaa", "bbbb"}
 	shortcuts := []rune{'n', 'o', 'b', 'q', 'y', 'z'}
-	selectFunc := []ListSelectedFunc{gotoChallengeConstruction, doNothing, gotoWelcome, root.app.Stop, TestFriend, doNothing}
+	selectFunc := []ListSelectedFunc{gotoChallengeConstruction, doNothing, gotoWelcome, root.app.Stop, TestFriend, TestAI}
 	for i := 0; i < len(choices); i++ {
 		item := cv.NewListItem(choices[i])
 		item.SetSecondaryText(explain[i])
@@ -230,7 +253,7 @@ func initLichessGameGrid() *cv.Grid {
 	grid.SetColumns(-1, -2, -1)
 	grid.SetRows(-1, -1, 10, 1)
 	grid.SetBorders(false)
-	gameBox := boardPrimitive()
+	gameBox := boardPrimitive(OnlineTableHandler)
 
 	statusBox := cv.NewTextView()
 	statusBox.SetWordWrap(true)
@@ -255,7 +278,11 @@ func initLichessGameGrid() *cv.Grid {
 		//TODO: print response status body to window if invalid
 		if key == tc.KeyEnter {
 			if contains(root.currentLocalGame.LegalMoves, root.currentLocalGame.NextMove) {
-				OnlineGameDoMove()
+				err := OnlineGameDoMove(root.currentLocalGame.NextMove)
+				if err != nil {
+					root.currentLocalGame.Status += fmt.Sprintf("%v", err)
+					UpdateGameStatus(root.Status)
+				}
 			} else {
 				root.currentLocalGame.Status += "Last input [red]invalid.[white]\n"
 				UpdateGameStatus(root.OnlineStatus)
@@ -269,7 +296,7 @@ func initLichessGameGrid() *cv.Grid {
 	Ribbon := ribbonPrimitive(gameOnlineRibbonstr)
 
 	grid.AddItem(inputBox, 2, 1, 1, 1, 0, 0, true)
-	grid.AddItem(Center(28, 10, gameBox), 0, 1, 2, 1, 0, 0, false)
+	grid.AddItem(Center(30, 10, gameBox), 0, 1, 2, 1, 0, 0, false)
 	grid.AddItem(statusBox, 0, 0, 1, 1, 0, 0, false)
 	grid.AddItem(historyBox, 1, 0, 2, 1, 0, 0, false)
 	grid.AddItem(timerBox, 0, 2, 3, 1, 0, 0, false)
@@ -288,7 +315,11 @@ func initPostOnline() *cv.Grid {
 	grid.SetColumns(-2, -1)
 	grid.SetRows(-1, -3, -1, 1)
 	grid.SetBorders(false)
-	gameBox := boardPrimitive()
+
+	gameBox := cv.NewTable()
+	gameBox.SetSelectable(false, false)
+	gameBox.SetSortClicked(false)
+	gameBox.SetFixed(10, 10)
 
 	historyBox := cv.NewTextView()
 	historyBox.SetWordWrap(true)

@@ -57,12 +57,13 @@ func startNewOnlineGame() {
 	root.currentLocalGame = new(LocalGame)
 	root.currentLocalGame.Init()
 	root.nav.SetCurrentPanel("onlinegame")
-	UpdateOnline()
+
+	go LichessGame(currentGameID)
+	//UpdateOnline()
 
 	// UpdateBoard(root.OnlineBoard, BoardFullGame.White.Name == Username)
 	// UpdateGameStatus(root.Status)
 
-	go LichessGame(currentGameID)
 }
 
 func gotoPostOnline() {
@@ -85,6 +86,13 @@ func gotoChallengeConstruction() {
 
 func TestFriend() {
 	CurrentChallenge = testChallenge //bypass creating a challenge
+
+	root.nav.SetCurrentPanel("loader") //goto loader
+	go WaitForLichessGameResponse()    //thread to update loading screen and wait for board event
+}
+
+func TestAI() {
+	CurrentChallenge = testAiChallenge //bypass creating a challenge
 
 	root.nav.SetCurrentPanel("loader") //goto loader
 	go WaitForLichessGameResponse()    //thread to update loading screen and wait for board event

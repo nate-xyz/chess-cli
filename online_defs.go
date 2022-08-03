@@ -371,11 +371,12 @@ type CreateChallengeType struct {
 // }
 
 var testAiChallenge = CreateChallengeType{
-	Level:      "2",
+	Level:      "1",
 	Type:       2,
 	TimeOption: 2,
-	Color:      "black",
-	Variant:    "standard"}
+	Color:      "white",
+	Variant:    "standard",
+}
 
 //API VARS
 var currentGameID string

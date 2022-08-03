@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"strings"
 )
 
@@ -27,6 +28,7 @@ func UpdateOnline() {
 	UpdateGameHistory(root.OnlineHistory)
 	UpdateBoard(root.OnlineBoard, BoardFullGame.White.Name == Username)
 	UpdateGameStatus(root.OnlineStatus)
+	root.app.QueueUpdateDraw(func() {})
 }
 
 func UpdateLoaderIcon(i int) int {
@@ -54,23 +56,28 @@ func UpdateLoaderMsg(msg string) {
 
 }
 
-func OnlineGameDoMove() {
-	//TODO: handle game end
+func OnlineGameDoMove(move string) error {
+
+	go func() {
+		err := root.currentLocalGame.Game.MoveStr(move)
+		if err == nil {
+			UpdateBoard(root.OnlineBoard, BoardFullGame.White.Name == Username)
+			root.app.QueueUpdateDraw(func() {}, root.OnlineBoard)
+		}
+	}()
+
 	//do the move
-	err := MakeMove(currentGameID, root.currentLocalGame.NextMove)
+	err := MakeMove(currentGameID, move)
 	if err != nil {
-		return
+		return err
 	}
-
+	root.app.GetScreen().Beep()
 	// err = root.currentLocalGame.Game.MoveStr(root.currentLocalGame.NextMove)
-
-	//clear the next move
 
 	UpdateBoard(root.OnlineBoard, BoardFullGame.White.Name == Username)
 
-	root.currentLocalGame.NextMove = ""
+	root.currentLocalGame.NextMove = "" //clear the next move
 	UpdateGameStatus(root.OnlineStatus)
-	root.app.GetScreen().Beep()
 
 	//check if game is done
 
@@ -78,6 +85,7 @@ func OnlineGameDoMove() {
 	// 	gotoPostOnline()
 	// }
 	//MOVED TO LICHESS GAME, (wait for api stream)
+	return nil
 }
 
 func UpdateChessGame() {
@@ -96,46 +104,58 @@ func LiveUpdateOnlineTimeView(b int64, w int64) {
 	binc := int64(BoardGameState.Binc)
 	winc := int64(BoardGameState.Winc)
 
-	if BoardFullGame.White.Name == Username {
-		if BoardFullGame.Speed == "unlimited" {
-			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n\n[blue]%v[white]\n(white)",
-				BoardFullGame.Black.Name,
-				BoardFullGame.White.Name)
-		} else if BoardFullGame.Speed == "correspondence" {
-			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n%v\n\n\n%v\n[blue]%v[white]\n(white)",
-				BoardFullGame.Black.Name,
-				timeFormat(b),
-				timeFormat(w),
-				BoardFullGame.White.Name)
-		} else {
-			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n%v+%v\n\n\n%v+%v\n[blue]%v[white]\n(white)",
-				BoardFullGame.Black.Name,
-				timeFormat(b),
-				timeFormat(binc),
-				timeFormat(w),
-				timeFormat(winc),
-				BoardFullGame.White.Name)
-		}
+	var Opp string
 
+	if BoardFullGame.White.Name == Username {
+		Opp = BoardFullGame.Black.Name
 	} else {
-		if BoardFullGame.Speed == "unlimited" {
+		Opp = BoardFullGame.White.Name
+	}
+
+	if CurrentChallenge.Type == 2 {
+		Opp = "🤖"
+
+	}
+
+	if BoardFullGame.White.Name == Username {
+		if BoardFullGame.State.Btime == math.MaxInt32 {
 			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n\n[blue]%v[white]\n(white)",
-				BoardFullGame.White.Name,
-				BoardFullGame.Black.Name)
+				Opp,
+				Username)
 		} else if BoardFullGame.Speed == "correspondence" {
 			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n%v\n\n\n%v\n[blue]%v[white]\n(white)",
-				BoardFullGame.White.Name,
-				timeFormat(w),
+				Opp,
 				timeFormat(b),
-				BoardFullGame.Black.Name)
+				timeFormat(w),
+				Username)
 		} else {
 			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n%v+%v\n\n\n%v+%v\n[blue]%v[white]\n(white)",
-				BoardFullGame.White.Name,
+				Opp,
+				timeFormat(b),
+				timeFormat(binc),
+				timeFormat(w),
+				timeFormat(winc),
+				Username)
+		}
+	} else {
+		if BoardFullGame.State.Btime == math.MaxInt32 {
+			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n\n[blue]%v[white]\n(white)",
+				Opp,
+				Username)
+		} else if BoardFullGame.Speed == "correspondence" {
+			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n%v\n\n\n%v\n[blue]%v[white]\n(white)",
+				Opp,
+				timeFormat(w),
+				timeFormat(b),
+				Username)
+		} else {
+			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n%v+%v\n\n\n%v+%v\n[blue]%v[white]\n(white)",
+				Opp,
 				timeFormat(w),
 				timeFormat(winc),
 				timeFormat(b),
 				timeFormat(binc),
-				BoardFullGame.Black.Name)
+				Username)
 		}
 	}
 	var ratestr string
@@ -158,28 +178,25 @@ func LiveUpdateOnlineTimeView(b int64, w int64) {
 	root.OnlineTime.SetText(timestr)
 }
 
-func timeFormat(time int64) string {
-	if time == 0 {
-		return "0"
+func OnlineTableHandler(row, col int) {
+	selectedCell := translateSelectedCell(row, col, BoardFullGame.White.Name == Username)
+	if LastSelectedCell.Alg == selectedCell { //toggle selected status of this cell
+
+		root.OnlineBoard.Select(100, 100)
+		LastSelectedCell = PiecePosition{-1, -1, "", true, ""}
+	} else { //try to do move
+
+		todoMove := LastSelectedCell.Alg + selectedCell
+		if contains(root.currentLocalGame.LegalMoves, todoMove) {
+			err := OnlineGameDoMove(todoMove)
+			if err != nil {
+				root.currentLocalGame.Status += fmt.Sprintf("%v", err)
+				UpdateGameStatus(root.OnlineStatus)
+			}
+		}
+		//check if select is empty for updateBoard
+		symbol := root.OnlineBoard.GetCell(row, col).GetText()
+		LastSelectedCell = PiecePosition{row, col, selectedCell, (symbol == EmptyChar), symbol}
 	}
-	ms := time % 1000
-	time /= 1000
-	sec := time % 60
-	time /= 60
-	min := time % 60
-	hours := time / 60
-	if hours == 0 && min == 0 && sec <= 10 {
-		return fmt.Sprintf("%02d:%02d:%03d", min, sec, ms)
-	} else if hours == 0 {
-		return fmt.Sprintf("%02d:%02d", min, sec)
-	}
-	days := hours / 24
-	hours = hours % 24
-	if days == 0 {
-		return fmt.Sprintf("%d Hours", hours)
-	} else if hours == 0 {
-		return fmt.Sprintf("%d Days", days)
-	} else {
-		return fmt.Sprintf("%d Days %d Hours", days, hours)
-	}
+	UpdateBoard(root.OnlineBoard, BoardFullGame.White.Name == Username)
 }

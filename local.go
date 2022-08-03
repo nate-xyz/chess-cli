@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"unicode"
@@ -30,7 +31,6 @@ func UpdateGameStatus(s *cv.TextView) {
 
 func UpdateGameHistory(win *cv.TextView) {
 	var text string
-
 	for i := len(root.currentLocalGame.MoveHistoryArray) - 1; i >= 0; i-- {
 		text += fmt.Sprintf("%v: %v", i, root.currentLocalGame.MoveHistoryArray[i])
 		if i%2 == 0 {
@@ -51,36 +51,23 @@ func UpdateLegalMoves() {
 	}
 
 }
-func LocalGameDoMove() {
-
-	//TODO: handle game end
+func LocalGameDoMove(m string) error {
 	//do the move
-
-	err := root.currentLocalGame.Game.MoveStr(root.currentLocalGame.NextMove)
-
+	err := root.currentLocalGame.Game.MoveStr(m)
 	if err == nil {
-
 		//clear the next move
-		root.currentLocalGame.MoveHistoryArray = append(root.currentLocalGame.MoveHistoryArray, root.currentLocalGame.NextMove)
+		root.currentLocalGame.MoveHistoryArray = append(root.currentLocalGame.MoveHistoryArray, m)
 		UpdateGameHistory(root.History)
 		UpdateBoard(root.Board, root.currentLocalGame.Game.Position().Turn() == chess.White)
 		root.currentLocalGame.NextMove = ""
 		UpdateGameStatus(root.Status)
 		root.app.GetScreen().Beep()
-
-		//check if game is done
-
-		if root.currentLocalGame.Game.Outcome() != chess.NoOutcome {
-			// time.Sleep(2 * time.Second)
-			// root.PostStatus.SetText(root.currentLocalGame.Game.Method().String())
-
+		if root.currentLocalGame.Game.Outcome() != chess.NoOutcome { //check if game is done
 			gotoPostLocal()
 		}
-
-	} else {
-		log.Fatal(err)
+		return nil
 	}
-
+	return err
 }
 
 func UpdateBoard(table *cv.Table, white bool) {
@@ -91,8 +78,10 @@ func UpdateBoard(table *cv.Table, white bool) {
 		for i := 0; i < 8; i++ {
 			rank := cv.NewTableCell(fmt.Sprintf("%v", i+1))
 			file := cv.NewTableCell(string(rune('a' + i)))
-			rank.SetAlign(cv.AlignCenter)
-			file.SetAlign(cv.AlignCenter)
+			rank.SetAlign(cv.AlignRight)
+			file.SetAlign(cv.AlignRight)
+			rank.SetSelectable(false)
+			file.SetSelectable(false)
 			table.SetCell(8-i, 0, rank)
 			table.SetCell(8-i, 9, rank)
 			table.SetCell(0, i+1, file)
@@ -103,8 +92,10 @@ func UpdateBoard(table *cv.Table, white bool) {
 		for i := 0; i < 8; i++ {
 			rank := cv.NewTableCell(fmt.Sprintf("%v", 8-i))
 			file := cv.NewTableCell(string(rune('h' - i)))
-			rank.SetAlign(cv.AlignCenter)
-			file.SetAlign(cv.AlignCenter)
+			rank.SetAlign(cv.AlignRight)
+			file.SetAlign(cv.AlignRight)
+			rank.SetSelectable(false)
+			file.SetSelectable(false)
 			table.SetCell(8-i, 0, rank)
 			table.SetCell(8-i, 9, rank)
 			table.SetCell(0, i+1, file)
@@ -112,6 +103,15 @@ func UpdateBoard(table *cv.Table, white bool) {
 		}
 	}
 
+	empty := cv.NewTableCell(EmptyChar)
+	empty.SetSelectable(false)
+	empty.SetTextColor(tc.ColorBlack.TrueColor())
+	table.SetCell(0, 0, empty)
+	table.SetCell(0, 9, empty)
+	table.SetCell(9, 0, empty)
+	table.SetCell(9, 9, empty)
+
+	//loop through current FEN and print to board
 	square := 0
 	col, row := 1, 1
 	for _, current_piece := range FEN { //loop to parse the FEN string
@@ -123,14 +123,18 @@ func UpdateBoard(table *cv.Table, white bool) {
 			row++
 			square++
 			continue
-		} else if unicode.IsDigit(current_piece) { //full row of nothing
+		} else if unicode.IsDigit(current_piece) { //nothing
 			int_, _ := strconv.Atoi(string(current_piece))
 			for i := 1; i <= int_; i++ {
-				cell := cv.NewTableCell(" ")
-				cell.SetAlign(cv.AlignCenter)
+				cell := cv.NewTableCell(EmptyChar)
+				cell.SetSelectable(true)
+				cell.SetAlign(cv.AlignRight)
+
 				if square%2 == 0 {
+					cell.SetTextColor(tc.NewRGBColor(145, 130, 109))
 					cell.SetBackgroundColor(tc.NewRGBColor(145, 130, 109))
 				} else {
+					cell.SetTextColor(tc.NewRGBColor(108, 81, 59))
 					cell.SetBackgroundColor(tc.NewRGBColor(108, 81, 59))
 				}
 				table.SetCell(row, col, cell)
@@ -143,7 +147,8 @@ func UpdateBoard(table *cv.Table, white bool) {
 			continue
 		} else if !unicode.IsDigit(current_piece) {
 			cell := cv.NewTableCell(PiecesMap[unicode.ToLower(current_piece)] + " ")
-			cell.SetAlign(cv.AlignCenter)
+			cell.SetSelectable(true)
+			cell.SetAlign(cv.AlignRight)
 			if unicode.IsUpper(current_piece) {
 				cell.SetTextColor(tc.NewRGBColor(255, 248, 220))
 			} else {
@@ -161,8 +166,90 @@ func UpdateBoard(table *cv.Table, white bool) {
 			log.Fatal("error parsing starting FEN")
 		}
 	}
-	root.app.QueueUpdateDraw(func() {})
-	// table.SetFixed(8, 8)
+
+	//check if piece is selected
+	if !LastSelectedCell.Empty {
+		FEN = root.currentLocalGame.Game.Position().String()
+		fen, err := chess.FEN(FEN)
+		if err != nil {
+			log.Fatal(err)
+			os.Exit(10)
+		}
+		NewChessGame = chess.NewGame(fen)
+		destArr := []string{}
+		for _, m := range NewChessGame.ValidMoves() {
+			move := m.String()
+			if move[0:2] == LastSelectedCell.Alg {
+				destArr = append(destArr, move[2:])
+
+			}
+
+		}
+		//var text string
+
+		for _, d := range destArr {
+			r, c := translateAlgtoCell(d, white)
+			//text += fmt.Sprintf("%v: %v, %v\n", d, r, c)
+
+			cell := table.GetCell(r, c)
+			if cell.GetText() == EmptyChar {
+				if white {
+					cell.SetTextColor(tc.NewRGBColor(255, 248, 220))
+				} else {
+					cell.SetTextColor(tc.NewRGBColor(18, 18, 18))
+				}
+				cell.SetText("•")
+				//text += "set text\n"
+			} else {
+				t := cell.GetText()
+				//text += t
+				cell.SetAttributes(tc.AttrItalic | tc.AttrBlink)
+				cell.SetText(t)
+			}
+
+		}
+
+		//root.Time.SetText(text)
+	}
+
+	root.app.QueueUpdateDraw(func() {}, table)
+}
+
+func LocalTableHandler(row, col int) {
+	//SelectionCount++
+	//var text string
+	// if row == 0 && (col == 0 || col == 9) {
+	// 	root.Board.Select(100, 100)
+	// }
+
+	// if row == 9 && (col == 0 || col == 9) {
+	// 	root.Board.Select(100, 100)
+	// }
+
+	selectedCell := translateSelectedCell(row, col, root.currentLocalGame.Game.Position().Turn() == chess.White)
+	if LastSelectedCell.Alg == selectedCell {
+		//toggle selected status of this cell
+		root.Board.Select(100, 100)
+		LastSelectedCell = PiecePosition{-1, -1, "", true, ""}
+	} else {
+		//try to do move
+		todoMove := LastSelectedCell.Alg + selectedCell
+		if contains(root.currentLocalGame.LegalMoves, todoMove) {
+			err := LocalGameDoMove(todoMove)
+			if err != nil {
+				root.currentLocalGame.Status += fmt.Sprintf("%v", err)
+				UpdateGameStatus(root.Status)
+			}
+		}
+		//check if select is empty for updateBoard
+		symbol := root.Board.GetCell(row, col).GetText()
+		LastSelectedCell = PiecePosition{row, col, selectedCell, (symbol == EmptyChar), symbol}
+	}
+	//text += selectedCell
+	//text += fmt.Sprintf("\n%d %d, %d", row, col, SelectionCount)
+	//root.Time.SetText(text)
+	UpdateBoard(root.Board, root.currentLocalGame.Game.Position().Turn() == chess.White)
+	//root.app.QueueUpdateDraw(func() {}, root.Time)
 }
 
 func UpdateResult(tv *cv.TextView) {

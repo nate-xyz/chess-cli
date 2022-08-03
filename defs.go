@@ -18,6 +18,8 @@ type State struct {
 	Board   *cv.Table
 	Status  *cv.TextView
 	History *cv.TextView
+	Time    *cv.TextView
+
 	//post local
 	PostStatus  *cv.TextView
 	PostBoard   *cv.Table
@@ -51,19 +53,29 @@ Play locally with a [yellow]friend[white] or online with [red]Lichess!`
 	gameRibbonstr       string = "CHESS-CLI -> local game | Press 'Ctrl-c' to quit"
 	challengeRibbonstr  string = "CHESS-CLI -> create a challenge | Press 'Ctrl-c' to quit"
 	gameOnlineRibbonstr string = "CHESS-CLI -> online game | Press 'Ctrl-c' to quit"
+	EmptyChar           string = "博"
 )
 
 var (
-	root         = new(State)
-	Sigs         chan os.Signal
-	Ready        chan struct{}
-	NewChessGame *chess.Game         //used in online.go in the LichessGame() function to update the board position from new stream event
-	newChallenge CreateChallengeType //used initUI.go in initConstruct() in order to save settings from a challenge construction
-	Online       bool                = false
-	MoveCount    int
+	root             = new(State)
+	Sigs             chan os.Signal
+	Ready            chan struct{}
+	NewChessGame     *chess.Game         //used in online.go in the LichessGame() function to update the board position from new stream event
+	newChallenge     CreateChallengeType //used initUI.go in initConstruct() in order to save settings from a challenge construction
+	Online           bool                = false
+	MoveCount        int
+	LastSelectedCell PiecePosition
 )
 
 type ListSelectedFunc func() //used to easily add functions to list items in initUI.go
+
+type PiecePosition struct {
+	Row    int
+	Col    int
+	Alg    string
+	Empty  bool
+	Symbol string
+}
 
 type BothInc struct {
 	wtime int64
@@ -122,7 +134,7 @@ var NormalLoaderMap = map[int64]string{
 	9: "⠏",
 }
 
-var rand_quote_map = map[int]string{
+var RandQuoteMap = map[int]string{
 	0:  "“I have come to the personal conclusion that while all artists are not chess players, all chess players are artists.”\n – Marcel Duchamp",
 	1:  "“Unlike other games in which lucre is the end and aim, [chess] recommends itself to the wise by the fact that its mimic battles are fought for no prize but honor. It is eminently and emphatically the philosopher’s game.”\n – Paul Morphy",
 	2:  "“The beauty of chess is it can be whatever you want it to be. It transcends language, age, race, religion, politics, gender, and socioeconomic background. Whatever your circumstances, anyone can enjoy a good fight to the death over the chess board.”\n – Simon Williams",
