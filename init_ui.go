@@ -251,7 +251,7 @@ func initWelcomeLichess() *cv.Grid {
 func initLichessGameGrid() *cv.Grid {
 	grid := cv.NewGrid()
 	grid.SetColumns(-1, -2, -1)
-	grid.SetRows(-1, -1, 10, 1)
+	grid.SetRows(-1, 1, 1, -1, 10, 1)
 	grid.SetBorders(false)
 	gameBox := boardPrimitive(OnlineTableHandler)
 
@@ -263,10 +263,27 @@ func initLichessGameGrid() *cv.Grid {
 	historyBox.SetWordWrap(true)
 	historyBox.SetDynamicColors(true)
 
-	timerBox := cv.NewTextView()
-	timerBox.SetTextAlign(cv.AlignLeft)
-	timerBox.SetVerticalAlign(cv.AlignCenter)
-	timerBox.SetDynamicColors(true)
+	userInfoBox := cv.NewTextView()
+	userInfoBox.SetTextAlign(cv.AlignLeft)
+	userInfoBox.SetVerticalAlign(cv.AlignTop)
+	userInfoBox.SetDynamicColors(true)
+	userInfoBox.SetText("USER INFO")
+
+	userTimerBox := cv.NewTextView()
+	userTimerBox.SetTextAlign(cv.AlignLeft)
+	userTimerBox.SetDynamicColors(true)
+	userTimerBox.SetText("∞")
+
+	oppTimerBox := cv.NewTextView()
+	oppTimerBox.SetTextAlign(cv.AlignLeft)
+	oppTimerBox.SetDynamicColors(true)
+	oppTimerBox.SetText("∞")
+
+	oppInfoBox := cv.NewTextView()
+	oppInfoBox.SetTextAlign(cv.AlignLeft)
+	oppInfoBox.SetVerticalAlign(cv.AlignBottom)
+	oppInfoBox.SetDynamicColors(true)
+	oppInfoBox.SetText("OPP INFO")
 
 	//timerBox.SetText("TIME")
 
@@ -295,17 +312,26 @@ func initLichessGameGrid() *cv.Grid {
 
 	Ribbon := ribbonPrimitive(gameOnlineRibbonstr)
 
-	grid.AddItem(inputBox, 2, 1, 1, 1, 0, 0, true)
-	grid.AddItem(Center(30, 10, gameBox), 0, 1, 2, 1, 0, 0, false)
-	grid.AddItem(statusBox, 0, 0, 1, 1, 0, 0, false)
-	grid.AddItem(historyBox, 1, 0, 2, 1, 0, 0, false)
-	grid.AddItem(timerBox, 0, 2, 3, 1, 0, 0, false)
-	grid.AddItem(Ribbon, 3, 0, 1, 3, 0, 0, false)
+	//row, col, rowSpan, colSpain
+	grid.AddItem(inputBox, 4, 1, 1, 1, 0, 0, true)
+	grid.AddItem(Center(30, 10, gameBox), 0, 1, 4, 1, 0, 0, false)
+	grid.AddItem(statusBox, 0, 0, 2, 1, 0, 0, false)
+	grid.AddItem(historyBox, 2, 0, 2, 1, 0, 0, false)
+	grid.AddItem(Ribbon, 5, 0, 1, 3, 0, 0, false)
+
+	grid.AddItem(oppInfoBox, 0, 2, 1, 1, 0, 0, false)
+	grid.AddItem(oppTimerBox, 1, 2, 1, 1, 0, 0, false)
+	grid.AddItem(userTimerBox, 2, 2, 1, 1, 0, 0, false)
+	grid.AddItem(userInfoBox, 3, 2, 1, 1, 0, 0, false)
 
 	root.OnlineBoard = gameBox
 	root.OnlineStatus = statusBox
 	root.OnlineHistory = historyBox
-	root.OnlineTime = timerBox
+
+	root.OnlineInfoOppo = oppInfoBox
+	root.OnlineTimeOppo = oppTimerBox
+	root.OnlineTimeUser = userTimerBox
+	root.OnlineInfoUser = userInfoBox
 
 	return grid
 }

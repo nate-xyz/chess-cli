@@ -370,14 +370,6 @@ type CreateChallengeType struct {
 // 	Fen            string
 // }
 
-var testAiChallenge = CreateChallengeType{
-	Level:      "1",
-	Type:       2,
-	TimeOption: 2,
-	Color:      "white",
-	Variant:    "standard",
-}
-
 //API VARS
 var currentGameID string
 var UserEmail string

@@ -4,6 +4,11 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"time"
+
+	cv "code.rocketnine.space/tslocum/cview"
+	tc "github.com/gdamore/tcell/v2"
+	"github.com/notnil/chess"
 )
 
 func UpdateLichessTitle() {
@@ -25,10 +30,73 @@ func UpdateLichessTitle() {
 }
 
 func UpdateOnline() {
+	UpdateLegalMoves()
 	UpdateGameHistory(root.OnlineHistory)
 	UpdateBoard(root.OnlineBoard, BoardFullGame.White.Name == Username)
-	UpdateGameStatus(root.OnlineStatus)
+	//UpdateGameStatus(root.OnlineStatus)
+	UpdateOnlineStatus(root.OnlineStatus)
+	UpdateUserInfo()
 	root.app.QueueUpdateDraw(func() {})
+}
+
+func UpdateOnlineStatus(s *cv.TextView) {
+	var status string
+	var ratestr string
+
+	if BoardFullGame.Rated {
+		ratestr = "Rated"
+	} else {
+		ratestr = "Casual"
+	}
+
+	if BoardFullGame.Speed == "correspondence" {
+		status += fmt.Sprintf("\n\n%v • %v\n",
+			ratestr,
+			strings.Title(BoardFullGame.Speed))
+	} else {
+		status += fmt.Sprintf("\n\n%v+%v • %v • %v\n",
+			timeFormat(int64(BoardFullGame.Clock.Initial)),
+			BoardFullGame.Clock.Increment/1000,
+			ratestr,
+			strings.Title(BoardFullGame.Speed))
+	}
+
+	if root.currentLocalGame.Game.Position().Turn() == chess.White {
+		status += "White's turn. \n\n"
+	} else {
+		status += "Black's turn. \n\n"
+	}
+
+	status += root.currentLocalGame.Status
+	root.currentLocalGame.Status = ""
+
+	s.SetText(status)
+}
+
+func UpdateUserInfo() {
+	var OppName string
+	var UserString string = "\n[blue]%v[white]"
+	var OppString string = "[red]%v[white]"
+
+	if BoardFullGame.White.Name == Username {
+		OppName = BoardFullGame.Black.Name
+		UserString = UserString + " (white)\n"
+		OppString = OppString + " (black)\n"
+	} else {
+		OppName = BoardFullGame.White.Name
+		OppString = OppString + " (white)\n"
+		UserString = UserString + " (black)\n"
+	}
+
+	if CurrentChallenge.Type == 2 {
+		OppName = "🤖"
+	}
+
+	UserString = fmt.Sprintf(UserString, Username)
+	OppString = fmt.Sprintf(OppString, OppName)
+
+	root.OnlineInfoUser.SetText(UserString)
+	root.OnlineInfoOppo.SetText(OppString)
 }
 
 func UpdateLoaderIcon(i int) int {
@@ -98,84 +166,92 @@ func UpdateOnlineTimeView() {
 	LiveUpdateOnlineTimeView(b, w)
 }
 
-func LiveUpdateOnlineTimeView(b int64, w int64) {
-	var timestr string
+func TimerLoop(d <-chan bool, v *time.Ticker, t *time.Ticker, bi <-chan BothInc) {
+	var Btime int64
+	var Wtime int64
+	var start time.Time
+	for {
+		select {
+		case b := <-bi:
+			Wtime = b.wtime
+			Btime = b.btime
+			start = time.Now()
+		case <-d:
+			return
+		case <-v.C: //every half second
+			var currB int64 = Btime
+			var currW int64 = Wtime
+			if MoveCount >= 2 {
+				if MoveCount%2 == 0 {
+					currW -= time.Since(start).Milliseconds()
+				} else {
+					currB -= time.Since(start).Milliseconds()
+				}
+				LiveUpdateOnlineTimeView(currB, currW)
+				root.app.QueueUpdateDraw(func() {}, root.OnlineTimeUser, root.OnlineTimeOppo)
+			}
+		case <-t.C: //every ms
+			var currB int64 = Btime
+			var currW int64 = Wtime
+			if MoveCount >= 2 {
+				if currB < 10000 || currW < 1000 { //start drawing millis when less than ten seconds
+					if MoveCount%2 == 0 {
+						currW -= time.Since(start).Milliseconds()
+					} else {
+						currB -= time.Since(start).Milliseconds()
+					}
+					LiveUpdateOnlineTimeView(currB, currW)
+					root.app.QueueUpdateDraw(func() {}, root.OnlineTimeUser, root.OnlineTimeOppo)
+				}
+			}
 
-	binc := int64(BoardGameState.Binc)
-	winc := int64(BoardGameState.Winc)
-
-	var Opp string
-
-	if BoardFullGame.White.Name == Username {
-		Opp = BoardFullGame.Black.Name
-	} else {
-		Opp = BoardFullGame.White.Name
-	}
-
-	if CurrentChallenge.Type == 2 {
-		Opp = "🤖"
-
-	}
-
-	if BoardFullGame.White.Name == Username {
-		if BoardFullGame.State.Btime == math.MaxInt32 {
-			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n\n[blue]%v[white]\n(white)",
-				Opp,
-				Username)
-		} else if BoardFullGame.Speed == "correspondence" {
-			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n%v\n\n\n%v\n[blue]%v[white]\n(white)",
-				Opp,
-				timeFormat(b),
-				timeFormat(w),
-				Username)
-		} else {
-			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n%v+%v\n\n\n%v+%v\n[blue]%v[white]\n(white)",
-				Opp,
-				timeFormat(b),
-				timeFormat(binc),
-				timeFormat(w),
-				timeFormat(winc),
-				Username)
-		}
-	} else {
-		if BoardFullGame.State.Btime == math.MaxInt32 {
-			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n\n[blue]%v[white]\n(white)",
-				Opp,
-				Username)
-		} else if BoardFullGame.Speed == "correspondence" {
-			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n%v\n\n\n%v\n[blue]%v[white]\n(white)",
-				Opp,
-				timeFormat(w),
-				timeFormat(b),
-				Username)
-		} else {
-			timestr += fmt.Sprintf("\n[red]%v[white]\n(black)\n%v+%v\n\n\n%v+%v\n[blue]%v[white]\n(white)",
-				Opp,
-				timeFormat(w),
-				timeFormat(winc),
-				timeFormat(b),
-				timeFormat(binc),
-				Username)
 		}
 	}
-	var ratestr string
-	if BoardFullGame.Rated {
-		ratestr = "Rated"
-	} else {
-		ratestr = "Casual"
+}
+
+func LiveUpdateOnlineTimeView(b int64, w int64) { //MoveCount
+	if BoardFullGame.State.Btime == math.MaxInt32 {
+		return
 	}
+
+	var White bool = BoardFullGame.White.Name == Username
+	var UserStr string
+	var OppoStr string
+
 	if BoardFullGame.Speed == "correspondence" {
-		timestr += fmt.Sprintf("\n\n%v • %v\n",
-			ratestr,
-			strings.Title(BoardFullGame.Speed))
+		if White {
+			UserStr += (timeFormat(w))
+			OppoStr += (timeFormat(b))
+		} else {
+			UserStr += (timeFormat(b))
+			OppoStr += (timeFormat(w))
+		}
 	} else {
-		timestr += fmt.Sprintf("\n\n%v+%v • %v • %v\n",
-			timeFormat(int64(BoardFullGame.Clock.Initial)),
-			timeFormat(int64(BoardFullGame.Clock.Increment)),
-			ratestr,
-			strings.Title(BoardFullGame.Speed))
+		binc := int64(BoardGameState.Binc)
+		winc := int64(BoardGameState.Winc)
+		if White {
+			UserStr += (timeFormat(w) + fmt.Sprintf("+%d", winc/1000))
+			OppoStr += (timeFormat(b) + fmt.Sprintf("+%d", binc/1000))
+		} else {
+			UserStr += (timeFormat(b) + fmt.Sprintf("+%d", binc/1000))
+			OppoStr += (timeFormat(w) + fmt.Sprintf("+%d", winc/1000))
+		}
 	}
-	root.OnlineTime.SetText(timestr)
+
+	if MoveCount > 1 {
+		if MoveCount%2 == 0 {
+			UserStr += " ⏲️\t"
+			root.OnlineTimeUser.SetBackgroundColor(tc.ColorSeaGreen)
+			root.OnlineTimeOppo.SetBackgroundColor(tc.ColorBlack.TrueColor())
+		} else {
+			OppoStr += " ⏲️\t"
+			root.OnlineTimeOppo.SetBackgroundColor(tc.ColorSeaGreen)
+			root.OnlineTimeUser.SetBackgroundColor(tc.ColorBlack.TrueColor())
+		}
+	}
+
+	root.OnlineTimeUser.SetText(UserStr)
+	root.OnlineTimeOppo.SetText(OppoStr)
 }
 
 func OnlineTableHandler(row, col int) {

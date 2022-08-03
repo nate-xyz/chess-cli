@@ -37,11 +37,15 @@ type State struct {
 	OnlineStatus  *cv.TextView
 	OnlineHistory *cv.TextView
 
+	OnlineInfoUser *cv.TextView
+	OnlineInfoOppo *cv.TextView
+	OnlineTimeUser *cv.TextView
+	OnlineTimeOppo *cv.TextView
+
 	//online post
 	OnlinePostStatus  *cv.TextView
 	OnlinePostBoard   *cv.Table
 	OnlinePostHistory *cv.TextView
-	OnlineTime        *cv.TextView
 }
 
 const (
@@ -223,3 +227,21 @@ var testChallenge = CreateChallengeType{
 // 	Color:      "black",
 // 	Variant:    "standard",
 // }
+
+// var testAiChallenge = CreateChallengeType{
+// 	Level:      "1",
+// 	Type:       2,
+// 	TimeOption: 2,
+// 	Color:      "white",
+// 	Variant:    "standard",
+// }
+
+var testAiChallenge = CreateChallengeType{
+	Level:          "1",
+	Type:           2,
+	TimeOption:     0,
+	Color:          "white",
+	Variant:        "standard",
+	ClockLimit:     fmt.Sprintf("%v", int(4*60)), //minutes
+	ClockIncrement: fmt.Sprintf("%v", 15),        //seconds
+}
