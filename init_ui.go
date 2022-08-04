@@ -135,9 +135,9 @@ func initGameScreen() *cv.Grid {
 	inputBox.SetLabel("Enter your move: ")
 
 	options := cv.NewList()
-	optionsList := []string{"Leave", "Quit"}
-	optionsExplain := []string{"Go back Home", "Close chess-cli"}
-	optionsFunc := []ListSelectedFunc{gotoWelcome, root.app.Stop}
+	optionsList := []string{"Leave", "Save game", "Quit"}
+	optionsExplain := []string{"Go back Home", "Pick up the game later", "Close chess-cli"}
+	optionsFunc := []ListSelectedFunc{gotoWelcome, SaveGame, root.app.Stop}
 	for i, opt := range optionsList {
 		item := cv.NewListItem(opt)
 		item.SetSecondaryText(optionsExplain[i])

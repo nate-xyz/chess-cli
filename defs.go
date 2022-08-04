@@ -117,6 +117,14 @@ func (l *LocalGame) Init() {
 	l.MoveHistoryArray = []string{}
 }
 
+var local_json = "saved_game.json"
+
+type UserSave struct {
+	SavedFenString string
+}
+
+var LocalInfo = UserSave{SavedFenString: ""}
+
 var PiecesMap = map[rune]string{
 	'K': "♔",
 	'Q': "♕",
