@@ -5,7 +5,8 @@
 </p>
 <br />
 
-![home1](https://user-images.githubusercontent.com/57846867/182905746-59f96a2a-484d-4bf1-9e57-23dfb37434d9.png)
+![home](https://user-images.githubusercontent.com/57846867/182971957-b08b3178-3530-4010-8de3-8ff413545629.png)
+
 
 <!-- # chess-cli ♟️ -->
 
