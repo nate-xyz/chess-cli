@@ -14,12 +14,9 @@ import (
 func MakeMove(gameid string, move string) error {
 	requestUrl := fmt.Sprintf("%s/api/board/game/%s/move/%s", hostUrl, gameid, move)
 
-	//NotiMessage <- fmt.Sprintf("%s", reqParam)
-
 	// create the request and execute it
 	req, err := http.NewRequest("POST", requestUrl, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-
 	if err != nil {
 		return err
 	}
@@ -39,7 +36,7 @@ func MakeMove(gameid string, move string) error {
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode != 200 {
+	if res.StatusCode != http.StatusOK {
 		err := fmt.Errorf("reponse %v: %v", res.StatusCode, string(body))
 		return err
 	}
@@ -102,7 +99,7 @@ func CreateChallenge(challenge CreateChallengeType) (error, string) {
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode != 200 {
+	if res.StatusCode != http.StatusOK {
 		err := fmt.Errorf("bad response %v %v", res.StatusCode, string(body))
 		return err, ""
 	}
@@ -194,7 +191,7 @@ func CreateAiChallenge(challenge CreateChallengeType) (error, string) {
 	//fmt.Printf("%v", res.StatusCode)
 	//fmt.Printf(string(body))
 
-	if res.StatusCode != 200 && res.StatusCode != 201 {
+	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusCreated {
 		err := fmt.Errorf("reponse %v: %v", res.StatusCode, string(body))
 		return err, ""
 	}
@@ -285,7 +282,7 @@ func CreateSeek(challenge CreateChallengeType) error {
 	//fmt.Printf("%v", res.StatusCode)
 	//fmt.Printf(string(body))
 
-	if res.StatusCode != 200 {
+	if res.StatusCode != http.StatusOK {
 		err := fmt.Errorf("reponse %v: %v", res.StatusCode, string(body))
 		return err
 	} else {
@@ -294,15 +291,11 @@ func CreateSeek(challenge CreateChallengeType) error {
 }
 
 func GetOngoingGames() error {
-
-	// var reqParam url.Values
-	// reqParam = url.Values{
-	// 	"nb": {"50"},
-	// }
-	//p := strings.NewReader(reqParam.Encode())
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/account/playing", hostUrl), nil)
+	requestUrl := fmt.Sprintf("%s/api/account/playing", hostUrl)
+	reqParam := url.Values{"nb": {"11-50"}}
+	req, err := http.NewRequest("GET", requestUrl, strings.NewReader(reqParam.Encode()))
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	//req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Content-Type", "application/json")
 
 	if err != nil {
 		return err
@@ -314,30 +307,52 @@ func GetOngoingGames() error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		err := fmt.Errorf("bad response: %v", resp.StatusCode)
+		return err
+	}
+	d := json.NewDecoder(resp.Body)
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode != 200 {
-		err := fmt.Errorf("response: %v", resp.StatusCode)
-		return err
-	}
-	// unmarshal the json into a string map
-	var JSONresult struct {
-		NowPlaying []OngoingGameInfo `json: "nowPlaying"`
-	}
-	err = json.Unmarshal(body, &JSONresult)
-	if err != nil {
-		return err
+	for {
+		var responseData map[string]interface{}
+		err := d.Decode(&responseData)
+		if err != nil {
+			if err != io.EOF {
+				return err
+			} else {
+				return nil
+			}
+		}
+
+		if !isNil(responseData["nowPlaying"]) { //make sure response is valid
+			jsonStr, err := json.Marshal(responseData["nowPlaying"])
+			if err != nil {
+				log.Fatal(err)
+			}
+			var OngoingGameList []OngoingGameInfo
+			if err := json.Unmarshal(jsonStr, &OngoingGameList); err != nil {
+				log.Fatal(err)
+			}
+			OngoingGames = append(OngoingGames, OngoingGameList...)
+		}
 	}
 
-	// retrieve the access token out of the map, and return to caller
-	if !isNil(JSONresult.NowPlaying) {
-		OngoingGames = JSONresult.NowPlaying
-		return nil
-	}
-	return fmt.Errorf("response interface is nil")
+	// // unmarshal the json into a string map
+	// var JSONresult struct {
+	// 	NowPlaying []OngoingGameInfo `json: "nowPlaying"`
+	// }
+	// err = json.Unmarshal(body, &JSONresult)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// // retrieve the access token out of the map, and return to caller
+	// if !isNil(JSONresult.NowPlaying) {
+	// 	OngoingGames = JSONresult.NowPlaying
+	// 	return nil
+	// }
+	// return fmt.Errorf("response interface is nil")
 }
 
 func GetChallenges() error {
@@ -364,7 +379,7 @@ func GetChallenges() error {
 
 	//read resp body
 	body, err := io.ReadAll(resp.Body)
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("%v bad response", err)
 	} else if err != nil {
 		return err
@@ -429,7 +444,7 @@ func GetEmail() error {
 		return err
 	}
 	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf(string(body))
 	}
 	// unmarshal the json into a string map
@@ -463,7 +478,7 @@ func GetUsername() error {
 		return err
 	}
 	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf(string(body))
 	}
 	// unmarshal the json into a string map
@@ -498,7 +513,7 @@ func GetProfile() error {
 		return err
 	}
 	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf(string(body))
 	} else if err != nil {
 		return err

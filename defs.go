@@ -46,6 +46,10 @@ type State struct {
 	OnlinePostStatus  *cv.TextView
 	OnlinePostBoard   *cv.Table
 	OnlinePostHistory *cv.TextView
+
+	//ongoing
+	OngoingList    *cv.List
+	OngoingPreview *cv.Table
 }
 
 const (
@@ -57,6 +61,7 @@ Play locally with a [yellow]friend[white] or online with [red]Lichess!`
 	gameRibbonstr       string = "CHESS-CLI -> local game | Press 'Ctrl-c' to quit"
 	challengeRibbonstr  string = "CHESS-CLI -> create a challenge | Press 'Ctrl-c' to quit"
 	gameOnlineRibbonstr string = "CHESS-CLI -> online game | Press 'Ctrl-c' to quit"
+	OngoingRibbonstr    string = "CHESS-CLI -> Ongoing Games | Press 'Ctrl-c' to quit"
 	EmptyChar           string = "博"
 )
 
@@ -69,6 +74,7 @@ var (
 	Online           bool                = false
 	MoveCount        int
 	LastSelectedCell PiecePosition
+	GameListIDArr    []string
 )
 
 type ListSelectedFunc func() //used to easily add functions to list items in initUI.go

@@ -18,6 +18,7 @@ func InitUI() {
 	onlinegame := initLichessGameGrid()
 	postonline := initPostOnline()
 	constructchallenge := initConstruct()
+	ongoing := initOngoing()
 	panels.AddPanel("welcome", welcomeGrid, true, true)
 	panels.AddPanel("localgame", localGameGrid, true, false)
 	panels.AddPanel("postlocal", postLocalGrid, true, false)
@@ -26,6 +27,7 @@ func InitUI() {
 	panels.AddPanel("onlinegame", onlinegame, true, false)
 	panels.AddPanel("postonline", postonline, true, false)
 	panels.AddPanel("challenge", constructchallenge, true, false)
+	panels.AddPanel("ongoing", ongoing, true, false)
 
 	root.nav = panels
 	root.app.SetRoot(panels, true)
@@ -230,7 +232,7 @@ func initWelcomeLichess() *cv.Grid {
 	choices := []string{"New Game", "Ongoing Games", "Back", "Quit", "Test Friend", "Test AI"}
 	explain := []string{"Construct a new game request", "Select from your active games", "Back to welcome screen", "Press to exit", "aaaa", "bbbb"}
 	shortcuts := []rune{'n', 'o', 'b', 'q', 'y', 'z'}
-	selectFunc := []ListSelectedFunc{gotoChallengeConstruction, doNothing, gotoWelcome, root.app.Stop, TestFriend, TestAI}
+	selectFunc := []ListSelectedFunc{gotoChallengeConstruction, gotoOngoing, gotoWelcome, root.app.Stop, TestFriend, TestAI}
 	for i := 0; i < len(choices); i++ {
 		item := cv.NewListItem(choices[i])
 		item.SetSecondaryText(explain[i])
@@ -386,4 +388,54 @@ func initPostOnline() *cv.Grid {
 	root.OnlinePostHistory = historyBox
 
 	return grid
+}
+
+func initOngoing() *cv.Grid {
+	grid := cv.NewGrid()
+	grid.SetColumns(-1, -3, -3, -1)
+	grid.SetRows(10, -2, 1)
+	grid.SetBorders(false)
+
+	preview := boardPrimitive(func(row, col int) {})
+	root.OngoingPreview = preview
+	gameList := cv.NewList()
+	gameList.SetChangedFunc(func(i int, li *cv.ListItem) {
+		gameID := GameListIDArr[i]
+		for _, game := range OngoingGames {
+			if game.FullID == gameID {
+				FEN := game.Fen
+				var white bool = (game.IsMyTurn && game.Color == "white") || (!game.IsMyTurn && game.Color == "black")
+				FENtoBoard(root.OngoingPreview, FEN, white)
+			}
+		}
+	})
+	gameList.SetSelectedFunc(func(i int, li *cv.ListItem) {
+		gameID := GameListIDArr[i]
+		for _, game := range OngoingGames {
+			if game.FullID == gameID {
+				currentGameID = gameID
+				startNewOnlineGame()
+			}
+		}
+
+	})
+
+	ribbon := ribbonPrimitive(OngoingRibbonstr)
+
+	title := cv.NewTextView()
+	title.SetTextAlign(cv.AlignLeft)
+	title.SetVerticalAlign(cv.AlignMiddle)
+	title.SetDynamicColors(true)
+	title.SetText("Select an ongoing game.")
+
+	//row col rowSpan colSpan
+	grid.AddItem(gameList, 1, 2, 1, 1, 0, 0, true)
+	grid.AddItem(title, 0, 2, 1, 2, 0, 0, false)
+	grid.AddItem(Center(30, 10, preview), 0, 0, 2, 2, 0, 0, false)
+	grid.AddItem(ribbon, 2, 0, 1, 4, 0, 0, false)
+
+	root.OngoingList = gameList
+
+	return grid
+
 }

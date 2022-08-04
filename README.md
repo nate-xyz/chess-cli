@@ -34,26 +34,7 @@ https://mholt.github.io/json-to-go/ JSON
 
 ♞♞♞♞♞♞♞♞♞♞♞
 
-
 # TODO:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ### general 
 - go back to online after going back to start page from online page bug

@@ -18,7 +18,6 @@ func gotoWelcome() {
 func startNewLocalGame() {
 	game := new(LocalGame)
 	game.Init()
-
 	root.currentLocalGame = game
 	root.nav.SetCurrentPanel("localgame")
 
@@ -103,4 +102,9 @@ func gotoLoaderFromChallenge() {
 	newChallenge = CreateChallengeType{}
 	root.nav.SetCurrentPanel("loader") //goto loader
 	go WaitForLichessGameResponse()    //thread to update loading screen and wait for board event
+}
+
+func gotoOngoing() {
+	UpdateOngoingList()
+	root.nav.SetCurrentPanel("ongoing")
 }
