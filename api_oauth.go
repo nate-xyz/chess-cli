@@ -12,6 +12,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"time"
 
 	pkce "github.com/jimlambrt/go-oauth-pkce-code-verifier"
 	"github.com/skratchdot/open-golang/open"
@@ -28,14 +29,24 @@ func PerformOAuth() {
 	}
 	if UserInfo.ApiToken == "" {
 		AuthUser()
+
 	}
 
 	//close(Ready)
 	return
 }
 
+func TimeCheck() {
+	if time.Until(UserInfo.TokenExpirationDate) <= 0 {
+		UserInfo.ApiToken = ""
+		AuthUser()
+	}
+}
+
 func AuthUser() {
 	//get redirect url from http server
+	UserInfo.TokenCreationDate = time.Now()
+	UserInfo.TokenExpirationDate = UserInfo.TokenCreationDate.AddDate(1, 0, 0) //add one year
 	redirectPort, err := findPort()
 
 	if err != nil {
@@ -255,6 +266,7 @@ func cleanup(server *http.Server) {
 }
 
 func checkForJSON() error {
+	TimeCheck()
 	if _, err := os.Stat(json_path); err == nil {
 
 		jsonFile, err := os.Open(json_path)
