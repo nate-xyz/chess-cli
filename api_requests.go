@@ -313,7 +313,7 @@ func GetOngoingGames() error {
 		return err
 	}
 	d := json.NewDecoder(resp.Body)
-
+	OngoingGames = nil
 	for {
 		var responseData map[string]interface{}
 		err := d.Decode(&responseData)
@@ -337,35 +337,13 @@ func GetOngoingGames() error {
 			OngoingGames = append(OngoingGames, OngoingGameList...)
 		}
 	}
-
-	// // unmarshal the json into a string map
-	// var JSONresult struct {
-	// 	NowPlaying []OngoingGameInfo `json: "nowPlaying"`
-	// }
-	// err = json.Unmarshal(body, &JSONresult)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// // retrieve the access token out of the map, and return to caller
-	// if !isNil(JSONresult.NowPlaying) {
-	// 	OngoingGames = JSONresult.NowPlaying
-	// 	return nil
-	// }
-	// return fmt.Errorf("response interface is nil")
 }
 
 func GetChallenges() error {
-
-	//http GET returns array of objects(ChallengeJson) in and out
-	//ChallengesArray := make([]string, 0)
-	//var IncomingChallenges string = ""
-	//var OutgoingChallenges string = ""
-
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/challenge", hostUrl), nil)
+	requestUrl := fmt.Sprintf("%s/api/challenge", hostUrl)
+	req, err := http.NewRequest("GET", requestUrl, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
 	//req.Header.Add("Content-Type", "application/json")
-
 	if err != nil {
 		return err
 	}
@@ -377,57 +355,51 @@ func GetChallenges() error {
 		return err
 	}
 
-	//read resp body
-	body, err := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("%v bad response", err)
-	} else if err != nil {
+		err = fmt.Errorf("bad response: %v ", resp.Status)
 		return err
 	}
-	// unmarshal the json into a string map
-	//var responseData map[string]interface{}
-	//var challengeList []interface{}
-	//var JSONresult map[string]interface{}
-	var JSONresult struct {
-		In  []ChallengeInfo `json: "in"`
-		Out []ChallengeInfo `json: "out"`
-	}
+	d := json.NewDecoder(resp.Body)
+	IncomingChallenges = nil
+	OutgoingChallenges = nil
 
-	err = json.Unmarshal(body, &JSONresult)
-	if err != nil {
-		return err
-	}
-	//fmt.Println(string(body))
-	//res2B, _ := json.Marshal(JSONresult)
-	//fmt.Println(string(res2B))
-	// retrieve the access token out of the map, and return to caller
+	for {
+		var responseData map[string]interface{}
+		err := d.Decode(&responseData)
+		if err != nil {
+			if err != io.EOF {
+				return err
+			} else {
+				return nil
+			}
+		}
 
-	if !isNil(JSONresult.In) {
-		IncomingChallenges = JSONresult.In
+		if !isNil(responseData["in"]) { //make sure response is valid
+			jsonStr, err := json.Marshal(responseData["in"])
+			if err != nil {
+				log.Fatal(err)
+			}
+			var In []ChallengeInfo
+			if err := json.Unmarshal(jsonStr, &In); err != nil {
+				log.Fatal(err)
+			}
+			IncomingChallenges = append(IncomingChallenges, In...)
+		}
 
-		// challengeList = responseData["in"].([]interface{})
-		// for _, challenge := range challengeList {
-		// 	challenge_ := challenge.(ChallengeInfo)
-		// 	fmt.Printf("%v", challenge_.UserID)
-		// }
-		//IncomingChallenges = responseData["out"].([]ChallengeInfo)
-		//json.Unmarshal([]byte(responseData["in"]), &IncomingChallenges)
-		//ChallengesArray = append(ChallengesArray, IncomingChallenges)
-	} else {
-		return fmt.Errorf("response interface is nil")
+		if !isNil(responseData["out"]) { //make sure response is valid
+			jsonStr, err := json.Marshal(responseData["out"])
+			if err != nil {
+				log.Fatal(err)
+			}
+			var Out []ChallengeInfo
+			if err := json.Unmarshal(jsonStr, &Out); err != nil {
+				log.Fatal(err)
+			}
+			OutgoingChallenges = append(OutgoingChallenges, Out...)
+		}
+
 	}
-	if !isNil(JSONresult.Out) {
-		OutgoingChallenges = JSONresult.Out
-		// challengeList := JSONresult["out"].([]interface{})
-		// for _, challenge := range challengeList {
-		// 	//challenge_ := challenge.(ChallengeInfo)
-		// 	fmt.Printf("%v", challenge.(map[string]interface{})["id"])
-		// }
-		//OutgoingChallenges = responseData["out"].([]ChallengeInfo)
-		//ChallengesArray = append(ChallengesArray, OutgoingChallenges)
-		return nil
-	}
-	return fmt.Errorf("response interface is nil")
 }
 
 //get user email
@@ -578,4 +550,28 @@ func GetFriends() error {
 		}
 	}
 
+}
+
+func AcceptChallenge(gameid string) error {
+	requestUrl := fmt.Sprintf("%s/api/challenge/%s/accept", hostUrl, gameid)
+
+	// create the request and execute it
+	req, err := http.NewRequest("POST", requestUrl, nil)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
+	if err != nil {
+		return err
+	}
+
+	//do http request. must be done in this fashion so we can add the auth bear token headers above
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		err := fmt.Errorf("reponse %v", res.Status)
+		return err
+	}
+	return nil
 }

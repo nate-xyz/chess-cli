@@ -119,11 +119,23 @@ func gotoLoaderFromChallenge() {
 func gotoOngoing() {
 	err := GetOngoingGames()
 	if err != nil {
-		UpdateLichessTitle(fmt.Sprintf("%v", err))
+		UpdateLichessTitle(fmt.Sprintf("Ongoing Games: %v", err))
 		if OngoingGames == nil {
 			return
 		}
 	}
 	UpdateOngoingList()
 	root.nav.SetCurrentPanel("ongoing")
+}
+
+func gotoChallenges() {
+	err := GetChallenges()
+	if err != nil {
+		UpdateLichessTitle(fmt.Sprintf("Challenges: %v", err))
+		if IncomingChallenges == nil && OutgoingChallenges == nil {
+			return
+		}
+	}
+	UpdateChallengeList()
+	root.nav.SetCurrentPanel("listchallenge")
 }

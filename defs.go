@@ -54,6 +54,10 @@ type State struct {
 	//ongoing
 	OngoingList    *cv.List
 	OngoingPreview *cv.Table
+
+	//challenges
+	OutChallengeList *cv.List
+	InChallengeList  *cv.List
 }
 
 const (

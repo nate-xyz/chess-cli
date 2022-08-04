@@ -2,12 +2,9 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"math"
-	"strconv"
 	"strings"
 	"time"
-	"unicode"
 
 	cv "code.rocketnine.space/tslocum/cview"
 	tc "github.com/gdamore/tcell/v2"
@@ -345,97 +342,64 @@ func UpdateOngoingList() {
 	}
 }
 
-func FENtoBoard(table *cv.Table, FEN string, white bool) {
-	if white {
-		for i := 0; i < 8; i++ {
-			rank := cv.NewTableCell(fmt.Sprintf("%v", i+1))
-			file := cv.NewTableCell(string(rune('a' + i)))
-			rank.SetAlign(cv.AlignRight)
-			file.SetAlign(cv.AlignRight)
-			rank.SetSelectable(false)
-			file.SetSelectable(false)
-			table.SetCell(8-i, 0, rank)
-			table.SetCell(8-i, 9, rank)
-			table.SetCell(0, i+1, file)
-			table.SetCell(9, i+1, file)
-		}
-	} else {
-		for i := 0; i < 8; i++ {
-			rank := cv.NewTableCell(fmt.Sprintf("%v", 8-i))
-			file := cv.NewTableCell(string(rune('h' - i)))
-			rank.SetAlign(cv.AlignRight)
-			file.SetAlign(cv.AlignRight)
-			rank.SetSelectable(false)
-			file.SetSelectable(false)
-			table.SetCell(8-i, 0, rank)
-			table.SetCell(8-i, 9, rank)
-			table.SetCell(0, i+1, file)
-			table.SetCell(9, i+1, file)
-		}
-	}
+var OutChallengeGameID []string
+var InChallengeGameID []string
 
-	empty := cv.NewTableCell(EmptyChar)
-	empty.SetSelectable(false)
-	empty.SetTextColor(tc.ColorBlack.TrueColor())
-	table.SetCell(0, 0, empty)
-	table.SetCell(0, 9, empty)
-	table.SetCell(9, 0, empty)
-	table.SetCell(9, 9, empty)
+func UpdateChallengeList() {
+	root.InChallengeList.Clear()
+	root.OutChallengeList.Clear()
 
-	//loop through current FEN and print to board
-	square := 0
-	col, row := 1, 1
-	for _, current_piece := range FEN { //loop to parse the FEN string
-
-		if current_piece == ' ' {
-			break
-		} else if current_piece == '/' {
-			col = 1
-			row++
-			square++
+	for i, challenge := range IncomingChallenges {
+		if contains(InChallengeGameID, challenge.Id) {
 			continue
-		} else if unicode.IsDigit(current_piece) { //nothing
-			int_, _ := strconv.Atoi(string(current_piece))
-			for i := 1; i <= int_; i++ {
-				cell := cv.NewTableCell(EmptyChar)
-				cell.SetSelectable(true)
-				cell.SetAlign(cv.AlignRight)
-
-				if square%2 == 0 {
-					cell.SetTextColor(tc.NewRGBColor(145, 130, 109))
-					cell.SetBackgroundColor(tc.NewRGBColor(145, 130, 109))
-				} else {
-					cell.SetTextColor(tc.NewRGBColor(108, 81, 59))
-					cell.SetBackgroundColor(tc.NewRGBColor(108, 81, 59))
-				}
-				table.SetCell(row, col, cell)
-				col++
-				square++
-			}
-			if col > 8 {
-				col = 1
-			}
-			continue
-		} else if !unicode.IsDigit(current_piece) {
-			cell := cv.NewTableCell(PiecesMap[unicode.ToLower(current_piece)] + " ")
-			cell.SetSelectable(true)
-			cell.SetAlign(cv.AlignRight)
-			if unicode.IsUpper(current_piece) {
-				cell.SetTextColor(tc.NewRGBColor(255, 248, 220))
-			} else {
-				cell.SetTextColor(tc.NewRGBColor(18, 18, 18))
-			}
-			if square%2 == 0 {
-				cell.SetBackgroundColor(tc.NewRGBColor(145, 130, 109))
-			} else {
-				cell.SetBackgroundColor(tc.NewRGBColor(108, 81, 59))
-			}
-			table.SetCell(row, col, cell)
-			square++
-			col++
+		}
+		InChallengeGameID = append(InChallengeGameID, challenge.Id)
+		variant := challenge.Variant.Name
+		opp := challenge.Challenger.Name
+		oppRating := challenge.Challenger.Rating
+		perf := strings.Title(challenge.Perf.Name)
+		listString := fmt.Sprintf("%v challenge from %v", perf, opp)
+		if oppRating > 0 {
+			listString += fmt.Sprintf(" (%v) ", oppRating)
+		}
+		listString += challenge.Speed
+		item := cv.NewListItem(listString)
+		var text string = variant
+		if challenge.Rated {
+			text += " • Rated • "
 		} else {
-			log.Fatal("error parsing starting FEN")
+			text += " • Casual • "
 		}
+		text += fmt.Sprintf("%v plays %v", challenge.Challenger.Name, challenge.Color)
+		item.SetSecondaryText(text)
+		item.SetShortcut(rune('a' + i))
+		root.InChallengeList.AddItem(item)
 	}
-	root.app.QueueUpdateDraw(func() {}, table)
+	for i, challenge := range OutgoingChallenges {
+		if contains(OutChallengeGameID, challenge.Id) {
+			continue
+		}
+		OutChallengeGameID = append(OutChallengeGameID, challenge.Id)
+		variant := challenge.Variant.Name
+		opp := challenge.DestUser.Name
+		oppRating := challenge.DestUser.Rating
+		perf := strings.Title(challenge.Perf.Name)
+		listString := fmt.Sprintf("%v challenge to %v", perf, opp)
+		if oppRating > 0 {
+			listString += fmt.Sprintf(" (%v)", oppRating)
+		}
+		listString += challenge.Speed
+		item := cv.NewListItem(listString)
+		var text string = variant
+		if challenge.Rated {
+			text += " • Rated • "
+		} else {
+			text += " • Casual • "
+		}
+		text += fmt.Sprintf("%v plays %v", challenge.Challenger.Name, challenge.Color)
+		item.SetSecondaryText(text)
+		item.SetShortcut(rune('a' + i))
+		root.OutChallengeList.AddItem(item)
+	}
+
 }

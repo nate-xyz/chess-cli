@@ -19,6 +19,7 @@ func InitUI() {
 	postonline := initPostOnline()
 	constructchallenge := initConstruct()
 	ongoing := initOngoing()
+	challenges := initChallenges()
 	panels.AddPanel("welcome", welcomeGrid, true, true)
 	panels.AddPanel("localgame", localGameGrid, true, false)
 	panels.AddPanel("postlocal", postLocalGrid, true, false)
@@ -28,6 +29,7 @@ func InitUI() {
 	panels.AddPanel("postonline", postonline, true, false)
 	panels.AddPanel("challenge", constructchallenge, true, false)
 	panels.AddPanel("ongoing", ongoing, true, false)
+	panels.AddPanel("listchallenge", challenges, true, false)
 
 	root.nav = panels
 	root.app.SetRoot(panels, true)
@@ -75,7 +77,7 @@ func initWelcomeScreen() *cv.Grid {
 //local game grid
 func initGameScreen() *cv.Grid {
 	grid := cv.NewGrid()
-	grid.SetColumns(-2, -4, -1, -1)
+	grid.SetColumns(-1, -2, -1)
 	grid.SetRows(-1, 1, 1, -1, 10, 1)
 	grid.SetBorders(false)
 	gameBox := boardPrimitive(LocalTableHandler)
@@ -151,14 +153,14 @@ func initGameScreen() *cv.Grid {
 	grid.AddItem(Center(30, 10, gameBox), 0, 1, 4, 1, 0, 0, false)
 	grid.AddItem(statusBox, 0, 0, 2, 1, 0, 0, false)
 	grid.AddItem(historyBox, 2, 0, 2, 1, 0, 0, false)
-	grid.AddItem(Ribbon, 5, 0, 1, 4, 0, 0, false)
+	grid.AddItem(Ribbon, 5, 0, 1, 3, 0, 0, false)
 
-	grid.AddItem(oppInfoBox, 0, 2, 1, 2, 0, 0, false)
-	grid.AddItem(oppTimerBox, 1, 2, 1, 2, 0, 0, false)
-	grid.AddItem(userTimerBox, 2, 2, 1, 2, 0, 0, false)
-	grid.AddItem(userInfoBox, 3, 2, 1, 2, 0, 0, false)
+	grid.AddItem(oppInfoBox, 0, 2, 1, 1, 0, 0, false)
+	grid.AddItem(oppTimerBox, 1, 2, 1, 1, 0, 0, false)
+	grid.AddItem(userTimerBox, 2, 2, 1, 1, 0, 0, false)
+	grid.AddItem(userInfoBox, 3, 2, 1, 1, 0, 0, false)
 
-	grid.AddItem(options, 4, 3, 1, 1, 0, 0, false)
+	grid.AddItem(options, 4, 0, 1, 1, 0, 0, false)
 
 	root.Board = gameBox
 	root.Status = statusBox
@@ -266,10 +268,10 @@ func initWelcomeLichess() *cv.Grid {
 	welcomeList := cv.NewList()
 	welcomeList.SetHover(true)
 	welcomeList.SetWrapAround(true)
-	choices := []string{"New Game", "Ongoing Games", "Back", "Quit", "Test Friend", "Test AI"}
-	explain := []string{"Construct a new game request", "Select from your active games", "Back to welcome screen", "Press to exit", "aaaa", "bbbb"}
-	shortcuts := []rune{'n', 'o', 'b', 'q', 'y', 'z'}
-	selectFunc := []ListSelectedFunc{gotoChallengeConstruction, gotoOngoing, gotoWelcome, root.app.Stop, TestFriend, TestAI}
+	choices := []string{"New Game", "Ongoing Games", "Challenges", "Back", "Quit", "Test Friend", "Test AI"}
+	explain := []string{"Construct a new game request", "Select from your active games", "Incoming & outgoing challenges", "Back to welcome screen", "Press to exit", "aaaa", "bbbb"}
+	shortcuts := []rune{'n', 'o', 'c', 'b', 'q', 'y', 'z'}
+	selectFunc := []ListSelectedFunc{gotoChallengeConstruction, gotoOngoing, gotoChallenges, gotoWelcome, root.app.Stop, TestFriend, TestAI}
 	for i := 0; i < len(choices); i++ {
 		item := cv.NewListItem(choices[i])
 		item.SetSecondaryText(explain[i])
@@ -291,7 +293,7 @@ func initWelcomeLichess() *cv.Grid {
 
 func initLichessGameGrid() *cv.Grid {
 	grid := cv.NewGrid()
-	grid.SetColumns(-2, -4, -1, -1)
+	grid.SetColumns(-1, -2, -1)
 	grid.SetRows(-1, 1, 1, -1, 10, 1)
 	grid.SetBorders(false)
 	gameBox := boardPrimitive(OnlineTableHandler)
@@ -373,14 +375,14 @@ func initLichessGameGrid() *cv.Grid {
 	grid.AddItem(Center(30, 10, gameBox), 0, 1, 4, 1, 0, 0, false)
 	grid.AddItem(statusBox, 0, 0, 2, 1, 0, 0, false)
 	grid.AddItem(historyBox, 2, 0, 2, 1, 0, 0, false)
-	grid.AddItem(Ribbon, 5, 0, 1, 4, 0, 0, false)
+	grid.AddItem(Ribbon, 5, 0, 1, 3, 0, 0, false)
 
-	grid.AddItem(oppInfoBox, 0, 2, 1, 2, 0, 0, false)
-	grid.AddItem(oppTimerBox, 1, 2, 1, 2, 0, 0, false)
-	grid.AddItem(userTimerBox, 2, 2, 1, 2, 0, 0, false)
-	grid.AddItem(userInfoBox, 3, 2, 1, 2, 0, 0, false)
+	grid.AddItem(oppInfoBox, 0, 2, 1, 1, 0, 0, false)
+	grid.AddItem(oppTimerBox, 1, 2, 1, 1, 0, 0, false)
+	grid.AddItem(userTimerBox, 2, 2, 1, 1, 0, 0, false)
+	grid.AddItem(userInfoBox, 3, 2, 1, 1, 0, 0, false)
 
-	grid.AddItem(options, 4, 3, 1, 1, 0, 0, false)
+	grid.AddItem(options, 4, 0, 1, 1, 0, 0, false)
 
 	root.OnlineBoard = gameBox
 	root.OnlineStatus = statusBox
@@ -445,8 +447,8 @@ func initPostOnline() *cv.Grid {
 
 func initOngoing() *cv.Grid {
 	grid := cv.NewGrid()
-	grid.SetColumns(-1, -3, -3, -1)
-	grid.SetRows(10, -2, 1)
+	grid.SetColumns(-1, -2, -4)
+	grid.SetRows(10, -2, 10, 1)
 	grid.SetBorders(false)
 
 	preview := boardPrimitive(func(row, col int) {})
@@ -475,21 +477,99 @@ func initOngoing() *cv.Grid {
 
 	})
 
+	options := cv.NewList()
+	optionsList := []string{"Leave", "Quit"}
+	optionsExplain := []string{"Go back Home", "Close chess-cli"}
+	optionsFunc := []ListSelectedFunc{gotoLichess, root.app.Stop}
+	for i, opt := range optionsList {
+		item := cv.NewListItem(opt)
+		item.SetSecondaryText(optionsExplain[i])
+		item.SetSelectedFunc(optionsFunc[i])
+		options.AddItem(item)
+	}
+	options.SetSelectedFocusOnly(true)
+	options.SetHover(true)
+
 	ribbon := ribbonPrimitive(OngoingRibbonstr)
 
 	title := cv.NewTextView()
-	title.SetTextAlign(cv.AlignLeft)
+	title.SetTextAlign(cv.AlignCenter)
 	title.SetVerticalAlign(cv.AlignMiddle)
 	title.SetDynamicColors(true)
 	title.SetText("Select an ongoing game.")
 
 	//row col rowSpan colSpan
-	grid.AddItem(gameList, 1, 2, 1, 1, 0, 0, true)
-	grid.AddItem(title, 0, 2, 1, 2, 0, 0, false)
-	grid.AddItem(Center(30, 10, preview), 0, 0, 2, 2, 0, 0, false)
-	grid.AddItem(ribbon, 2, 0, 1, 4, 0, 0, false)
-
+	grid.AddItem(gameList, 1, 2, 2, 1, 0, 0, true)
+	grid.AddItem(title, 0, 0, 1, 3, 0, 0, false)
+	grid.AddItem(Center(30, 10, preview), 1, 0, 1, 2, 0, 0, false)
+	grid.AddItem(ribbon, 3, 0, 1, 3, 0, 0, false)
+	grid.AddItem(options, 2, 1, 1, 1, 0, 0, false)
 	root.OngoingList = gameList
+
+	return grid
+
+}
+
+func initChallenges() *cv.Grid {
+	grid := cv.NewGrid()
+	grid.SetColumns(-1, -3, -3, -1)
+	grid.SetRows(-1, -3, 5, 1)
+	grid.SetBorders(false)
+
+	outtitle := cv.NewTextView()
+	outtitle.SetTextAlign(cv.AlignCenter)
+	outtitle.SetVerticalAlign(cv.AlignMiddle)
+	outtitle.SetDynamicColors(true)
+	outtitle.SetText("Outgoing Challenges.")
+
+	intitle := cv.NewTextView()
+	intitle.SetTextAlign(cv.AlignCenter)
+	intitle.SetVerticalAlign(cv.AlignMiddle)
+	intitle.SetDynamicColors(true)
+	intitle.SetText("Incoming Challenges.")
+
+	options := cv.NewList()
+	optionsList := []string{"Back", "Quit"}
+	optionsExplain := []string{"Go back Home", "Close chess-cli"}
+	optionsFunc := []ListSelectedFunc{gotoLichess, root.app.Stop}
+	for i, opt := range optionsList {
+		item := cv.NewListItem(opt)
+		item.SetSecondaryText(optionsExplain[i])
+		item.SetSelectedFunc(optionsFunc[i])
+		options.AddItem(item)
+	}
+	options.SetSelectedFocusOnly(true)
+	options.SetHover(true)
+
+	outgoing := cv.NewList()
+	outgoing.AddItem(cv.NewListItem("placeholder out"))
+	incoming := cv.NewList()
+	incoming.AddItem(cv.NewListItem("placeholder in"))
+	incoming.SetSelectedFunc(func(i int, li *cv.ListItem) {
+		gameID := InChallengeGameID[i]
+		for _, chal := range IncomingChallenges {
+			if chal.Id == gameID {
+				currentGameID = gameID
+				err := AcceptChallenge(gameID)
+				if err != nil {
+					gotoLichess()
+				}
+				startNewOnlineGame()
+			}
+		}
+
+	})
+	ribbon := ribbonPrimitive("CHESS-CLI -> Challenges")
+
+	grid.AddItem(incoming, 1, 1, 1, 1, 0, 0, true)
+	grid.AddItem(outgoing, 1, 2, 1, 1, 0, 0, false)
+	grid.AddItem(ribbon, 3, 0, 1, 4, 0, 0, false)
+	grid.AddItem(options, 2, 0, 1, 2, 0, 0, false)
+	grid.AddItem(intitle, 0, 0, 1, 2, 0, 0, false)
+	grid.AddItem(outtitle, 0, 2, 1, 2, 0, 0, false)
+
+	root.OutChallengeList = outgoing
+	root.InChallengeList = incoming
 
 	return grid
 

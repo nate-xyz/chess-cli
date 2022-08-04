@@ -308,15 +308,15 @@ func GetLichessUserInfo() error {
 				return err
 			}
 		}
-		err := GetChallenges()
-		if err != nil {
-			return err
-		}
+		// err := GetChallenges()
+		// if err != nil {
+		// 	return err
+		// }
 		// err = GetOngoingGames()
 		// if err != nil {
 		// 	return err
 		// }
-		err = GetFriends()
+		err := GetFriends()
 		if err != nil {
 			return err
 		}
