@@ -57,30 +57,27 @@ func UpdateLegalMoves() {
 }
 
 func LocalGameDoMove(m string) error {
-	//do the move
-	move, _ := GetMoveType(m, root.currentLocalGame.Game)
-	err := root.currentLocalGame.Game.MoveStr(m)
+	g := root.currentLocalGame.Game.Clone()
+	move, _ := GetMoveType(m, root.currentLocalGame.Game) //store move
+	p := GetPiece(m[2:], g).String()                      //get piece
+	err := root.currentLocalGame.Game.MoveStr(m)          //do the move
 	if err == nil {
-
 		if move.HasTag(chess.Check) {
 			root.currentLocalGame.Status += "Check!"
 		}
-
 		if move.HasTag(chess.Capture) {
-			//get piece
-			p := GetPiece(m[2:], root.currentLocalGame.Game.Clone()).String()
-			if len(root.currentLocalGame.MoveHistoryArray)%2 == 0 {
+			if len(root.currentLocalGame.MoveHistoryArray)%2 == 0 { //white
 				root.currentLocalGame.WhiteCaptured = append(root.currentLocalGame.WhiteCaptured, p)
 			} else {
 				root.currentLocalGame.BlackCaptured = append(root.currentLocalGame.BlackCaptured, p)
 			}
 		}
-
 		root.currentLocalGame.MoveHistoryArray = append(root.currentLocalGame.MoveHistoryArray, m)
 		UpdateGameHistory(root.History)
 		UpdateBoard(root.Board, root.currentLocalGame.Game.Position().Turn() == chess.White)
 		root.currentLocalGame.NextMove = "" //clear the next move
 		UpdateGameStatus(root.Status)
+		UpdateLocalUserInfo()
 		UpdateLocalTime()
 		root.app.GetScreen().Beep()
 		if root.currentLocalGame.Game.Outcome() != chess.NoOutcome { //check if game is done
@@ -92,19 +89,36 @@ func LocalGameDoMove(m string) error {
 }
 
 func UpdateLocalTime() {
-	t := root.Time
-	var txt string
-	txt += "\nBLACK CAPTURE:\n"
-	for _, p := range root.currentLocalGame.BlackCaptured {
-		txt += p
+
+}
+
+func UpdateLocalUserInfo() {
+	var (
+		OppName      string
+		UserString   string = "[blue]%v[white]"
+		OppString    string = "[red]%v[white]"
+		BlackCapture string = strings.Join(root.currentLocalGame.BlackCaptured, "") + " \t"
+		WhiteCapture string = strings.Join(root.currentLocalGame.WhiteCaptured, "") + " \t"
+	)
+	var PlayerName string
+	if root.currentLocalGame.Game.Position().Turn() == chess.White {
+		OppName = "Black"
+		PlayerName = "White"
+		UserString = fmt.Sprintf(UserString, PlayerName)
+		OppString = fmt.Sprintf(OppString, OppName)
+		UserString = fmt.Sprintf("%v\n%v", UserString, WhiteCapture)
+		OppString = fmt.Sprintf("%v\n%v", BlackCapture, OppString)
+	} else {
+		PlayerName = "Black"
+		OppName = "White"
+		UserString = fmt.Sprintf(UserString, PlayerName)
+		OppString = fmt.Sprintf(OppString, OppName)
+		UserString = fmt.Sprintf("%v\n%v", UserString, BlackCapture)
+		OppString = fmt.Sprintf("%v\n%v", WhiteCapture, OppString)
 	}
-	txt += "\t"
-	txt += "\nWHITE CAPTURE:\n"
-	for _, wp := range root.currentLocalGame.WhiteCaptured {
-		txt += wp
-	}
-	txt += "\t"
-	t.SetText(txt)
+
+	root.InfoUser.SetText(UserString)
+	root.InfoOppo.SetText(OppString)
 }
 
 func UpdateBoard(table *cv.Table, white bool) {
@@ -221,12 +235,8 @@ func UpdateBoard(table *cv.Table, white bool) {
 			}
 
 		}
-		//var text string
-
 		for _, d := range destArr {
 			r, c := translateAlgtoCell(d, white)
-			//text += fmt.Sprintf("%v: %v, %v\n", d, r, c)
-
 			cell := table.GetCell(r, c)
 			if cell.GetText() == EmptyChar {
 				if white {
@@ -235,33 +245,19 @@ func UpdateBoard(table *cv.Table, white bool) {
 					cell.SetTextColor(tc.NewRGBColor(18, 18, 18))
 				}
 				cell.SetText("•")
-				//text += "set text\n"
 			} else {
 				t := cell.GetText()
-				//text += t
 				cell.SetAttributes(tc.AttrItalic | tc.AttrBlink)
 				cell.SetText(t)
 			}
 
 		}
-
-		//root.Time.SetText(text)
 	}
 
 	root.app.QueueUpdateDraw(func() {}, table)
 }
 
 func LocalTableHandler(row, col int) {
-	//SelectionCount++
-	//var text string
-	// if row == 0 && (col == 0 || col == 9) {
-	// 	root.Board.Select(100, 100)
-	// }
-
-	// if row == 9 && (col == 0 || col == 9) {
-	// 	root.Board.Select(100, 100)
-	// }
-
 	selectedCell := translateSelectedCell(row, col, root.currentLocalGame.Game.Position().Turn() == chess.White)
 	if LastSelectedCell.Alg == selectedCell {
 		//toggle selected status of this cell
@@ -281,11 +277,7 @@ func LocalTableHandler(row, col int) {
 		symbol := root.Board.GetCell(row, col).GetText()
 		LastSelectedCell = PiecePosition{row, col, selectedCell, (symbol == EmptyChar), symbol}
 	}
-	//text += selectedCell
-	//text += fmt.Sprintf("\n%d %d, %d", row, col, SelectionCount)
-	//root.Time.SetText(text)
 	UpdateBoard(root.Board, root.currentLocalGame.Game.Position().Turn() == chess.White)
-	//root.app.QueueUpdateDraw(func() {}, root.Time)
 }
 
 func UpdateResult(tv *cv.TextView) {

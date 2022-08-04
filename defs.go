@@ -18,7 +18,11 @@ type State struct {
 	Board   *cv.Table
 	Status  *cv.TextView
 	History *cv.TextView
-	Time    *cv.TextView
+
+	InfoUser *cv.TextView
+	InfoOppo *cv.TextView
+	TimeUser *cv.TextView
+	TimeOppo *cv.TextView
 
 	//post local
 	PostStatus  *cv.TextView
@@ -66,15 +70,16 @@ Play locally with a [yellow]friend[white] or online with [red]Lichess!`
 )
 
 var (
-	root             = new(State)
-	Sigs             chan os.Signal
-	Ready            chan struct{}
-	NewChessGame     *chess.Game         //used in online.go in the LichessGame() function to update the board position from new stream event
-	newChallenge     CreateChallengeType //used initUI.go in initConstruct() in order to save settings from a challenge construction
-	Online           bool                = false
-	MoveCount        int
-	LastSelectedCell PiecePosition
-	GameListIDArr    []string
+	root               = new(State)
+	Sigs               chan os.Signal
+	Ready              chan struct{}
+	NewChessGame       *chess.Game         //used in online.go in the LichessGame() function to update the board position from new stream event
+	newChallenge       CreateChallengeType //used initUI.go in initConstruct() in order to save settings from a challenge construction
+	Online             bool                = false
+	MoveCount          int
+	LastSelectedCell   PiecePosition
+	GameListIDArr      []string
+	StreamEventStarted bool = false
 )
 
 type ListSelectedFunc func() //used to easily add functions to list items in initUI.go

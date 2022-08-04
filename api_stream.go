@@ -6,37 +6,38 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 )
 
 //starts event stream for a user after login
 func StreamEvent(EventChannel chan<- StreamEventType, got_token chan struct{}) error {
 	<-got_token
+	StreamEventStarted = true
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/stream/event", hostUrl), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
 	req.Header.Add("Content-Type", "application/x-ndjson")
 	if err != nil {
 		WriteLocal("STREAM EVENT REQ ERR", fmt.Sprintf("stream event get request failed: %v", err))
 		log.Fatal(err)
-		os.Exit(1)
 	}
 	//do http request. must be done in this fashion so we can add the auth bear token headers above
 	client := &http.Client{}
 	resp, err := client.Do(req)
 
 	if err != nil {
+		log.Fatal(fmt.Errorf("%v: %v", resp.StatusCode, err))
 		return fmt.Errorf("%v: %v", resp.StatusCode, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		WriteLocal("STREAM EVENT RESP ERR", fmt.Sprintf("bad response: %v", resp.StatusCode))
-		log.Fatal(err)
-		os.Exit(1)
+		log.Fatal(fmt.Errorf("bad response: %v", resp.StatusCode))
 	}
+
 	Online = true
 	go func() {
-		UpdateLichessTitle()
+		UpdateLichessTitle("")
 	}()
+
 	d := json.NewDecoder(resp.Body)
 
 	for {
@@ -88,7 +89,7 @@ func StreamEvent(EventChannel chan<- StreamEventType, got_token chan struct{}) e
 			} else {
 				Online = false
 				go func() {
-					UpdateLichessTitle()
+					UpdateLichessTitle("")
 				}()
 				return fmt.Errorf("invalid stream event")
 			}

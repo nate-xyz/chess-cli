@@ -14,24 +14,6 @@ import (
 	"github.com/notnil/chess"
 )
 
-func UpdateLichessTitle() {
-	var titlestr string = LichessTitle
-	if Online {
-		titlestr += " 🟢"
-	} else {
-		titlestr += " ⚪"
-
-	}
-	if UserInfo.ApiToken == "" {
-		titlestr += "[red]\nNot logged into lichess.[blue]\nPlease login through your browser.[white]\n"
-	} else {
-		titlestr += fmt.Sprintf("\n[green]Logged in[white] as: [blue]%s, %s[white]", Username, UserEmail)
-	}
-
-	root.LichessTitle.SetText(titlestr)
-	root.app.QueueUpdateDraw(func() {}, root.LichessTitle)
-}
-
 func UpdateOnline() {
 	UpdateLegalMoves()
 	UpdateGameHistory(root.OnlineHistory)
@@ -40,6 +22,25 @@ func UpdateOnline() {
 	UpdateOnlineStatus(root.OnlineStatus)
 	UpdateUserInfo()
 	root.app.QueueUpdateDraw(func() {})
+}
+
+func UpdateLichessTitle(msg string) {
+	var titlestr string = LichessTitle
+	if Online {
+		titlestr += " 🟢"
+	} else {
+		titlestr += " ⚪"
+	}
+	if UserInfo.ApiToken == "" {
+		titlestr += "[red]\nNot logged into lichess.[blue]\nPlease login through your browser.[white]\nLink should open automatically."
+	} else {
+		titlestr += fmt.Sprintf("\n[green]Logged in[white] as: [blue]%s, %s[white]\n", Username, UserEmail)
+	}
+	if msg != "" {
+		titlestr += msg
+	}
+	root.LichessTitle.SetText(titlestr)
+	root.app.QueueUpdateDraw(func() {}, root.LichessTitle)
 }
 
 func UpdateOnlineStatus(s *cv.TextView) {

@@ -191,27 +191,6 @@ type StreamEventGame struct {
 	} `json:"game"`
 }
 
-// type OngoingGameInfo struct {
-// 	FullId   string `json: "fullId"`
-// 	GameID   string `json: "gameId"`
-// 	FEN      string `json: "fen"`
-// 	Color    string `json: "color"`
-// 	LastMove string `json: "lastMove"`
-// 	Variant  struct {
-// 		Key  string `json: "key"`
-// 		Name string `json: "name"`
-// 	} `json: "variant"`
-// 	Speed    string `json: "speed"`
-// 	Perf     string `json: "perf"`
-// 	Rated    bool   `json: "rated"`
-// 	Opponent struct {
-// 		Id       string `json: "id"`
-// 		Username string `json: "username"`
-// 		Rating   int    `json: "rating"`
-// 	} `json: "opponent"`
-// 	IsMyTurn bool `json: "isMyTurn"`
-// }
-
 type OngoingGameInfo struct {
 	GameID   string `json:"gameId"`
 	FullID   string `json:"fullId"`

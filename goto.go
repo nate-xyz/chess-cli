@@ -35,11 +35,25 @@ func gotoPostLocal() {
 }
 
 func gotoLichess() {
-	PerformOAuth()
-	GetLichessUserInfo()
-	UpdateLichessTitle()
-
+	err := LichessLogin()
+	if err != nil {
+		UpdateLichessTitle(fmt.Sprintf("%v", err))
+	} else {
+		UpdateLichessTitle("")
+	}
 	root.nav.SetCurrentPanel("lichesswelcome")
+}
+
+func LichessLogin() error {
+	err := PerformOAuth()
+	if err != nil {
+		return err
+	}
+	err = GetLichessUserInfo()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func gotoLichessAfterLogin() {
@@ -84,15 +98,13 @@ func gotoChallengeConstruction() {
 }
 
 func TestFriend() {
-	CurrentChallenge = testChallenge //bypass creating a challenge
-
+	CurrentChallenge = testChallenge   //bypass creating a challenge
 	root.nav.SetCurrentPanel("loader") //goto loader
 	go WaitForLichessGameResponse()    //thread to update loading screen and wait for board event
 }
 
 func TestAI() {
 	CurrentChallenge = testAiChallenge //bypass creating a challenge
-
 	root.nav.SetCurrentPanel("loader") //goto loader
 	go WaitForLichessGameResponse()    //thread to update loading screen and wait for board event
 }
@@ -105,6 +117,13 @@ func gotoLoaderFromChallenge() {
 }
 
 func gotoOngoing() {
+	err := GetOngoingGames()
+	if err != nil {
+		UpdateLichessTitle(fmt.Sprintf("%v", err))
+		if OngoingGames == nil {
+			return
+		}
+	}
 	UpdateOngoingList()
 	root.nav.SetCurrentPanel("ongoing")
 }

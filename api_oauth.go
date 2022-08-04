@@ -20,20 +20,15 @@ import (
 
 //TODO: check if token is expired
 
-func PerformOAuth() {
-	err := checkForJSON()
+func PerformOAuth() error {
+	err := checkForJSON() //check JSON exists, if not, make
 	if err != nil {
-		//fmt.Printf("can't read/write to JSON: %s\n", err)
-		return
-		//os.Exit(1)
+		return err
 	}
 	if UserInfo.ApiToken == "" {
-		AuthUser()
-
+		AuthUser() //get token
 	}
-
-	//close(Ready)
-	return
+	return nil
 }
 
 func TimeCheck() {
@@ -299,34 +294,37 @@ func checkForJSON() error {
 	return nil
 }
 
-func GetLichessUserInfo() {
+func GetLichessUserInfo() error {
 	if UserInfo.ApiToken != "" {
 		if UserEmail == "" {
 			err := GetEmail()
 			if err != nil {
-				WriteLocal("Get Email Error", fmt.Sprintf("%v", err))
-				log.Fatal(err)
-				os.Exit(1)
+				return err
 			}
 		}
 		if Username == "" {
 			err := GetUsername()
 			if err != nil {
-				log.Fatal(err)
+				return err
 			}
 		}
 		err := GetChallenges()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
-		err = GetOngoingGames()
-		if err != nil {
-			log.Fatal(err)
-		}
+		// err = GetOngoingGames()
+		// if err != nil {
+		// 	return err
+		// }
 		err = GetFriends()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
-		Ready <- struct{}{}
+
+		if !StreamEventStarted {
+			Ready <- struct{}{} //start event stream
+		}
+		return nil
 	}
+	return fmt.Errorf("no token")
 }
