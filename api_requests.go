@@ -28,16 +28,16 @@ func MakeMove(gameid string, move string) error {
 		return err
 	}
 
-	//read resp body
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		err := fmt.Errorf("%v", err)
-		return err
-	}
-	defer res.Body.Close()
-
 	if res.StatusCode != http.StatusOK {
-		err := fmt.Errorf("reponse %v: %v", res.StatusCode, string(body))
+		//read resp body
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			err := fmt.Errorf("%v", err)
+			return err
+		}
+		defer res.Body.Close()
+
+		err = fmt.Errorf("%s\n%s", res.Status, string(body))
 		return err
 	}
 	return nil
@@ -100,7 +100,7 @@ func CreateChallenge(challenge CreateChallengeType) (error, string) {
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		err := fmt.Errorf("bad response %v %v", res.StatusCode, string(body))
+		err := fmt.Errorf("%s", res.Status)
 		return err, ""
 	}
 
@@ -192,7 +192,7 @@ func CreateAiChallenge(challenge CreateChallengeType) (error, string) {
 	//fmt.Printf(string(body))
 
 	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusCreated {
-		err := fmt.Errorf("reponse %v: %v", res.StatusCode, string(body))
+		err := fmt.Errorf("%s", res.Status)
 		return err, ""
 	}
 
@@ -274,16 +274,12 @@ func CreateSeek(challenge CreateChallengeType) error {
 	body, err := io.ReadAll(res.Body) //TODO: display body error on loading screen
 	if err != nil {
 		err := fmt.Errorf("%v", err)
-		//log.Fatalln(err)
 		return err
 	}
 	defer res.Body.Close()
 
-	//fmt.Printf("%v", res.StatusCode)
-	//fmt.Printf(string(body))
-
 	if res.StatusCode != http.StatusOK {
-		err := fmt.Errorf("reponse %v: %v", res.StatusCode, string(body))
+		err := fmt.Errorf("%s\n%s", res.Status, string(body))
 		return err
 	} else {
 		return nil
@@ -619,4 +615,35 @@ func ResignGame(gameid string) error {
 		return err
 	}
 	return nil
+}
+
+func HandleDraw(gameid string, accept bool) error {
+	var acceptStr string
+	if accept {
+		acceptStr = "yes"
+	} else {
+		acceptStr = "no"
+	}
+	requestUrl := fmt.Sprintf("%s/api/board/game/%s/draw/%s", hostUrl, gameid, acceptStr)
+
+	// create the request and execute it
+	req, err := http.NewRequest("POST", requestUrl, nil)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
+	if err != nil {
+		return err
+	}
+
+	//do http request
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		err := fmt.Errorf("%v", res.Status)
+		return err
+	}
+	return nil
+
 }

@@ -283,6 +283,6 @@ func LocalTableHandler(row, col int) {
 func UpdateResult(tv *cv.TextView) {
 	var status string
 	status += root.currentLocalGame.Status
-	root.currentLocalGame.Status = ""
 	tv.SetText(status)
+	root.currentLocalGame.Status = ""
 }

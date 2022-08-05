@@ -149,36 +149,17 @@ func LichessGame(gameID string) {
 		case s := <-killGame:
 			root.app.QueueUpdate(func() {
 				stopTicker <- true
+				close(stopTicker)
 				root.currentLocalGame.Status += fmt.Sprintf("[green]Game ended due to %v.[white]\n", s)
 				gotoPostOnline()
 			})
 		case err := <-streamDoneErr:
 			root.app.QueueUpdate(func() {
 				stopTicker <- true
+				close(stopTicker)
 				root.currentLocalGame.Status += fmt.Sprintf("Game ended due to %v.\n", err)
 				gotoPostOnline()
 			})
-			// root.app.QueueUpdate(gotoLoader)
-			// // root.app.QueueUpdate(func() {
-			// // 	ticker := time.NewTicker(time.Millisecond * 250)
-			// // 	icon_index := 0
-			// // 	start := time.Now()
-			// // 	for time.Since(start).Seconds() > 5 {
-			// // 		select {
-			// // 		case <-ticker.C:
-			// // 			icon_index = UpdateLoaderIcon(icon_index)
-			// // 			UpdateLoaderMsg(fmt.Sprintf("%e", err))
-			// // 		default:
-			// // 			UpdateLoaderMsg(fmt.Sprintf("%e", err))
-			// // 		}
-			// // 	}
-			// // UpdateLoaderMsg(fmt.Sprintf("%e", err))
-			// // time.Sleep(5 * time.Second)
-
-			// // })
-			// root.app.QueueUpdate(gotoLichessAfterLogin)
-			// return
-
 		case b := <-gameStateChan:
 			switch b {
 			case GameFull: //full game state json
@@ -240,10 +221,23 @@ func LichessGame(gameID string) {
 				root.app.QueueUpdate(UpdateChessGame)
 				root.app.QueueUpdate(UpdateOnline)
 				root.app.GetScreen().Beep()
+
+				if (BoardGameState.Bdraw && Username == BoardFullGame.White.ID) || (BoardGameState.Wdraw && Username == BoardFullGame.Black.ID) {
+					BoardGameState.Bdraw = false
+					BoardGameState.Wdraw = false
+					root.app.QueueUpdate(func() {
+						modal := NewOptionWindow("Your opponent has offered a draw.", "Accept", "Reject", doAcceptDraw, doRejectDraw)
+						root.OnlineModal = modal
+						root.Online.AddItem(modal, 4, 2, 1, 1, 0, 0, false)
+					})
+				}
 				if BoardGameState.Status != "started" {
 					root.app.QueueUpdate(func() {
 						stopTicker <- true
-						root.currentLocalGame.Status += fmt.Sprintf("Game ended due to %v.\n", BoardGameState.Status)
+						if BoardGameState.Winner != "" {
+							root.currentLocalGame.Status += fmt.Sprintf("Winner is [blue]%v![white]\n", BoardGameState.Winner)
+						}
+						root.currentLocalGame.Status += fmt.Sprintf("Game ended due to [red]%v.[white]\n", BoardGameState.Status)
 						gotoPostOnline()
 					})
 					return

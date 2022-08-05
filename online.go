@@ -421,3 +421,35 @@ func doResign() {
 	}
 	killGame <- "resign"
 }
+
+func doOfferDraw() {
+	err := HandleDraw(currentGameID, true)
+	if err != nil {
+		root.currentLocalGame.Status += fmt.Sprintf("[red]%v[white]\n", err)
+		UpdateOnlineStatus(root.OnlineStatus)
+		return
+	}
+
+}
+
+func doAcceptDraw() {
+	err := HandleDraw(currentGameID, true)
+	if err != nil {
+		root.currentLocalGame.Status += fmt.Sprintf("[red]%v[white]\n", err)
+		UpdateOnlineStatus(root.OnlineStatus)
+		root.Online.RemoveItem(root.OnlineModal)
+		return
+	}
+	root.Online.RemoveItem(root.OnlineModal)
+}
+
+func doRejectDraw() {
+	err := HandleDraw(currentGameID, false)
+	if err != nil {
+		root.currentLocalGame.Status += fmt.Sprintf("[red]%v[white]\n", err)
+		UpdateOnlineStatus(root.OnlineStatus)
+		root.Online.RemoveItem(root.OnlineModal)
+		return
+	}
+	root.Online.RemoveItem(root.OnlineModal)
+}

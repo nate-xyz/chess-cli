@@ -37,6 +37,7 @@ type State struct {
 	LoaderMsg  *cv.TextView
 
 	//online
+	Online        *cv.Grid
 	OnlineBoard   *cv.Table
 	OnlineStatus  *cv.TextView
 	OnlineHistory *cv.TextView
@@ -45,6 +46,7 @@ type State struct {
 	OnlineInfoOppo *cv.TextView
 	OnlineTimeUser *cv.TextView
 	OnlineTimeOppo *cv.TextView
+	OnlineModal    *cv.Flex
 
 	//online post
 	OnlinePostStatus  *cv.TextView

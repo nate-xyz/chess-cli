@@ -58,13 +58,18 @@ type StreamBoardChat struct {
 
 //https://lichess.org/api#operation/boardGameStream
 type StreamBoardGameState struct {
-	Type   string `json:"type"`
-	Moves  string `json:"moves"`
-	Wtime  int    `json:"wtime"`
-	Btime  int    `json:"btime"`
-	Winc   int    `json:"winc"`
-	Binc   int    `json:"binc"`
-	Status string `json:"status"`
+	Type      string `json:"type"`
+	Moves     string `json:"moves"`
+	Wtime     int    `json:"wtime"`
+	Btime     int    `json:"btime"`
+	Winc      int    `json:"winc"`
+	Binc      int    `json:"binc"`
+	Status    string `json:"status"`
+	Winner    string `json:"winner"`
+	Wdraw     bool   `json:"wdraw"`
+	Bdraw     bool   `json:"bdraw"`
+	Wtakeback bool   `json:"wtakeback"`
+	Btakeback bool   `json:"btakeback"`
 }
 
 //https://lichess.org/api#operation/boardGameStream
