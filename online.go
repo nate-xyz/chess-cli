@@ -453,3 +453,34 @@ func doRejectDraw() {
 	}
 	root.Online.RemoveItem(root.OnlineModal)
 }
+
+func doProposeTakeBack() {
+	err := HandleTakeback(currentGameID, true)
+	if err != nil {
+		root.currentLocalGame.Status += fmt.Sprintf("[red]%v[white]\n", err)
+		UpdateOnlineStatus(root.OnlineStatus)
+		return
+	}
+}
+
+func doAcceptTakeBack() {
+	err := HandleTakeback(currentGameID, true)
+	if err != nil {
+		root.currentLocalGame.Status += fmt.Sprintf("[red]%v[white]\n", err)
+		UpdateOnlineStatus(root.OnlineStatus)
+		root.Online.RemoveItem(root.OnlineModal)
+		return
+	}
+	root.Online.RemoveItem(root.OnlineModal)
+}
+
+func doRejectTakeBack() {
+	err := HandleTakeback(currentGameID, false)
+	if err != nil {
+		root.currentLocalGame.Status += fmt.Sprintf("[red]%v[white]\n", err)
+		UpdateOnlineStatus(root.OnlineStatus)
+		root.Online.RemoveItem(root.OnlineModal)
+		return
+	}
+	root.Online.RemoveItem(root.OnlineModal)
+}

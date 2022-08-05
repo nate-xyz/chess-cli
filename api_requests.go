@@ -647,3 +647,34 @@ func HandleDraw(gameid string, accept bool) error {
 	return nil
 
 }
+
+func HandleTakeback(gameid string, accept bool) error {
+	var acceptStr string
+	if accept {
+		acceptStr = "yes"
+	} else {
+		acceptStr = "no"
+	}
+	requestUrl := fmt.Sprintf("%s/api/board/game/%s/takeback/%s", hostUrl, gameid, acceptStr)
+
+	// create the request and execute it
+	req, err := http.NewRequest("POST", requestUrl, nil)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
+	if err != nil {
+		return err
+	}
+
+	//do http request
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		err := fmt.Errorf("%v", res.Status)
+		return err
+	}
+	return nil
+
+}

@@ -226,11 +226,22 @@ func LichessGame(gameID string) {
 					BoardGameState.Bdraw = false
 					BoardGameState.Wdraw = false
 					root.app.QueueUpdate(func() {
-						modal := NewOptionWindow("Your opponent has offered a draw.", "Accept", "Reject", doAcceptDraw, doRejectDraw)
+						modal := NewOptionWindow("Your opponent has offered a draw.", "Accept ✅ ", "Reject ❌ ", doAcceptDraw, doRejectDraw)
 						root.OnlineModal = modal
 						root.Online.AddItem(modal, 4, 2, 1, 1, 0, 0, false)
 					})
 				}
+
+				if (BoardGameState.Btakeback && Username == BoardFullGame.White.ID) || (BoardGameState.Wtakeback && Username == BoardFullGame.Black.ID) {
+					BoardGameState.Btakeback = false
+					BoardGameState.Wtakeback = false
+					root.app.QueueUpdate(func() {
+						modal := NewOptionWindow("Your opponent has proposed a takeback.", "Accept ✅ ", "Reject ❌ ", doAcceptTakeBack, doRejectTakeBack)
+						root.OnlineModal = modal
+						root.Online.AddItem(modal, 4, 2, 1, 1, 0, 0, false)
+					})
+				}
+
 				if BoardGameState.Status != "started" {
 					root.app.QueueUpdate(func() {
 						stopTicker <- true

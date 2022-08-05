@@ -353,9 +353,9 @@ func initLichessGameGrid() *cv.Grid {
 	inputBox.SetLabel("Enter your move: ")
 
 	options := cv.NewList()
-	optionsList := []string{"Back", "Abort", "Offer Draw", "Resign", "Quit"}
-	optionsExplain := []string{"Go back Home", "Abort the current game", "Offer a draw to your opponent", "Resign from the current game", "Close chess-cli"}
-	optionsFunc := []ListSelectedFunc{gotoLichess, doAbort, doOfferDraw, doResign, root.app.Stop}
+	optionsList := []string{"Back", "Takeback", "Abort", "Offer Draw", "Resign", "Quit"}
+	optionsExplain := []string{"Go back Home", "Propose a takeback", "Abort the current game", "Offer a draw to your opponent", "Resign from the current game", "Close chess-cli"}
+	optionsFunc := []ListSelectedFunc{gotoLichess, doProposeTakeBack, doAbort, doOfferDraw, doResign, root.app.Stop}
 	for i, opt := range optionsList {
 		item := cv.NewListItem(opt)
 		item.SetSecondaryText(optionsExplain[i])
