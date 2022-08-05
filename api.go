@@ -149,14 +149,19 @@ func LichessGame(gameID string) {
 		case s := <-killGame:
 			root.app.QueueUpdate(func() {
 				stopTicker <- true
-				close(stopTicker)
-				root.currentLocalGame.Status += fmt.Sprintf("[green]Game ended due to %v.[white]\n", s)
-				gotoPostOnline()
+
+				if s != "GoHome" {
+					root.currentLocalGame.Status += fmt.Sprintf("[green]Game ended due to %v.[white]\n", s)
+					gotoPostOnline()
+				} else {
+					gotoLichessAfterLogin()
+				}
+
 			})
 		case err := <-streamDoneErr:
 			root.app.QueueUpdate(func() {
 				stopTicker <- true
-				close(stopTicker)
+
 				root.currentLocalGame.Status += fmt.Sprintf("Game ended due to %v.\n", err)
 				gotoPostOnline()
 			})
@@ -259,6 +264,7 @@ func LichessGame(gameID string) {
 			case GameStateResign:
 				root.app.QueueUpdate(func() {
 					stopTicker <- true
+
 					root.currentLocalGame.Status += "Game ended due to resignation.\n"
 					gotoPostOnline()
 				})
@@ -266,6 +272,7 @@ func LichessGame(gameID string) {
 			case EOF:
 				root.app.QueueUpdate(func() {
 					stopTicker <- true
+
 					root.currentLocalGame.Status += "Game ended due lost connection.\n"
 					gotoPostOnline()
 				})

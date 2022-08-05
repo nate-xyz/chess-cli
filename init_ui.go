@@ -356,7 +356,7 @@ func initLichessGameGrid() *cv.Grid {
 	options := cv.NewList()
 	optionsList := []string{"Back", "Quit"}
 	optionsExplain := []string{"Go back Home", "Close chess-cli"}
-	optionsFunc := []ListSelectedFunc{gotoLichess, root.app.Stop}
+	optionsFunc := []ListSelectedFunc{gotoLichessFromGame, root.app.Stop}
 	for i, opt := range optionsList {
 		item := cv.NewListItem(opt)
 		item.SetSecondaryText(optionsExplain[i])
@@ -371,7 +371,7 @@ func initLichessGameGrid() *cv.Grid {
 
 	grid := cv.NewGrid()
 	grid.SetColumns(-1, -2, -1)
-	grid.SetRows(-1, 1, 1, -1, 10, 1)
+	grid.SetRows(-1, 1, 1, -1, 12, 1)
 	grid.SetBorders(false)
 
 	//row, col, rowSpan, colSpain

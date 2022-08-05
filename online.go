@@ -27,7 +27,7 @@ func UpdateOnlineList() {
 	list.Clear()
 	optionsList := []string{"Back", "Quit"}
 	optionsExplain := []string{"Go back Home", "Close chess-cli"}
-	optionsFunc := []ListSelectedFunc{gotoLichess, root.app.Stop}
+	optionsFunc := []ListSelectedFunc{gotoLichessFromGame, root.app.Stop}
 	for i, opt := range optionsList {
 		item := cv.NewListItem(opt)
 		item.SetSecondaryText(optionsExplain[i])
@@ -110,7 +110,8 @@ func UpdateOnlineStatus(s *cv.TextView) {
 
 func UpdateUserInfo() {
 	var (
-		OppName      string
+		OppName      string = "%s"
+		You          string = "%s"
 		UserString   string = "\n[blue]%v[white]"
 		OppString    string = "\n[red]%v[white]"
 		BlackCapture string = strings.Join(root.currentLocalGame.BlackCaptured, "") + " \t"
@@ -118,13 +119,25 @@ func UpdateUserInfo() {
 	)
 
 	if BoardFullGame.White.Name == Username {
-		OppName = BoardFullGame.Black.Name
+		if BoardFullGame.Rated {
+			OppName = fmt.Sprintf("%s (%d)", BoardFullGame.Black.Name, BoardFullGame.Black.Rating)
+			You = fmt.Sprintf("%s (%d)", Username, BoardFullGame.White.Rating)
+		} else {
+			OppName = BoardFullGame.Black.Name
+			You = Username
+		}
 		UserString = UserString + " (white)\n"
 		UserString += WhiteCapture
 		OppString = OppString + " (black)\n"
 		OppString = BlackCapture + OppString
 	} else {
-		OppName = BoardFullGame.White.Name
+		if BoardFullGame.Rated {
+			OppName = fmt.Sprintf("%s (%d)", BoardFullGame.White.Name, BoardFullGame.White.Rating)
+			You = fmt.Sprintf("%s (%d)", Username, BoardFullGame.Black.Rating)
+		} else {
+			OppName = BoardFullGame.White.Name
+			You = Username
+		}
 		OppString = OppString + " (white)\n"
 		OppString = WhiteCapture + OppString
 		UserString = UserString + " (black)\n"
@@ -135,7 +148,7 @@ func UpdateUserInfo() {
 		OppName = "🤖"
 	}
 
-	UserString = fmt.Sprintf(UserString, Username)
+	UserString = fmt.Sprintf(UserString, You)
 	OppString = fmt.Sprintf(OppString, OppName)
 
 	root.OnlineInfoUser.SetText(UserString)

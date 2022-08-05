@@ -55,8 +55,10 @@ func LichessLogin() error {
 }
 
 func gotoLichessAfterLogin() {
-
 	root.nav.SetCurrentPanel("lichesswelcome")
+}
+func gotoLichessFromGame() {
+	killGame <- "GoHome"
 }
 
 func startNewOnlineGame() {
