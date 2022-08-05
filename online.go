@@ -410,5 +410,14 @@ func doAbort() {
 		return
 	}
 	killGame <- "abort"
+}
 
+func doResign() {
+	err := ResignGame(currentGameID)
+	if err != nil {
+		root.currentLocalGame.Status += fmt.Sprintf("[red]%v[white]\n", err)
+		UpdateOnlineStatus(root.OnlineStatus)
+		return
+	}
+	killGame <- "resign"
 }

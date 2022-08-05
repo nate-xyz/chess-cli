@@ -149,8 +149,7 @@ func LichessGame(gameID string) {
 		case s := <-killGame:
 			root.app.QueueUpdate(func() {
 				stopTicker <- true
-				root.currentLocalGame.Status += "[green]Game has been aborted![white]\n"
-				root.currentLocalGame.Status += fmt.Sprintf("Game ended due to %v.\n", s)
+				root.currentLocalGame.Status += fmt.Sprintf("[green]Game ended due to %v.[white]\n", s)
 				gotoPostOnline()
 			})
 		case err := <-streamDoneErr:

@@ -596,3 +596,27 @@ func AbortGame(gameid string) error {
 	}
 	return nil
 }
+
+func ResignGame(gameid string) error {
+	requestUrl := fmt.Sprintf("%s/api/board/game/%s/resign", hostUrl, gameid)
+
+	// create the request and execute it
+	req, err := http.NewRequest("POST", requestUrl, nil)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
+	if err != nil {
+		return err
+	}
+
+	//do http request
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		err := fmt.Errorf("%v", res.Status)
+		return err
+	}
+	return nil
+}
