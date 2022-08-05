@@ -42,6 +42,7 @@ https://mholt.github.io/json-to-go/ JSON
 - exit option on all loaders 
   
 ### local client 
+
 - save local games
 - add time options?
   
@@ -62,14 +63,10 @@ https://mholt.github.io/json-to-go/ JSON
     - see variants on board
   
 ### online game client
-  - leave options 
-    - offer draw
-    - resign
-  - post game options (rematch, new game, etc)
+
   - rating info next to name
   - chat
    
-    
 
 ♞♞♞♞♞♞♞♞♞♞♞
 
