@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -285,4 +286,20 @@ func UpdateResult(tv *cv.TextView) {
 	status += root.currentLocalGame.Status
 	tv.SetText(status)
 	root.currentLocalGame.Status = ""
+}
+
+func SaveGame() {
+
+	savedFen := root.currentLocalGame.Game.FEN()
+	LocalInfo.SavedFenString = savedFen
+
+	res, err := json.Marshal(&LocalInfo)
+
+	err = os.WriteFile(local_json, res, 0644)
+	root.currentLocalGame.Status += "Game saved." // NOTE: is only showing after next ply
+
+	if err != nil {
+		fmt.Println("Could not write fen to file")
+	}
+
 }
