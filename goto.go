@@ -81,16 +81,17 @@ func startNewOnlineGame() {
 
 func gotoPostOnline() {
 	// root.currentLocalGame.Status += root.currentLocalGame.Game.Outcome().String()
-	var WhiteWon bool = root.currentLocalGame.Game.Outcome().String()[0] == '1'
-	if WhiteWon {
+	var outcome string = root.currentLocalGame.Game.Outcome().String()
+	if outcome == "1-0" {
 		root.currentLocalGame.Status += fmt.Sprintf("White (%v) wins!\n", BoardFullGame.White.Name)
-	} else {
+	} else if outcome == "0-1" {
 		root.currentLocalGame.Status += fmt.Sprintf("Black (%v) wins!\n", BoardFullGame.Black.Name)
 	}
 	UpdateGameHistory(root.OnlinePostHistory)
 	UpdateResult(root.OnlinePostStatus)
 	UpdateBoard(root.OnlinePostBoard, true)
 	root.nav.SetCurrentPanel("postonline")
+	root.app.QueueUpdateDraw(func() {})
 }
 
 func gotoChallengeConstruction() {

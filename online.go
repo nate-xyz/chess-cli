@@ -312,6 +312,7 @@ func UpdateOngoingList() {
 		} else {
 			listString += " Unlimited"
 		}
+		listString += fmt.Sprintf(" %v", game.GameID)
 		item := cv.NewListItem(listString)
 		var text string = variant
 		if game.Rated {
@@ -341,9 +342,6 @@ func UpdateOngoingList() {
 		root.OngoingList.AddItem(item)
 	}
 }
-
-var OutChallengeGameID []string
-var InChallengeGameID []string
 
 func UpdateChallengeList() {
 	root.InChallengeList.Clear()
@@ -401,5 +399,16 @@ func UpdateChallengeList() {
 		item.SetShortcut(rune('a' + i))
 		root.OutChallengeList.AddItem(item)
 	}
+
+}
+
+func doAbort() {
+	err := AbortGame(currentGameID)
+	if err != nil {
+		root.currentLocalGame.Status += fmt.Sprintf("[red]%v[white]\n", err)
+		UpdateOnlineStatus(root.OnlineStatus)
+		return
+	}
+	killGame <- "abort"
 
 }

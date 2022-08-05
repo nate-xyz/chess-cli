@@ -43,6 +43,7 @@ func initWelcomeScreen() *cv.Grid {
 	grid.SetBorders(false)
 
 	titleBox := titlePrimitive(ApplicationTitle)
+
 	welcomeRibbon := ribbonPrimitive(welcomeRibbonstr)
 	quoteBox := quoutePrimitive(GetRandomQuote())
 
@@ -50,15 +51,12 @@ func initWelcomeScreen() *cv.Grid {
 	welcomeList := cv.NewList()
 	welcomeList.SetHover(true)
 	welcomeList.SetWrapAround(true)
-	// choices := []string{"Local", "Online", "Stockfish", "Quit"}
-	// explain := []string{"Play a local chess game", "Play a game on lichess", "Play a game against AI", "Press to exit"}
-	// shortcuts := []rune{'a', 'b', 'c', 'q'}
+
 	choices := []string{"Local", "Online", "Quit"}
 	explain := []string{"Play a local chess game", "Play a game on lichess", "Press to exit"}
-	shortcuts := []rune{'a', 'b', 'q'}
-
+	shortcuts := []rune{'l', 'o', 'q'}
 	selectFunc := []ListSelectedFunc{startNewLocalGame, gotoLichess, root.app.Stop}
-	welcomeList.SetWrapAround(true)
+
 	for i := 0; i < len(choices); i++ {
 		item := cv.NewListItem(choices[i])
 		item.SetSecondaryText(explain[i])
@@ -71,6 +69,7 @@ func initWelcomeScreen() *cv.Grid {
 	grid.AddItem(titleBox, 0, 0, 2, 1, 0, 0, false)
 	grid.AddItem(quoteBox, 2, 0, 1, 2, 0, 0, false)
 	grid.AddItem(welcomeRibbon, 3, 0, 1, 2, 0, 0, false)
+
 	return grid
 }
 
@@ -79,7 +78,7 @@ func initGameScreen() *cv.Grid {
 	grid := cv.NewGrid()
 	grid.SetColumns(-1, -2, -1)
 	grid.SetRows(-1, 1, 1, -1, 10, 1)
-	grid.SetBorders(false)
+	grid.SetBorders(true)
 	gameBox := boardPrimitive(LocalTableHandler)
 
 	statusBox := cv.NewTextView()
@@ -229,16 +228,19 @@ func initLoadingScreen() *cv.Grid {
 	grid.SetColumns(-1)
 	grid.SetRows(-1, -1, 1)
 	grid.SetBorders(false)
+
 	loaderIconBox := cv.NewTextView()
 	loaderIconBox.SetWordWrap(false)
 	loaderIconBox.SetDynamicColors(true)
 	loaderIconBox.SetTextAlign(cv.AlignCenter)
-	loaderIconBox.SetVerticalAlign(cv.AlignCenter)
+	loaderIconBox.SetVerticalAlign(cv.AlignMiddle)
+
 	loaderMsgBox := cv.NewTextView()
 	loaderMsgBox.SetWordWrap(true)
 	loaderMsgBox.SetDynamicColors(true)
 	loaderMsgBox.SetTextAlign(cv.AlignCenter)
-	loaderMsgBox.SetVerticalAlign(cv.AlignCenter)
+	loaderMsgBox.SetVerticalAlign(cv.AlignMiddle)
+
 	loaderRibbon := ribbonPrimitive("CHESS-CLI -> Loading, please wait...")
 
 	grid.AddItem(loaderMsgBox, 1, 0, 1, 1, 0, 0, true)
@@ -259,7 +261,7 @@ func initWelcomeLichess() *cv.Grid {
 
 	titleBox := cv.NewTextView()
 	titleBox.SetTextAlign(cv.AlignCenter)
-	titleBox.SetVerticalAlign(cv.AlignCenter)
+	titleBox.SetVerticalAlign(cv.AlignMiddle)
 	titleBox.SetDynamicColors(true)
 	titleBox.SetText(LichessTitle)
 
@@ -355,9 +357,9 @@ func initLichessGameGrid() *cv.Grid {
 	inputBox.SetLabel("Enter your move: ")
 
 	options := cv.NewList()
-	optionsList := []string{"Leave", "Quit"}
-	optionsExplain := []string{"Go back Home", "Close chess-cli"}
-	optionsFunc := []ListSelectedFunc{gotoLichess, root.app.Stop}
+	optionsList := []string{"Back", "Abort", "Offer Draw", "Resign", "Quit"}
+	optionsExplain := []string{"Go back Home", "", "", "", "Close chess-cli"}
+	optionsFunc := []ListSelectedFunc{gotoLichess, doAbort, doNothing, doNothing, root.app.Stop}
 	for i, opt := range optionsList {
 		item := cv.NewListItem(opt)
 		item.SetSecondaryText(optionsExplain[i])

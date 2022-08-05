@@ -77,6 +77,7 @@ var (
 	root               = new(State)
 	Sigs               chan os.Signal
 	Ready              chan struct{}
+	killGame           chan string
 	NewChessGame       *chess.Game         //used in online.go in the LichessGame() function to update the board position from new stream event
 	newChallenge       CreateChallengeType //used initUI.go in initConstruct() in order to save settings from a challenge construction
 	Online             bool                = false
@@ -84,6 +85,8 @@ var (
 	LastSelectedCell   PiecePosition
 	GameListIDArr      []string
 	StreamEventStarted bool = false
+	OutChallengeGameID []string
+	InChallengeGameID  []string
 )
 
 type ListSelectedFunc func() //used to easily add functions to list items in initUI.go
@@ -114,7 +117,14 @@ type LocalGame struct {
 
 func (l *LocalGame) Init() {
 	l.Game = chess.NewGame(chess.UseNotation(chess.UCINotation{}))
-	l.MoveHistoryArray = []string{}
+	l.NextMove = ""
+	l.MoveHistoryArray = nil
+	l.LegalMoves = nil
+	l.Status = ""
+	l.MoveCount = 0
+	l.WhiteCaptured = nil
+	l.BlackCaptured = nil
+
 }
 
 var PiecesMap = map[rune]string{
@@ -158,46 +168,46 @@ var NormalLoaderMap = map[int64]string{
 
 var RandQuoteMap = map[int]string{
 	0:  "“I have come to the personal conclusion that while all artists are not chess players, all chess players are artists.”\n – Marcel Duchamp",
-	1:  "“Unlike other games in which lucre is the end and aim, [chess] recommends itself to the wise by the fact that its mimic battles are fought for no prize but honor. It is eminently and emphatically the philosopher’s game.”\n – Paul Morphy",
-	2:  "“The beauty of chess is it can be whatever you want it to be. It transcends language, age, race, religion, politics, gender, and socioeconomic background. Whatever your circumstances, anyone can enjoy a good fight to the death over the chess board.”\n – Simon Williams",
+	1:  "“Unlike other games in which lucre is the end and aim, [chess] recommends itself to the wise by the fact that its mimic battles are fought for no prize but honor. \nIt is eminently and emphatically the philosopher’s game.”\n – Paul Morphy",
+	2:  "“The beauty of chess is it can be whatever you want it to be. \nIt transcends language, age, race, religion, politics, gender, and socioeconomic background. \nWhatever your circumstances, anyone can enjoy a good fight to the death over the chess board.”\n – Simon Williams",
 	3:  "“Chess is the struggle against the error.”\n – Johannes Zukertort",
 	4:  "“Every chess master was once a beginner.”\n – Irving Chernev",
-	5:  "“Avoid the crowd. Do your own thinking independently. Be the chess player, not the chess piece.”\n – Ralph Charell",
+	5:  "“Avoid the crowd. \nDo your own thinking independently. \nBe the chess player, not the chess piece.”\n – Ralph Charell",
 	6:  "“Chess makes men wiser and clear-sighted.”\n – Vladimir Putin",
 	7:  "“Chess is the gymnasium of the mind.”\n – Blaise Pascal",
 	8:  "“Chess holds its master in its own bonds, shackling the mind and brain so that the inner freedom of the very strongest must suffer.”\n – Albert Einstein",
-	9:  "“Chess is a war over the board. The object is to crush the opponent’s mind.”\n – Bobby Fischer",
-	10: "“I am convinced, the way one plays chess always reflects the player’s personality. If something defines his character, then it will also define his way of playing.”\n – Vladimir Kramnik",
-	11: "“The game of chess is not merely an idle amusement. Several very valuable qualities of the mind, useful in the course of human life, are to be acquired or strengthened by it… Life is a kind of Chess, in which we have often points to gain, and competitors or adversaries to contend with.”\n – Benjamin Franklin",
+	9:  "“Chess is a war over the board. \nThe object is to crush the opponent’s mind.”\n – Bobby Fischer",
+	10: "“I am convinced, the way one plays chess always reflects the player’s personality. \nIf something defines his character, then it will also define his way of playing.”\n – Vladimir Kramnik",
+	11: "“The game of chess is not merely an idle amusement. \nSeveral very valuable qualities of the mind, useful in the course of human life, are to be acquired or strengthened by it… Life is a kind of Chess, in which we have often points to gain, and competitors or adversaries to contend with.”\n – Benjamin Franklin",
 	12: "“As proved by evidence, [chess is] more lasting in its being and presence than all books and achievements; the only game that belongs to all people and all ages; of which none knows the divinity that bestowed it on the world, to slay boredom, to sharpen the senses, to exhilarate the spirit.”\n – Stefan Zweig",
 	13: "“Chess doesn’t drive people mad, it keeps mad people sane.”\n – Bill Hartston",
-	14: "“In life, as in chess, one’s own pawns block one’s way.  A man’s very wealthy, ease, leisure, children, books, which should help him to win, more often checkmate him.”\n – Charles Buxton",
-	15: "“Chess is life in miniature. Chess is a struggle, chess battles.”\n – Garry Kasparov",
+	14: "“In life, as in chess, one’s own pawns block one’s way. \n A man’s very wealthy, ease, leisure, children, books, which should help him to win, more often checkmate him.”\n – Charles Buxton",
+	15: "“Chess is life in miniature. \nChess is a struggle, chess battles.”\n – Garry Kasparov",
 	16: "“Chess, like love, like music, has the power to make men happy.”\n – Siegbert Tarrasch",
 	17: "“For in the idea of chess and the development of the chess mind we have a picture of the intellectual struggle of mankind.”\n – Richard Réti",
-	18: "“I don’t believe in psychology. I believe in good moves.”\n – Bobby Fischer",
+	18: "“I don’t believe in psychology. \nI believe in good moves.”\n – Bobby Fischer",
 	19: "“Play the opening like a book, the middlegame like a magician, and the endgame like a machine.”\n – Rudolph Spielmann",
-	20: "“I used to attack because it was the only thing I knew. Now I attack because I know it works best.”\n – Garry Kasparov",
-	21: "“It is my style to take my opponent and myself on to unknown grounds. A game of chess is not an examination of knowledge; it is a battle of nerves.”\n – David Bronstein",
-	22: "“Chess is rarely a game of ideal moves. Almost always, a player faces a series of difficult consequences whichever move he makes.”\n – David Shenk",
+	20: "“I used to attack because it was the only thing I knew. \nNow I attack because I know it works best.”\n – Garry Kasparov",
+	21: "“It is my style to take my opponent and myself on to unknown grounds. \nA game of chess is not an examination of knowledge; it is a battle of nerves.”\n – David Bronstein",
+	22: "“Chess is rarely a game of ideal moves. \nAlmost always, a player faces a series of difficult consequences whichever move he makes.”\n – David Shenk",
 	23: "“When you see a good move, look for a better one.”\n – Emanuel Lasker",
-	24: "“After a bad opening, there is hope for the middle game. After a bad middle game, there is hope for the endgame. But once you are in the endgame, the moment of truth has arrived.”\n – Edmar Mednis",
-	25: "“Give me a difficult positional game, I will play it. But totally won positions, I cannot stand them.”\n – Hein Donner",
+	24: "“After a bad opening, there is hope for the middle game. \nAfter a bad middle game, there is hope for the endgame. \nBut once you are in the endgame, the moment of truth has arrived.”\n – Edmar Mednis",
+	25: "“Give me a difficult positional game, I will play it. \nBut totally won positions, I cannot stand them.”\n – Hein Donner",
 	26: "“There is no remorse like the remorse of chess.”\n – H. G. Wells",
-	27: "“Half the variations which are calculated in a tournament game turn out to be completely superfluous. Unfortunately, no one knows in advance which half.”\n – Jan Timman",
+	27: "“Half the variations which are calculated in a tournament game turn out to be completely superfluous. \nUnfortunately, no one knows in advance which half.”\n – Jan Timman",
 	28: "“Even a poor plan is better than no plan at all.”\n – Mikhail Chigorin",
 	29: "“Tactics is knowing what to do when there is something to do; strategy is knowing what to do when there is nothing to do.”\n – Savielly Tartakower",
 	30: "“In life, as in chess, forethought wins.”\n – Charles Buxton",
-	31: "“You may learn much more from a game you lose than from a game you win. You will have to lose hundreds of games before becoming a good player.”\n – José Raúl Capablanca",
+	31: "“You may learn much more from a game you lose than from a game you win. \nYou will have to lose hundreds of games before becoming a good player.”\n – José Raúl Capablanca",
 	32: "“Pawns are the soul of the game.”\n – François-André Danican Philidor",
-	33: "“The passed pawn is a criminal, who should be kept under lock and key. Mild measures, such as police surveillance, are not sufficient.”\n – Aron Nimzowitsch",
-	34: "“Modern chess is too much concerned with things like pawn structure. Forget it, checkmate ends the game.”\n – Nigel Short",
+	33: "“The passed pawn is a criminal, who should be kept under lock and key. \nMild measures, such as police surveillance, are not sufficient.”\n – Aron Nimzowitsch",
+	34: "“Modern chess is too much concerned with things like pawn structure. \nForget it, checkmate ends the game.”\n – Nigel Short",
 	35: "“Pawn endings are to chess what putting is to golf.”\n – Cecil Purdy",
 	36: "“Nobody ever won a chess game by resigning.”\n – Savielly Tartakower",
 	37: "“The blunders are all there on the board, waiting to be made.”\n – Savielly Tartakower",
 	38: "“It’s always better to sacrifice your opponent’s men.”\n – Savielly Tartakower",
 	39: "“One doesn’t have to play well, it’s enough to play better than your opponent.”\n – Siegbert Tarrasch",
-	40: "“Up to this point, White has been following well-known analysis. But now he makes a fatal error: he begins to use his own head.”\n – Siegbert Tarrasch",
+	40: "“Up to this point, White has been following well-known analysis. \nBut now he makes a fatal error: he begins to use his own head.”\n – Siegbert Tarrasch",
 	41: "“Of chess, it has been said that life is not long enough for it, but that is the fault of life, not chess.”\n – William Napier",
 	42: "“Chess is beautiful enough to waste your life for.”\n – Hans Ree",
 	43: "“A chess game in progress is… a cosmos unto itself, fully insulated from an infant’s cry, an erotic invitation, or war.”\n – David Shenk",

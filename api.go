@@ -131,7 +131,9 @@ func WaitForLichessGameResponse() {
 LichessGame() is called after a gameID string has been retrieved from the event stream by WaitForLichessGameResponse()
 This function then starts a board stream with the gameID and loops and modifies the gamestate and view based on events from the board stream.
 */
+
 func LichessGame(gameID string) {
+	killGame = make(chan string)
 	gameStateChan = make(chan BoardEvent, 1)
 	streamDoneErr := make(chan error)
 	go StreamBoardState(gameStateChan, streamDoneErr, gameID)
@@ -144,8 +146,14 @@ func LichessGame(gameID string) {
 
 	for { //loop
 		select {
+		case s := <-killGame:
+			root.app.QueueUpdate(func() {
+				stopTicker <- true
+				root.currentLocalGame.Status += "[green]Game has been aborted![white]\n"
+				root.currentLocalGame.Status += fmt.Sprintf("Game ended due to %v.\n", s)
+				gotoPostOnline()
+			})
 		case err := <-streamDoneErr:
-
 			root.app.QueueUpdate(func() {
 				stopTicker <- true
 				root.currentLocalGame.Status += fmt.Sprintf("Game ended due to %v.\n", err)

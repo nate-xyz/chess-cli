@@ -437,7 +437,6 @@ func GetEmail() error {
 
 //get username from profile json
 func GetUsername() error {
-
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/account", hostUrl), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
 	if err != nil {
@@ -471,7 +470,6 @@ func GetUsername() error {
 
 //get full user profile json
 func GetProfile() error {
-
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/account", hostUrl), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
 	if err != nil {
@@ -501,7 +499,6 @@ func GetProfile() error {
 //application/x-ndjson
 //list of friends(and their online/offline status), to be displayed on challenge screen
 func GetFriends() error {
-
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/rel/following", hostUrl), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
 	req.Header.Add("Content-Type", "application/x-ndjson")
@@ -562,7 +559,7 @@ func AcceptChallenge(gameid string) error {
 		return err
 	}
 
-	//do http request. must be done in this fashion so we can add the auth bear token headers above
+	//do http request
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
@@ -571,6 +568,30 @@ func AcceptChallenge(gameid string) error {
 
 	if res.StatusCode != http.StatusOK {
 		err := fmt.Errorf("reponse %v", res.Status)
+		return err
+	}
+	return nil
+}
+
+func AbortGame(gameid string) error {
+	requestUrl := fmt.Sprintf("%s/api/board/game/%s/abort", hostUrl, gameid)
+
+	// create the request and execute it
+	req, err := http.NewRequest("POST", requestUrl, nil)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
+	if err != nil {
+		return err
+	}
+
+	//do http request
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		err := fmt.Errorf("%v", res.Status)
 		return err
 	}
 	return nil

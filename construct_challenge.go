@@ -13,7 +13,7 @@ func initConstruct() *cv.Grid {
 
 	tv := cv.NewTextView()
 	tv.SetTextAlign(cv.AlignCenter)
-	tv.SetVerticalAlign(cv.AlignCenter)
+	tv.SetVerticalAlign(cv.AlignMiddle)
 	tv.SetDynamicColors(true)
 
 	tree := cv.NewTreeView()

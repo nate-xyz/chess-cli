@@ -37,9 +37,8 @@ https://mholt.github.io/json-to-go/ JSON
 # TODO:
 
 ### general 
-- go back to online after going back to start page from online page bug
+
 - Handle all notation type or choose notation to start
-- exit games w/o quit both local and lichess (save, resign)
 - exit option on all loaders 
   
 ### local client 
@@ -48,7 +47,7 @@ https://mholt.github.io/json-to-go/ JSON
   
 
 ### oauth
-  ✔️ check if token is expired and get new one if so
+
   - handle if oauth process rejected
 
 ### api
@@ -56,16 +55,16 @@ https://mholt.github.io/json-to-go/ JSON
   - BULLET CHALLENGES BUG: when minutes are < 3 minutes for a realtime challenge, api provides an empty json for the GameFull event.
 
 ### online 
-  - see and join ongoing games
-    - api request
-    - screen
-  - see incoming and outgoing challenges, join game from accept
+
   - challenge construction 
     - set default interval position
     - custom starting position option for challenges
     - see variants on board
   
 ### online game client
+  - leave options 
+    - offer draw
+    - resign
   - post game options (rematch, new game, etc)
   - rating info next to name
   - chat
