@@ -18,7 +18,39 @@ func UpdateOnline() {
 	//UpdateGameStatus(root.OnlineStatus)
 	UpdateOnlineStatus(root.OnlineStatus)
 	UpdateUserInfo()
+	UpdateOnlineList()
 	root.app.QueueUpdateDraw(func() {})
+}
+
+func UpdateOnlineList() {
+	list := root.OnlineExitList
+	list.Clear()
+	optionsList := []string{"Back", "Quit"}
+	optionsExplain := []string{"Go back Home", "Close chess-cli"}
+	optionsFunc := []ListSelectedFunc{gotoLichess, root.app.Stop}
+	for i, opt := range optionsList {
+		item := cv.NewListItem(opt)
+		item.SetSecondaryText(optionsExplain[i])
+		item.SetSelectedFunc(optionsFunc[i])
+		list.AddItem(item)
+	}
+
+	optionsList = []string{"Takeback", "Abort", "Offer Draw", "Resign"}
+	optionsExplain = []string{"Propose a takeback", "Abort the current game", "Offer a draw to your opponent", "Resign from the current game"}
+	optionsFunc = []ListSelectedFunc{doProposeTakeBack, doAbort, doOfferDraw, doResign}
+	for i, opt := range optionsList {
+		if opt == "Takeback" && MoveCount == 0 {
+			continue
+		}
+		if (opt == "Offer Draw" || opt == "Resign") && MoveCount < 2 {
+			continue
+		}
+		item := cv.NewListItem(opt)
+		item.SetSecondaryText(optionsExplain[i])
+		item.SetSelectedFunc(optionsFunc[i])
+		list.InsertItem(1, item)
+	}
+
 }
 
 func UpdateLichessTitle(msg string) {
@@ -51,15 +83,17 @@ func UpdateOnlineStatus(s *cv.TextView) {
 	}
 
 	if BoardFullGame.Speed == "correspondence" {
-		status += fmt.Sprintf("\n\n%v • %v\n",
+		status += fmt.Sprintf("\n%v • %v %v\n",
 			ratestr,
-			strings.Title(BoardFullGame.Speed))
+			strings.Title(BoardFullGame.Speed),
+			currentGameID)
 	} else {
-		status += fmt.Sprintf("\n\n%v+%v • %v • %v\n",
+		status += fmt.Sprintf("\n%v+%v • %v • %v %v\n",
 			timeFormat(int64(BoardFullGame.Clock.Initial)),
 			BoardFullGame.Clock.Increment/1000,
 			ratestr,
-			strings.Title(BoardFullGame.Speed))
+			strings.Title(BoardFullGame.Speed),
+			currentGameID)
 	}
 
 	if root.currentLocalGame.Game.Position().Turn() == chess.White {

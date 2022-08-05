@@ -78,7 +78,8 @@ func initGameScreen() *cv.Grid {
 	grid := cv.NewGrid()
 	grid.SetColumns(-1, -2, -1)
 	grid.SetRows(-1, 1, 1, -1, 10, 1)
-	grid.SetBorders(true)
+	grid.SetBorders(false)
+
 	gameBox := boardPrimitive(LocalTableHandler)
 
 	statusBox := cv.NewTextView()
@@ -353,9 +354,9 @@ func initLichessGameGrid() *cv.Grid {
 	inputBox.SetLabel("Enter your move: ")
 
 	options := cv.NewList()
-	optionsList := []string{"Back", "Takeback", "Abort", "Offer Draw", "Resign", "Quit"}
-	optionsExplain := []string{"Go back Home", "Propose a takeback", "Abort the current game", "Offer a draw to your opponent", "Resign from the current game", "Close chess-cli"}
-	optionsFunc := []ListSelectedFunc{gotoLichess, doProposeTakeBack, doAbort, doOfferDraw, doResign, root.app.Stop}
+	optionsList := []string{"Back", "Quit"}
+	optionsExplain := []string{"Go back Home", "Close chess-cli"}
+	optionsFunc := []ListSelectedFunc{gotoLichess, root.app.Stop}
 	for i, opt := range optionsList {
 		item := cv.NewListItem(opt)
 		item.SetSecondaryText(optionsExplain[i])
@@ -396,6 +397,7 @@ func initLichessGameGrid() *cv.Grid {
 	root.OnlineTimeUser = userTimerBox
 	root.OnlineInfoUser = userInfoBox
 	root.Online = grid
+	root.OnlineExitList = options
 
 	return grid
 }

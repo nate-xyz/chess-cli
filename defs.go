@@ -37,10 +37,11 @@ type State struct {
 	LoaderMsg  *cv.TextView
 
 	//online
-	Online        *cv.Grid
-	OnlineBoard   *cv.Table
-	OnlineStatus  *cv.TextView
-	OnlineHistory *cv.TextView
+	Online         *cv.Grid
+	OnlineBoard    *cv.Table
+	OnlineStatus   *cv.TextView
+	OnlineHistory  *cv.TextView
+	OnlineExitList *cv.List
 
 	OnlineInfoUser *cv.TextView
 	OnlineInfoOppo *cv.TextView
