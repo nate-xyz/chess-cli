@@ -1,9 +1,10 @@
-package main
+package pkg
 
 import (
 	"fmt"
 
 	cv "code.rocketnine.space/tslocum/cview"
+	"github.com/nate-xyz/chess-cli/api"
 )
 
 func initConstruct() *cv.Grid {
@@ -24,6 +25,7 @@ func initConstruct() *cv.Grid {
 
 	list := cv.NewList()
 	list.SetWrapAround(true)
+	list.SetHover(true)
 
 	Ribbon := ribbonPrimitive(challengeRibbonstr)
 
@@ -85,7 +87,7 @@ func initConstruct() *cv.Grid {
 		quitItem.SetSecondaryText("Press to exit")
 		quitItem.SetShortcut('q')
 		quitItem.SetSelectedFunc(func() {
-			root.app.Stop()
+			Root.App.Stop()
 		})
 		list.AddItem(quitItem)
 
@@ -134,7 +136,7 @@ func initConstruct() *cv.Grid {
 		quitItem.SetSecondaryText("Press to exit")
 		quitItem.SetShortcut('q')
 		quitItem.SetSelectedFunc(func() {
-			root.app.Stop()
+			Root.App.Stop()
 		})
 		list.AddItem(quitItem)
 
@@ -190,7 +192,7 @@ func initConstruct() *cv.Grid {
 		quitItem.SetSecondaryText("Press to exit")
 		quitItem.SetShortcut('q')
 		quitItem.SetSelectedFunc(func() {
-			root.app.Stop()
+			Root.App.Stop()
 		})
 		list.AddItem(quitItem)
 	}
@@ -285,7 +287,7 @@ func initConstruct() *cv.Grid {
 			timeThirdOption()
 		})
 		form.AddButton("Home", goHome)
-		form.AddButton("Quit", root.app.Stop)
+		form.AddButton("Quit", Root.App.Stop)
 		//form.SetBorder(true)
 		form.SetTitle("Choose time interval option:")
 		form.SetTitleAlign(cv.AlignCenter)
@@ -356,7 +358,7 @@ func initConstruct() *cv.Grid {
 		quitItem.SetSecondaryText("Press to exit")
 		quitItem.SetShortcut('q')
 		quitItem.SetSelectedFunc(func() {
-			root.app.Stop()
+			Root.App.Stop()
 		})
 		list.AddItem(quitItem)
 	}
@@ -382,7 +384,7 @@ func initConstruct() *cv.Grid {
 				case 0:
 					eightSubmitOption()
 				case 1:
-					updateTree(allFriends)
+					updateTree(api.AllFriends)
 					seventhfriendsOptions()
 				case 2:
 					updateTree([]string{"Select AI power level."})
@@ -418,7 +420,7 @@ func initConstruct() *cv.Grid {
 		quitItem.SetSecondaryText("Press to exit")
 		quitItem.SetShortcut('q')
 		quitItem.SetSelectedFunc(func() {
-			root.app.Stop()
+			Root.App.Stop()
 		})
 		list.AddItem(quitItem)
 	}
@@ -427,15 +429,15 @@ func initConstruct() *cv.Grid {
 		list.Clear()
 
 		tv.SetText("Select friend to challenge.")
-		for i := 0; i < len(allFriends); i++ {
-			item := cv.NewListItem(allFriends[i])
+		for i := 0; i < len(api.AllFriends); i++ {
+			item := cv.NewListItem(api.AllFriends[i])
 			item.SetShortcut(rune('a' + i))
 			item.SetSelectedFunc(func() {
 
-				newChallenge.DestUser = allFriends[list.GetCurrentItemIndex()] //store the choice
-				newChallenge.OpenEnded = false                                 //TODO: open ended
+				newChallenge.DestUser = api.AllFriends[list.GetCurrentItemIndex()] //store the choice
+				newChallenge.OpenEnded = false                                     //TODO: open ended
 
-				path = append(path, allFriends[list.GetCurrentItemIndex()])
+				path = append(path, api.AllFriends[list.GetCurrentItemIndex()])
 				updateTree([]string{})
 
 				eightSubmitOption() //add the new list
@@ -468,7 +470,7 @@ func initConstruct() *cv.Grid {
 		quitItem.SetSecondaryText("Press to exit")
 		quitItem.SetShortcut('q')
 		quitItem.SetSelectedFunc(func() {
-			root.app.Stop()
+			Root.App.Stop()
 		})
 		list.AddItem(quitItem)
 	}
@@ -519,7 +521,7 @@ func initConstruct() *cv.Grid {
 			sixthColorOption()
 		})
 		form.AddButton("Home", goHome)
-		form.AddButton("Quit", root.app.Stop)
+		form.AddButton("Quit", Root.App.Stop)
 		//form.SetBorder(true)
 		form.SetTitle("Choose bot power level:")
 		form.SetTitleAlign(cv.AlignCenter)
@@ -553,7 +555,7 @@ func initConstruct() *cv.Grid {
 				updateTree(colorOptions)
 				sixthColorOption()
 			case 1:
-				updateTree(allFriends)
+				updateTree(api.AllFriends)
 				seventhfriendsOptions()
 			case 2:
 				updateTree([]string{"Select AI power level."})
@@ -574,7 +576,7 @@ func initConstruct() *cv.Grid {
 		quitItem.SetSecondaryText("Press to exit")
 		quitItem.SetShortcut('q')
 		quitItem.SetSelectedFunc(func() {
-			root.app.Stop()
+			Root.App.Stop()
 		})
 		list.AddItem(quitItem)
 	}

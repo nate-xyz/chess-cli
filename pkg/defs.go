@@ -1,17 +1,18 @@
-package main
+package pkg
 
 import (
 	"fmt"
 	"os"
 
 	cv "code.rocketnine.space/tslocum/cview"
+	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"
 )
 
 type State struct {
-	app              *cv.Application
+	App              *cv.Application
 	nav              *cv.Panels
-	shell            string
+	Shell            string
 	currentLocalGame *LocalGame
 	//window pointers
 	//local
@@ -77,17 +78,17 @@ Play locally with a [yellow]friend[white] or online with [red]Lichess!`
 )
 
 var (
-	root               = new(State)
-	Sigs               chan os.Signal
-	Ready              chan struct{}
-	killGame           chan string
-	NewChessGame       *chess.Game         //used in online.go in the LichessGame() function to update the board position from new stream event
-	newChallenge       CreateChallengeType //used initUI.go in initConstruct() in order to save settings from a challenge construction
-	Online             bool                = false
-	MoveCount          int
-	LastSelectedCell   PiecePosition
-	GameListIDArr      []string
-	StreamEventStarted bool = false
+	Root = new(State)
+	Sigs chan os.Signal
+
+	killGame     chan string
+	NewChessGame *chess.Game             //used in online.go in the LichessGame() function to update the board position from new stream event
+	newChallenge api.CreateChallengeType //used initUI.go in initConstruct() in order to save settings from a challenge construction
+
+	MoveCount        int
+	LastSelectedCell PiecePosition
+	GameListIDArr    []string
+
 	OutChallengeGameID []string
 	InChallengeGameID  []string
 )
@@ -229,7 +230,7 @@ var RandQuoteMap = map[int]string{
 	56: "“I like chess.” - H.F. Witte",
 }
 
-var testChallenge = CreateChallengeType{
+var testChallenge = api.CreateChallengeType{
 	Type:           1, //friend
 	TimeOption:     0, //real time
 	DestUser:       "",
@@ -267,7 +268,7 @@ var testChallenge = CreateChallengeType{
 // 	Variant:    "standard",
 // }
 
-var testAiChallenge = CreateChallengeType{
+var testAiChallenge = api.CreateChallengeType{
 	Level:          "1",
 	Type:           2,
 	TimeOption:     0,

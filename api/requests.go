@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"encoding/json"
@@ -12,7 +12,7 @@ import (
 
 //create a challenge against a specific user or get the url
 func MakeMove(gameid string, move string) error {
-	requestUrl := fmt.Sprintf("%s/api/board/game/%s/move/%s", hostUrl, gameid, move)
+	requestUrl := fmt.Sprintf("%s/api/board/game/%s/move/%s", HostUrl, gameid, move)
 
 	// create the request and execute it
 	req, err := http.NewRequest("POST", requestUrl, nil)
@@ -45,7 +45,7 @@ func MakeMove(gameid string, move string) error {
 
 //create a challenge against a specific user or get the url (POST)
 func CreateChallenge(challenge CreateChallengeType) (error, string) {
-	requestUrl := fmt.Sprintf("%s/api/challenge/%s", hostUrl, challenge.DestUser)
+	requestUrl := fmt.Sprintf("%s/api/challenge/%s", HostUrl, challenge.DestUser)
 	var reqParam url.Values
 	switch challenge.TimeOption {
 	case 0: //realtime
@@ -132,7 +132,7 @@ func CreateChallenge(challenge CreateChallengeType) (error, string) {
 }
 
 func CreateAiChallenge(challenge CreateChallengeType) (error, string) {
-	requestUrl := fmt.Sprintf("%s/api/challenge/ai", hostUrl)
+	requestUrl := fmt.Sprintf("%s/api/challenge/ai", HostUrl)
 	var reqParam url.Values
 	switch challenge.TimeOption {
 	case 0: //realtime
@@ -223,7 +223,7 @@ func CreateAiChallenge(challenge CreateChallengeType) (error, string) {
 }
 
 func CreateSeek(challenge CreateChallengeType) error {
-	requestUrl := fmt.Sprintf("%s/api/board/seek", hostUrl)
+	requestUrl := fmt.Sprintf("%s/api/board/seek", HostUrl)
 	var reqParam url.Values
 	switch challenge.TimeOption {
 	case 0: //realtime
@@ -287,7 +287,7 @@ func CreateSeek(challenge CreateChallengeType) error {
 }
 
 func GetOngoingGames() error {
-	requestUrl := fmt.Sprintf("%s/api/account/playing", hostUrl)
+	requestUrl := fmt.Sprintf("%s/api/account/playing", HostUrl)
 	reqParam := url.Values{"nb": {"11-50"}}
 	req, err := http.NewRequest("GET", requestUrl, strings.NewReader(reqParam.Encode()))
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
@@ -336,7 +336,7 @@ func GetOngoingGames() error {
 }
 
 func GetChallenges() error {
-	requestUrl := fmt.Sprintf("%s/api/challenge", hostUrl)
+	requestUrl := fmt.Sprintf("%s/api/challenge", HostUrl)
 	req, err := http.NewRequest("GET", requestUrl, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
 	//req.Header.Add("Content-Type", "application/json")
@@ -400,7 +400,7 @@ func GetChallenges() error {
 
 //get user email
 func GetEmail() error {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/account/email", hostUrl), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/account/email", HostUrl), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
 	if err != nil {
 		return err
@@ -433,7 +433,7 @@ func GetEmail() error {
 
 //get username from profile json
 func GetUsername() error {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/account", hostUrl), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/account", HostUrl), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
 	if err != nil {
 		return err
@@ -466,7 +466,7 @@ func GetUsername() error {
 
 //get full user profile json
 func GetProfile() error {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/account", hostUrl), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/account", HostUrl), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
 	if err != nil {
 		return err
@@ -495,7 +495,7 @@ func GetProfile() error {
 //application/x-ndjson
 //list of friends(and their online/offline status), to be displayed on challenge screen
 func GetFriends() error {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/rel/following", hostUrl), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/rel/following", HostUrl), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
 	req.Header.Add("Content-Type", "application/x-ndjson")
 	if err != nil {
@@ -535,7 +535,7 @@ func GetFriends() error {
 
 			if !isNil(responseData["username"]) { // retrieve the username out of the map
 				FriendsString := responseData["username"].(string)
-				allFriends = append(allFriends, FriendsString)
+				AllFriends = append(AllFriends, FriendsString)
 				//fmt.Printf("%v\n", FriendsString)
 			} else {
 				return fmt.Errorf("no type in stream event")
@@ -546,7 +546,7 @@ func GetFriends() error {
 }
 
 func AcceptChallenge(gameid string) error {
-	requestUrl := fmt.Sprintf("%s/api/challenge/%s/accept", hostUrl, gameid)
+	requestUrl := fmt.Sprintf("%s/api/challenge/%s/accept", HostUrl, gameid)
 
 	// create the request and execute it
 	req, err := http.NewRequest("POST", requestUrl, nil)
@@ -570,7 +570,7 @@ func AcceptChallenge(gameid string) error {
 }
 
 func AbortGame(gameid string) error {
-	requestUrl := fmt.Sprintf("%s/api/board/game/%s/abort", hostUrl, gameid)
+	requestUrl := fmt.Sprintf("%s/api/board/game/%s/abort", HostUrl, gameid)
 
 	// create the request and execute it
 	req, err := http.NewRequest("POST", requestUrl, nil)
@@ -594,7 +594,7 @@ func AbortGame(gameid string) error {
 }
 
 func ResignGame(gameid string) error {
-	requestUrl := fmt.Sprintf("%s/api/board/game/%s/resign", hostUrl, gameid)
+	requestUrl := fmt.Sprintf("%s/api/board/game/%s/resign", HostUrl, gameid)
 
 	// create the request and execute it
 	req, err := http.NewRequest("POST", requestUrl, nil)
@@ -624,7 +624,7 @@ func HandleDraw(gameid string, accept bool) error {
 	} else {
 		acceptStr = "no"
 	}
-	requestUrl := fmt.Sprintf("%s/api/board/game/%s/draw/%s", hostUrl, gameid, acceptStr)
+	requestUrl := fmt.Sprintf("%s/api/board/game/%s/draw/%s", HostUrl, gameid, acceptStr)
 
 	// create the request and execute it
 	req, err := http.NewRequest("POST", requestUrl, nil)
@@ -655,7 +655,7 @@ func HandleTakeback(gameid string, accept bool) error {
 	} else {
 		acceptStr = "no"
 	}
-	requestUrl := fmt.Sprintf("%s/api/board/game/%s/takeback/%s", hostUrl, gameid, acceptStr)
+	requestUrl := fmt.Sprintf("%s/api/board/game/%s/takeback/%s", HostUrl, gameid, acceptStr)
 
 	// create the request and execute it
 	req, err := http.NewRequest("POST", requestUrl, nil)

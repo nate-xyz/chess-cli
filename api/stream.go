@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"encoding/json"
@@ -12,11 +12,11 @@ import (
 func StreamEvent(EventChannel chan<- StreamEventType, got_token chan struct{}) error {
 	<-got_token
 	StreamEventStarted = true
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/stream/event", hostUrl), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/stream/event", HostUrl), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
 	req.Header.Add("Content-Type", "application/x-ndjson")
 	if err != nil {
-		WriteLocal("STREAM EVENT REQ ERR", fmt.Sprintf("stream event get request failed: %v", err))
+		//WriteLocal("STREAM EVENT REQ ERR", fmt.Sprintf("stream event get request failed: %v", err))
 		log.Fatal(err)
 	}
 	//do http request. must be done in this fashion so we can add the auth bear token headers above
@@ -29,14 +29,14 @@ func StreamEvent(EventChannel chan<- StreamEventType, got_token chan struct{}) e
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		WriteLocal("STREAM EVENT RESP ERR", fmt.Sprintf("bad response: %v", resp.StatusCode))
+		//WriteLocal("STREAM EVENT RESP ERR", fmt.Sprintf("bad response: %v", resp.StatusCode))
 		log.Fatal(fmt.Errorf("bad response: %v", resp.StatusCode))
 	}
 
 	Online = true
-	go func() {
-		UpdateLichessTitle("")
-	}()
+	// go func() {
+	// 	UpdateLichessTitle("")
+	// }()
 
 	d := json.NewDecoder(resp.Body)
 
@@ -88,9 +88,9 @@ func StreamEvent(EventChannel chan<- StreamEventType, got_token chan struct{}) e
 				EventChannel <- StreamEventType{streamEvent, streamEventID, streamSource}
 			} else {
 				Online = false
-				go func() {
-					UpdateLichessTitle("")
-				}()
+				// go func() {
+				// 	UpdateLichessTitle("")
+				// }()
 				return fmt.Errorf("invalid stream event")
 			}
 		}
@@ -127,7 +127,7 @@ func StreamConsumer(EventChannel <-chan StreamEventType) {
 //after initializing a game, this function streams the the state of the board of the game
 func StreamBoardState(EventChannel chan<- BoardEvent, StreamError chan<- error, game string) {
 	//https://lichess.org/api/board/game/stream/{gameId}
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/board/game/stream/%s", hostUrl, game), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/board/game/stream/%s", HostUrl, game), nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
 	req.Header.Add("Content-Type", "application/x-ndjson")
 	if err != nil {

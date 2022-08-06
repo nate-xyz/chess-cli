@@ -1,35 +1,36 @@
-package main
+package pkg
 
 import (
 	"fmt"
 
+	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"
 )
 
 func doNothing() {}
 
 func gotoWelcome() {
-	root.nav.SetCurrentPanel("welcome")
+	Root.nav.SetCurrentPanel("welcome")
 
 }
 
 func startNewLocalGame() {
 	game := new(LocalGame)
 	game.Init()
-	root.currentLocalGame = game
-	root.nav.SetCurrentPanel("localgame")
+	Root.currentLocalGame = game
+	Root.nav.SetCurrentPanel("localgame")
 
-	UpdateBoard(root.Board, root.currentLocalGame.Game.Position().Turn() == chess.White)
+	UpdateBoard(Root.Board, Root.currentLocalGame.Game.Position().Turn() == chess.White)
 
-	UpdateGameStatus(root.Status)
+	UpdateGameStatus(Root.Status)
 }
 
 func gotoPostLocal() {
-	root.currentLocalGame.Status += root.currentLocalGame.Game.Outcome().String()
-	UpdateResult(root.PostStatus)
-	UpdateGameHistory(root.PostHistory)
-	UpdateBoard(root.PostBoard, true)
-	root.nav.SetCurrentPanel("postlocal")
+	Root.currentLocalGame.Status += Root.currentLocalGame.Game.Outcome().String()
+	UpdateResult(Root.PostStatus)
+	UpdateGameHistory(Root.PostHistory)
+	UpdateBoard(Root.PostBoard, true)
+	Root.nav.SetCurrentPanel("postlocal")
 }
 
 func gotoLichess() {
@@ -39,15 +40,15 @@ func gotoLichess() {
 	} else {
 		UpdateLichessTitle("")
 	}
-	root.nav.SetCurrentPanel("lichesswelcome")
+	Root.nav.SetCurrentPanel("lichesswelcome")
 }
 
 func LichessLogin() error {
-	err := PerformOAuth()
+	err := api.PerformOAuth()
 	if err != nil {
 		return err
 	}
-	err = GetLichessUserInfo()
+	err = api.GetLichessUserInfo()
 	if err != nil {
 		return err
 	}
@@ -55,70 +56,70 @@ func LichessLogin() error {
 }
 
 func gotoLichessAfterLogin() {
-	root.nav.SetCurrentPanel("lichesswelcome")
+	Root.nav.SetCurrentPanel("lichesswelcome")
 }
 func gotoLichessFromGame() {
 	killGame <- "GoHome"
 }
 
 func startNewOnlineGame() {
-	root.currentLocalGame = new(LocalGame)
-	root.currentLocalGame.Init()
-	root.nav.SetCurrentPanel("onlinegame")
+	Root.currentLocalGame = new(LocalGame)
+	Root.currentLocalGame.Init()
+	Root.nav.SetCurrentPanel("onlinegame")
 	go LichessGame(currentGameID)
 }
 
 func gotoPostOnline() {
-	UpdateResult(root.OnlinePostStatus)
-	UpdateGameHistory(root.OnlinePostHistory)
-	UpdateBoard(root.OnlinePostBoard, true)
-	root.nav.SetCurrentPanel("postonline")
-	root.app.QueueUpdateDraw(func() {})
+	UpdateResult(Root.OnlinePostStatus)
+	UpdateGameHistory(Root.OnlinePostHistory)
+	UpdateBoard(Root.OnlinePostBoard, true)
+	Root.nav.SetCurrentPanel("postonline")
+	Root.App.QueueUpdateDraw(func() {})
 }
 
 func gotoChallengeConstruction() {
-	root.nav.SetCurrentPanel("challenge")
+	Root.nav.SetCurrentPanel("challenge")
 }
 
 func TestFriend() {
 	CurrentChallenge = testChallenge   //bypass creating a challenge
-	root.nav.SetCurrentPanel("loader") //goto loader
+	Root.nav.SetCurrentPanel("loader") //goto loader
 	go WaitForLichessGameResponse()    //thread to update loading screen and wait for board event
 }
 
 func TestAI() {
 	CurrentChallenge = testAiChallenge //bypass creating a challenge
-	root.nav.SetCurrentPanel("loader") //goto loader
+	Root.nav.SetCurrentPanel("loader") //goto loader
 	go WaitForLichessGameResponse()    //thread to update loading screen and wait for board event
 }
 
 func gotoLoaderFromChallenge() {
 	CurrentChallenge = newChallenge
-	newChallenge = CreateChallengeType{}
-	root.nav.SetCurrentPanel("loader") //goto loader
+	newChallenge = api.CreateChallengeType{}
+	Root.nav.SetCurrentPanel("loader") //goto loader
 	go WaitForLichessGameResponse()    //thread to update loading screen and wait for board event
 }
 
 func gotoOngoing() {
-	err := GetOngoingGames()
+	err := api.GetOngoingGames()
 	if err != nil {
 		UpdateLichessTitle(fmt.Sprintf("Ongoing Games: %v", err))
-		if OngoingGames == nil {
+		if api.OngoingGames == nil {
 			return
 		}
 	}
 	UpdateOngoingList()
-	root.nav.SetCurrentPanel("ongoing")
+	Root.nav.SetCurrentPanel("ongoing")
 }
 
 func gotoChallenges() {
-	err := GetChallenges()
+	err := api.GetChallenges()
 	if err != nil {
 		UpdateLichessTitle(fmt.Sprintf("Challenges: %v", err))
-		if IncomingChallenges == nil && OutgoingChallenges == nil {
+		if api.IncomingChallenges == nil && api.OutgoingChallenges == nil {
 			return
 		}
 	}
 	UpdateChallengeList()
-	root.nav.SetCurrentPanel("listchallenge")
+	Root.nav.SetCurrentPanel("listchallenge")
 }

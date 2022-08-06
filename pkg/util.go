@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"fmt"
@@ -152,8 +152,8 @@ func GetCapturePiecesArr(seq string) error {
 	if seq == "" {
 		return nil
 	}
-	root.currentLocalGame.WhiteCaptured = []string{}
-	root.currentLocalGame.BlackCaptured = []string{}
+	Root.currentLocalGame.WhiteCaptured = []string{}
+	Root.currentLocalGame.BlackCaptured = []string{}
 	moveArr := strings.Split(seq, " ")
 	game := chess.NewGame(chess.UseNotation(chess.UCINotation{}))
 	for i, mStr := range moveArr {
@@ -163,9 +163,9 @@ func GetCapturePiecesArr(seq string) error {
 				//get piece
 				p := GetPiece(mStr[2:], game).String()
 				if i%2 == 0 {
-					root.currentLocalGame.WhiteCaptured = append(root.currentLocalGame.WhiteCaptured, p)
+					Root.currentLocalGame.WhiteCaptured = append(Root.currentLocalGame.WhiteCaptured, p)
 				} else {
-					root.currentLocalGame.BlackCaptured = append(root.currentLocalGame.BlackCaptured, p)
+					Root.currentLocalGame.BlackCaptured = append(Root.currentLocalGame.BlackCaptured, p)
 				}
 			}
 			err := game.MoveStr(mStr)
@@ -281,5 +281,5 @@ func FENtoBoard(table *cv.Table, FEN string, white bool) {
 			log.Fatal("error parsing starting FEN")
 		}
 	}
-	root.app.QueueUpdateDraw(func() {}, table)
+	Root.App.QueueUpdateDraw(func() {}, table)
 }

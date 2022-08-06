@@ -46,7 +46,6 @@ https://mholt.github.io/json-to-go/ JSON
 - save local games
 - add time options?
   
-
 ### oauth
 
   - handle if oauth process rejected
@@ -64,7 +63,6 @@ https://mholt.github.io/json-to-go/ JSON
   
 ### online game client
 
-  - rating info next to name
   - chat
    
 

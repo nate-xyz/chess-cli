@@ -1,9 +1,10 @@
-package main
+package pkg
 
 import (
 	"fmt"
 	"strings"
 
+	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"
 )
 
@@ -25,10 +26,10 @@ func GameOutcome(sequence string) (string, string) {
 	outcome_str := fmt.Sprintf("Game completed. %s by %s.", game.Outcome(), game.Method())
 	var name_str string
 	if game.Outcome()[0] == '1' {
-		name_str = fmt.Sprintf("White (%s) wins.", BoardFullGame.White.Name)
+		name_str = fmt.Sprintf("White (%s) wins.", api.BoardFullGame.White.Name)
 	}
 	if game.Outcome()[0] == '0' {
-		name_str = fmt.Sprintf("Black (%s) wins.", BoardFullGame.Black.Name)
+		name_str = fmt.Sprintf("Black (%s) wins.", api.BoardFullGame.Black.Name)
 	}
 
 	return outcome_str, name_str
@@ -51,16 +52,7 @@ func MoveTranslationToFEN(sequence string) (string, error) {
 	return game.Position().String(), nil
 }
 
-func containedInOngoingGames(a []OngoingGameInfo, gameid string) bool {
-	for _, g := range a {
-		if g.GameID == gameid {
-			return true
-		}
-	}
-	return false
-}
-
-func containedInEventStream(a []StreamEventType, gameid string) (string, bool) {
+func containedInEventStream(a []api.StreamEventType, gameid string) (string, bool) {
 	for _, e := range a {
 		if e.GameID == gameid {
 			return e.EventType, true
@@ -69,17 +61,17 @@ func containedInEventStream(a []StreamEventType, gameid string) (string, bool) {
 	return "", false
 }
 
-func EventContainedInEventStream(a []StreamEventType, eventtype string) (StreamEventType, bool) {
+func EventContainedInEventStream(a []api.StreamEventType, eventtype string) (api.StreamEventType, bool) {
 	for _, e := range a {
 		if e.EventType == eventtype {
 			return e, true
 		}
 	}
-	return StreamEventType{}, false
+	return api.StreamEventType{}, false
 }
 
-func getEvents(a []StreamEventType, gameid string) ([]StreamEventType, bool) {
-	n := make([]StreamEventType, 0)
+func getEvents(a []api.StreamEventType, gameid string) ([]api.StreamEventType, bool) {
+	n := make([]api.StreamEventType, 0)
 	for _, e := range a {
 		if e.GameID == gameid {
 			n = append(n, e)

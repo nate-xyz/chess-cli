@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	cv "code.rocketnine.space/tslocum/cview"
