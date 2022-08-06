@@ -1,39 +1,38 @@
 package pkg
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"
 )
 
-func GameOutcome(sequence string) (string, string) {
-	sequence_array := strings.Split(sequence, " ")
-	game := chess.NewGame(chess.UseNotation(chess.UCINotation{}))
+// func GameOutcome(sequence string) (string, string) {
+// 	sequence_array := strings.Split(sequence, " ")
+// 	game := chess.NewGame(chess.UseNotation(chess.UCINotation{}))
 
-	for _, move := range sequence_array {
-		if game.Outcome() == chess.NoOutcome {
-			err := game.MoveStr(move)
-			if err != nil {
-				// handle error
-				//fmt.Printf("%v\n", err)
-				return "", ""
-			}
-			continue
-		}
-	}
-	outcome_str := fmt.Sprintf("Game completed. %s by %s.", game.Outcome(), game.Method())
-	var name_str string
-	if game.Outcome()[0] == '1' {
-		name_str = fmt.Sprintf("White (%s) wins.", api.BoardFullGame.White.Name)
-	}
-	if game.Outcome()[0] == '0' {
-		name_str = fmt.Sprintf("Black (%s) wins.", api.BoardFullGame.Black.Name)
-	}
+// 	for _, move := range sequence_array {
+// 		if game.Outcome() == chess.NoOutcome {
+// 			err := game.MoveStr(move)
+// 			if err != nil {
+// 				// handle error
+// 				//fmt.Printf("%v\n", err)
+// 				return "", ""
+// 			}
+// 			continue
+// 		}
+// 	}
+// 	outcome_str := fmt.Sprintf("Game completed. %s by %s.", game.Outcome(), game.Method())
+// 	var name_str string
+// 	if game.Outcome()[0] == '1' {
+// 		name_str = fmt.Sprintf("White (%s) wins.", api.BoardFullGame.White.Name)
+// 	}
+// 	if game.Outcome()[0] == '0' {
+// 		name_str = fmt.Sprintf("Black (%s) wins.", api.BoardFullGame.Black.Name)
+// 	}
 
-	return outcome_str, name_str
-}
+// 	return outcome_str, name_str
+// }
 
 func MoveTranslationToFEN(sequence string) (string, error) {
 	sequence_array := strings.Split(sequence, " ")

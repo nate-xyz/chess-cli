@@ -61,7 +61,7 @@ func WaitForLichessGameResponse() {
 				Root.loader.DrawMessage(load_msg)
 			}
 		case e := <-StreamChannel: // receive event directly
-			api.EventStreamArr = append([]api.StreamEventType{e}, api.EventStreamArr...)
+			EventStreamArr = append([]api.StreamEventType{e}, EventStreamArr...)
 			if !RandomSeek { //friend or AI challenge
 				if e.GameID == localid {
 					load_msg = "Game started, going to game screen. (FROM ARRAY)"
@@ -84,7 +84,7 @@ func WaitForLichessGameResponse() {
 		case <-ticker.C:
 			if !RandomSeek {
 				if localid != "" {
-					s, b := containedInEventStream(api.EventStreamArr, localid)
+					s, b := containedInEventStream(EventStreamArr, localid)
 					if b {
 						switch s {
 						case "challenge":
@@ -107,7 +107,7 @@ func WaitForLichessGameResponse() {
 					}
 				}
 			} else {
-				e, b := EventContainedInEventStream(api.EventStreamArr, "gameStart") //TODO: check to make sure match random seek request
+				e, b := EventContainedInEventStream(EventStreamArr, "gameStart") //TODO: check to make sure match random seek request
 				if b && (e.Source != "friend") {
 					load_msg = "Found random opponent!"
 					Root.loader.DrawMessage(load_msg)

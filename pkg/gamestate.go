@@ -1,6 +1,9 @@
 package pkg
 
-import "github.com/notnil/chess"
+import (
+	cv "code.rocketnine.space/tslocum/cview"
+	"github.com/notnil/chess"
+)
 
 func (s *State) NewGame() {
 	game := new(GameState)
@@ -12,8 +15,8 @@ func (s *State) Switch(panel string) {
 	s.nav.SetCurrentPanel(panel)
 }
 
-func (s *State) RefreshAll() {
-	s.App.QueueUpdateDraw(func() {})
+func (s *State) RefreshAll(p ...cv.Primitive) {
+	s.App.QueueUpdateDraw(func() {}, p...)
 }
 
 func (s *GameState) Init() {

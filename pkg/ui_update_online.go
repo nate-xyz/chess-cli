@@ -14,7 +14,7 @@ import (
 func (og *OnlineGame) UpdateAll() {
 	Root.gameState.UpdateLegalMoves()
 	DrawMoveHistory(og.History)
-	DrawBoard(og.Board, api.BoardFullGame.White.Name == api.Username)
+	DrawBoard(og.Board, og.Full.White.Name == api.Username)
 	og.UpdateStatus()
 	og.UpdateUserInfo()
 	og.UpdateList()
@@ -76,23 +76,23 @@ func (og *OnlineGame) UpdateStatus() {
 	Root.gameState.Status = ""
 	var ratestr string
 
-	if api.BoardFullGame.Rated {
+	if og.Full.Rated {
 		ratestr = "Rated"
 	} else {
 		ratestr = "Casual"
 	}
 
-	if api.BoardFullGame.Speed == "correspondence" {
+	if og.Full.Speed == "correspondence" {
 		status += fmt.Sprintf("\n%v • %v %v\n",
 			ratestr,
-			strings.Title(api.BoardFullGame.Speed),
+			strings.Title(og.Full.Speed),
 			currentGameID)
 	} else {
 		status += fmt.Sprintf("\n%v+%v • %v • %v %v\n",
-			timeFormat(int64(api.BoardFullGame.Clock.Initial)),
-			api.BoardFullGame.Clock.Increment/1000,
+			timeFormat(int64(og.Full.Clock.Initial)),
+			og.Full.Clock.Increment/1000,
 			ratestr,
-			strings.Title(api.BoardFullGame.Speed),
+			strings.Title(og.Full.Speed),
 			currentGameID)
 	}
 
@@ -114,12 +114,12 @@ func (og *OnlineGame) UpdateUserInfo() {
 		WhiteCapture string = strings.Join(Root.gameState.WhiteCaptured, "") + " \t"
 	)
 
-	if api.BoardFullGame.White.Name == api.Username {
-		if api.BoardFullGame.Rated {
-			OppName = fmt.Sprintf("%s (%d)", api.BoardFullGame.Black.Name, api.BoardFullGame.Black.Rating)
-			You = fmt.Sprintf("%s (%d)", api.Username, api.BoardFullGame.White.Rating)
+	if og.Full.White.Name == api.Username {
+		if og.Full.Rated {
+			OppName = fmt.Sprintf("%s (%d)", og.Full.Black.Name, og.Full.Black.Rating)
+			You = fmt.Sprintf("%s (%d)", api.Username, og.Full.White.Rating)
 		} else {
-			OppName = api.BoardFullGame.Black.Name
+			OppName = og.Full.Black.Name
 			You = api.Username
 		}
 		UserString = UserString + " (white)\n"
@@ -127,11 +127,11 @@ func (og *OnlineGame) UpdateUserInfo() {
 		OppString = OppString + " (black)\n"
 		OppString = BlackCapture + OppString
 	} else {
-		if api.BoardFullGame.Rated {
-			OppName = fmt.Sprintf("%s (%d)", api.BoardFullGame.White.Name, api.BoardFullGame.White.Rating)
-			You = fmt.Sprintf("%s (%d)", api.Username, api.BoardFullGame.Black.Rating)
+		if og.Full.Rated {
+			OppName = fmt.Sprintf("%s (%d)", og.Full.White.Name, og.Full.White.Rating)
+			You = fmt.Sprintf("%s (%d)", api.Username, og.Full.Black.Rating)
 		} else {
-			OppName = api.BoardFullGame.White.Name
+			OppName = og.Full.White.Name
 			You = api.Username
 		}
 		OppString = OppString + " (white)\n"
@@ -174,7 +174,7 @@ func (og *OnlineGame) DoMove(move string) error {
 	go func() {
 		err := Root.gameState.Game.MoveStr(move)
 		if err == nil {
-			DrawBoard(og.Board, api.BoardFullGame.White.Name == api.Username)
+			DrawBoard(og.Board, og.Full.White.Name == api.Username)
 			Root.App.QueueUpdateDraw(func() {}, og.Board)
 		}
 	}()
@@ -185,7 +185,7 @@ func (og *OnlineGame) DoMove(move string) error {
 	}
 	Root.App.GetScreen().Beep()
 
-	DrawBoard(og.Board, api.BoardFullGame.White.Name == api.Username)
+	DrawBoard(og.Board, og.Full.White.Name == api.Username)
 
 	Root.gameState.NextMove = "" //clear the next move
 	og.UpdateStatus()
@@ -198,21 +198,21 @@ func UpdateChessGame() {
 }
 
 func (og *OnlineGame) InitTimeView() {
-	b := int64(api.BoardFullGame.State.Btime)
-	w := int64(api.BoardFullGame.State.Wtime)
+	b := int64(og.Full.State.Btime)
+	w := int64(og.Full.State.Wtime)
 	og.LiveUpdateTime(b, w)
 }
 
 func (og *OnlineGame) LiveUpdateTime(b int64, w int64) { //MoveCount
-	if api.BoardFullGame.State.Btime == math.MaxInt32 {
+	if og.Full.State.Btime == math.MaxInt32 {
 		return
 	}
 
-	var White bool = api.BoardFullGame.White.Name == api.Username
+	var White bool = og.Full.White.Name == api.Username
 	var UserStr string
 	var OppoStr string
 
-	if api.BoardFullGame.Speed == "correspondence" {
+	if og.Full.Speed == "correspondence" {
 		if White {
 			UserStr += (timeFormat(w))
 			OppoStr += (timeFormat(b))
@@ -221,8 +221,8 @@ func (og *OnlineGame) LiveUpdateTime(b int64, w int64) { //MoveCount
 			OppoStr += (timeFormat(w))
 		}
 	} else {
-		binc := int64(api.BoardGameState.Binc)
-		winc := int64(api.BoardGameState.Winc)
+		binc := int64(og.State.Binc)
+		winc := int64(og.State.Winc)
 		if White {
 			UserStr += (timeFormat(w) + fmt.Sprintf("+%d", winc/1000))
 			OppoStr += (timeFormat(b) + fmt.Sprintf("+%d", binc/1000))
@@ -261,7 +261,7 @@ func (og *OnlineGame) LiveUpdateTime(b int64, w int64) { //MoveCount
 }
 
 func (online *OnlineGame) OnlineTableHandler(row, col int) {
-	selectedCell := translateSelectedCell(row, col, api.BoardFullGame.White.Name == api.Username)
+	selectedCell := translateSelectedCell(row, col, online.Full.White.Name == api.Username)
 
 	if LastSelectedCell.Alg == selectedCell { //toggle selected status of this cell
 
@@ -281,7 +281,7 @@ func (online *OnlineGame) OnlineTableHandler(row, col int) {
 		symbol := online.Board.GetCell(row, col).GetText()
 		LastSelectedCell = PiecePosition{row, col, selectedCell, (symbol == EmptyChar), symbol}
 	}
-	DrawBoard(online.Board, api.BoardFullGame.White.Name == api.Username)
+	DrawBoard(online.Board, online.Full.White.Name == api.Username)
 }
 
 func (ongoing *Ongoing) UpdateList() {

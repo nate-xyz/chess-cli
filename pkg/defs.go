@@ -21,6 +21,7 @@ var (
 	GameListIDArr      []string
 	OutChallengeGameID []string
 	InChallengeGameID  []string
+	EventStreamArr     []api.StreamEventType
 )
 
 const (

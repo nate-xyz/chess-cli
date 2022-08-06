@@ -15,10 +15,16 @@ import (
 func DrawMoveHistory(win *cv.TextView) {
 	var text string
 	moveArr := Root.gameState.MoveHistoryArray
+	if moveArr == nil {
+		return
+	}
 	pieceArr, err := GetPieceArr(moveArr)
 	if err != nil {
 		text += fmt.Sprintf("%v", err)
-		pieceArr = []string{}
+		return
+	}
+	if pieceArr == nil {
+		return
 	}
 	for i := len(moveArr) - 1; i >= 0; i-- {
 		move := moveArr[i]

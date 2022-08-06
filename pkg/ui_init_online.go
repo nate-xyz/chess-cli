@@ -156,7 +156,7 @@ func (g *OnlineGame) Init() *cv.Grid {
 	grid := cv.NewGrid()
 	grid.SetColumns(-1, -2, -1)
 	grid.SetRows(-1, 1, 1, -1, 12, 1)
-	grid.SetBorders(true)
+	grid.SetBorders(false)
 
 	//row, col, rowSpan, colSpain
 	grid.AddItem(inputBox, 4, 1, 1, 1, 0, 0, true)
@@ -250,7 +250,7 @@ func (ong *Ongoing) Init() *cv.Grid {
 	preview := boardPrimitive(func(row, col int) {})
 
 	gameList := cv.NewList()
-	gameList.SetHover(true)
+	gameList.SetHover(false)
 	gameList.SetWrapAround(true)
 	gameList.SetChangedFunc(func(i int, li *cv.ListItem) {
 		gameID := GameListIDArr[i]
@@ -258,7 +258,7 @@ func (ong *Ongoing) Init() *cv.Grid {
 			if game.FullID == gameID {
 				FEN := game.Fen
 				var white bool = (game.IsMyTurn && game.Color == "white") || (!game.IsMyTurn && game.Color == "black")
-				FENtoBoard(ong.Preview, FEN, white)
+				FENtoBoard(Root.ongoing.Preview, FEN, white)
 			}
 		}
 	})

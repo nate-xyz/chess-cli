@@ -5,14 +5,30 @@ import (
 	"time"
 )
 
+type BoardEventEnum int
+
 const (
-	GameFull BoardEvent = iota
+	GameFull BoardEventEnum = iota
 	GameState
 	ChatLine
 	ChatLineSpectator
 	GameStateResign
 	EOF
 )
+
+type BoardEvent struct {
+	Type   BoardEventEnum
+	Full   StreamBoardGameFull
+	State  StreamBoardGameState
+	Chat   StreamBoardChat
+	Resign StreamBoardResign
+}
+
+type StreamEventType struct {
+	EventType string
+	GameID    string
+	Source    string
+}
 
 var (
 	HostUrl  string = "https://lichess.org"
@@ -34,29 +50,29 @@ var (
 		"board:play",
 	}
 
-	UserEmail                   string
-	Username                    string
-	UserProfile                 map[string]interface{}
-	AllFriends                  []string
-	UserInfo                           = UserConfig{ApiToken: "", TokenCreationDate: time.Now(), TokenExpirationDate: time.Now().AddDate(1, 0, 0)}
-	AuthURL                     string = fmt.Sprintf("%s/oauth", HostUrl)
-	TokenURL                    string = fmt.Sprintf("%s/api/token", HostUrl)
-	RedirectURL                 string
-	redirectPort                int
-	json_path                        = "user_config.json"
-	StreamEventStarted          bool = false
-	Ready                       chan struct{}
-	Online                      bool = false
-	ChallengeId                 string
-	OngoingGames                []OngoingGameInfo
-	IncomingChallenges          []ChallengeInfo
-	OutgoingChallenges          []ChallengeInfo
-	EventStreamArr              []StreamEventType
-	BoardFullGame               StreamBoardGameFull
-	BoardGameState              StreamBoardGameState
-	BoardChatLine               StreamBoardChat
-	BoardChatLineSpectator      StreamBoardChat
-	BoardResign                 StreamBoardResign
+	UserEmail          string
+	Username           string
+	UserProfile        map[string]interface{}
+	AllFriends         []string
+	UserInfo                  = UserConfig{ApiToken: "", TokenCreationDate: time.Now(), TokenExpirationDate: time.Now().AddDate(1, 0, 0)}
+	AuthURL            string = fmt.Sprintf("%s/oauth", HostUrl)
+	TokenURL           string = fmt.Sprintf("%s/api/token", HostUrl)
+	RedirectURL        string
+	redirectPort       int
+	json_path               = "user_config.json"
+	StreamEventStarted bool = false
+	Ready              chan struct{}
+	Online             bool = false
+	ChallengeId        string
+	OngoingGames       []OngoingGameInfo
+	IncomingChallenges []ChallengeInfo
+	OutgoingChallenges []ChallengeInfo
+
+	// BoardFullGame               StreamBoardGameFull
+	// BoardGameState              StreamBoardGameState
+	// BoardChatLine               StreamBoardChat
+	// BoardChatLineSpectator      StreamBoardChat
+	// BoardResign                 StreamBoardResign
 	CurrentStreamEventChallenge StreamEventChallenge
 	CurrentStreamEventGame      StreamEventGame
 )
@@ -67,8 +83,6 @@ type UserConfig struct {
 	TokenCreationDate   time.Time
 	TokenExpirationDate time.Time
 }
-
-type BoardEvent int
 
 type CreateChallengeType struct {
 	Type           int
@@ -87,10 +101,4 @@ type CreateChallengeType struct {
 	MinTurn        float64
 	OpenEnded      bool
 	Level          string
-}
-
-type StreamEventType struct {
-	EventType string
-	GameID    string
-	Source    string
 }

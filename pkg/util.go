@@ -12,8 +12,18 @@ import (
 
 	cv "code.rocketnine.space/tslocum/cview"
 	tc "github.com/gdamore/tcell/v2"
+	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"
 )
+
+func containedInOngoingGames(a []api.OngoingGameInfo, gameid string) bool {
+	for _, g := range a {
+		if g.GameID == gameid {
+			return true
+		}
+	}
+	return false
+}
 
 func contains(s []string, str string) bool {
 	for _, v := range s {
@@ -133,8 +143,14 @@ func GetPiece(p string, g *chess.Game) chess.Piece {
 
 func GetPieceArr(moveArr []string) ([]string, error) {
 	pieceArray := []string{}
+	if moveArr == nil {
+		return pieceArray, nil
+	}
 	game := chess.NewGame(chess.UseNotation(chess.UCINotation{}))
 	for _, move := range moveArr {
+		if move == "" {
+			continue
+		}
 		if game.Outcome() == chess.NoOutcome {
 			piece := GetPiece(move, game)
 			pieceArray = append(pieceArray, piece.String())

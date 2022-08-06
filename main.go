@@ -31,7 +31,7 @@ func main() {
 	pkg.StreamChannel = make(chan api.StreamEventType, 1)
 	api.Ready = make(chan struct{})
 	go api.StreamEvent(pkg.StreamChannel, api.Ready)
-	go api.StreamConsumer(pkg.StreamChannel)
+	go pkg.StreamConsumer(pkg.StreamChannel)
 
 	pkg.InitUI()
 

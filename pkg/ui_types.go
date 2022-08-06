@@ -1,6 +1,9 @@
 package pkg
 
-import cv "code.rocketnine.space/tslocum/cview"
+import (
+	cv "code.rocketnine.space/tslocum/cview"
+	"github.com/nate-xyz/chess-cli/api"
+)
 
 type GameScreen struct {
 	Board     *cv.Table
@@ -39,6 +42,10 @@ type OnlineGame struct {
 	OppInfo   *cv.TextView
 	OppTimer  *cv.TextView
 	PopUp     *cv.Flex
+
+	Full   api.StreamBoardGameFull
+	State  api.StreamBoardGameState
+	Resign api.StreamBoardResign
 }
 
 type OnlinePostGame struct {
