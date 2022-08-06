@@ -2,19 +2,16 @@ package main
 
 import (
 	"os"
-	"os/signal"
 	"runtime"
-	"syscall"
-
-	"github.com/gdamore/tcell/encoding"
 
 	cv "code.rocketnine.space/tslocum/cview"
+	"github.com/gdamore/tcell/encoding"
+	api "github.com/nate-xyz/chess-cli/api"
+	pkg "github.com/nate-xyz/chess-cli/pkg"
 )
 
 func main() {
 	encoding.Register()
-	Sigs = make(chan os.Signal, 1)
-	signal.Notify(Sigs, syscall.SIGWINCH)
 	shell := os.Getenv("SHELL")
 	if shell == "" {
 		if runtime.GOOS == "windows" {
@@ -23,23 +20,23 @@ func main() {
 			shell = "/bin/sh"
 		}
 	}
-	root.shell = shell
+	pkg.Root.Shell = shell
 
-	app := cv.NewApplication()
-	defer app.HandlePanic()
-	app.EnableMouse(true)
+	App := cv.NewApplication()
+	defer App.HandlePanic()
+	App.EnableMouse(true)
 
-	root.app = app
+	pkg.Root.App = App
 
-	StreamChannel = make(chan StreamEventType, 1)
-	Ready = make(chan struct{})
-	go StreamEvent(StreamChannel, Ready)
-	go StreamConsumer(StreamChannel)
+	pkg.StreamChannel = make(chan api.StreamEventType, 1)
+	api.Ready = make(chan struct{})
+	go api.StreamEvent(pkg.StreamChannel, api.Ready)
+	go pkg.StreamConsumer(pkg.StreamChannel)
 
-	InitUI()
+	pkg.InitUI()
 
-	if err := root.app.Run(); err != nil {
-		root.app.Stop()
+	if err := pkg.Root.App.Run(); err != nil {
+		pkg.Root.App.Stop()
 		panic(err)
 	}
 }

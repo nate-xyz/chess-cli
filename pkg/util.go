@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"fmt"
@@ -12,8 +12,18 @@ import (
 
 	cv "code.rocketnine.space/tslocum/cview"
 	tc "github.com/gdamore/tcell/v2"
+	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"
 )
+
+func containedInOngoingGames(a []api.OngoingGameInfo, gameid string) bool {
+	for _, g := range a {
+		if g.GameID == gameid {
+			return true
+		}
+	}
+	return false
+}
 
 func contains(s []string, str string) bool {
 	for _, v := range s {
@@ -133,8 +143,14 @@ func GetPiece(p string, g *chess.Game) chess.Piece {
 
 func GetPieceArr(moveArr []string) ([]string, error) {
 	pieceArray := []string{}
+	if moveArr == nil {
+		return pieceArray, nil
+	}
 	game := chess.NewGame(chess.UseNotation(chess.UCINotation{}))
 	for _, move := range moveArr {
+		if move == "" {
+			continue
+		}
 		if game.Outcome() == chess.NoOutcome {
 			piece := GetPiece(move, game)
 			pieceArray = append(pieceArray, piece.String())
@@ -152,8 +168,8 @@ func GetCapturePiecesArr(seq string) error {
 	if seq == "" {
 		return nil
 	}
-	root.currentLocalGame.WhiteCaptured = []string{}
-	root.currentLocalGame.BlackCaptured = []string{}
+	Root.gameState.WhiteCaptured = []string{}
+	Root.gameState.BlackCaptured = []string{}
 	moveArr := strings.Split(seq, " ")
 	game := chess.NewGame(chess.UseNotation(chess.UCINotation{}))
 	for i, mStr := range moveArr {
@@ -163,9 +179,9 @@ func GetCapturePiecesArr(seq string) error {
 				//get piece
 				p := GetPiece(mStr[2:], game).String()
 				if i%2 == 0 {
-					root.currentLocalGame.WhiteCaptured = append(root.currentLocalGame.WhiteCaptured, p)
+					Root.gameState.WhiteCaptured = append(Root.gameState.WhiteCaptured, p)
 				} else {
-					root.currentLocalGame.BlackCaptured = append(root.currentLocalGame.BlackCaptured, p)
+					Root.gameState.BlackCaptured = append(Root.gameState.BlackCaptured, p)
 				}
 			}
 			err := game.MoveStr(mStr)
@@ -281,5 +297,5 @@ func FENtoBoard(table *cv.Table, FEN string, white bool) {
 			log.Fatal("error parsing starting FEN")
 		}
 	}
-	root.app.QueueUpdateDraw(func() {}, table)
+	Root.App.QueueUpdateDraw(func() {}, table)
 }

@@ -1,38 +1,4 @@
-package main
-
-import (
-	"fmt"
-	"time"
-)
-
-//stream event variables
-//https://lichess.org/api#operation/apiStreamEvent
-var CurrentChallenge CreateChallengeType
-var CurrentStreamEventChallenge StreamEventChallenge
-var CurrentStreamEventGame StreamEventGame
-
-//board event stream variables
-//https://lichess.org/api#operation/boardGameStream
-type BoardEvent int
-
-const (
-	GameFull BoardEvent = iota
-	GameState
-	ChatLine
-	ChatLineSpectator
-	GameStateResign
-	EOF
-)
-
-var streamed_move_sequence chan string
-var BoardFullGame StreamBoardGameFull
-var BoardGameState StreamBoardGameState
-var BoardChatLine StreamBoardChat
-var BoardChatLineSpectator StreamBoardChat
-var BoardResign StreamBoardResign
-
-//var CurrentAiChallenge CreateChallengeType
-var WaitingAlert chan StreamEventType
+package api
 
 //API TYPES
 
@@ -58,13 +24,18 @@ type StreamBoardChat struct {
 
 //https://lichess.org/api#operation/boardGameStream
 type StreamBoardGameState struct {
-	Type   string `json:"type"`
-	Moves  string `json:"moves"`
-	Wtime  int    `json:"wtime"`
-	Btime  int    `json:"btime"`
-	Winc   int    `json:"winc"`
-	Binc   int    `json:"binc"`
-	Status string `json:"status"`
+	Type      string `json:"type"`
+	Moves     string `json:"moves"`
+	Wtime     int    `json:"wtime"`
+	Btime     int    `json:"btime"`
+	Winc      int    `json:"winc"`
+	Binc      int    `json:"binc"`
+	Status    string `json:"status"`
+	Winner    string `json:"winner"`
+	Wdraw     bool   `json:"wdraw"`
+	Bdraw     bool   `json:"bdraw"`
+	Wtakeback bool   `json:"wtakeback"`
+	Btakeback bool   `json:"btakeback"`
 }
 
 //https://lichess.org/api#operation/boardGameStream
@@ -330,168 +301,3 @@ type AiChallengeInfo struct {
 		TotalTime int `json: "totalTime"`
 	}
 }
-
-type StreamEventType struct {
-	EventType string
-	GameID    string
-	Source    string
-}
-
-type BoardState struct {
-	Type   string
-	Moves  string
-	Status string
-	Rated  bool
-}
-
-type CreateChallengeType struct {
-	Type           int
-	Username       string
-	DestUser       string
-	Variant        string
-	VariantIndex   int
-	TimeOption     int
-	ClockLimit     string
-	ClockIncrement string
-	Days           string
-	Rated          string
-	RatedBool      bool
-	Color          string
-	ColorIndex     int
-	MinTurn        float64
-	OpenEnded      bool
-	Level          string
-}
-
-// type CreateAiChallengeType struct {
-// 	Type           int
-// 	TimeOption     int
-// 	Level          string
-// 	ClockLimit     string
-// 	ClockIncrement string
-// 	DaysPerTurn    string
-// 	Days           string
-// 	Color          string
-// 	Variant        string
-// 	Fen            string
-// }
-
-//API VARS
-var currentGameID string
-var UserEmail string
-var Username string
-
-var UserProfile map[string]interface{}
-var UserFriends string
-var allFriends []string
-var FriendsMap map[string]bool
-var ChallengeId string
-
-//var streamEvent string
-var OngoingGames []OngoingGameInfo
-var IncomingChallenges []ChallengeInfo
-var OutgoingChallenges []ChallengeInfo
-var BoardStreamArr []BoardState
-
-var EventStreamArr []StreamEventType
-var gameStateChan chan BoardEvent
-var board_state_sig chan bool
-
-//OAUTH TYPES
-
-//type for storing user info into a json
-type UserConfig struct {
-	ApiToken            string
-	TokenCreationDate   time.Time
-	TokenExpirationDate time.Time
-}
-
-//OAUTH VARS
-var hostUrl string = "https://lichess.org"
-var ClientID string = "chess-cli"
-var Scopes = []string{
-	"preference:read",
-	"preference:write",
-	"email:read",
-	"challenge:read",
-	"challenge:write",
-	"challenge:bulk",
-	"study:read",
-	"study:write",
-	"puzzle:read",
-	"follow:read",
-	"follow:write",
-	"msg:write",
-	"bot:play",
-	"board:play",
-}
-
-var UserInfo = UserConfig{ApiToken: "", TokenCreationDate: time.Now(), TokenExpirationDate: time.Now().AddDate(1, 0, 0)}
-var AuthURL string = fmt.Sprintf("%s/oauth", hostUrl)
-var TokenURL string = fmt.Sprintf("%s/api/token", hostUrl)
-var RedirectURL string
-var redirectPort int
-var json_path = "user_config.json"
-
-var StreamChannel chan StreamEventType
-var StreamChannelForWaiter chan StreamEventType
-
-//var Challenge map[string]interface{}
-
-// type TimeInfo struct {
-// 	Increment int    `json: "increment"`
-// 	Limit     int    `json: "limit"`
-// 	Show      string `json: "show"`
-// 	Type      string `json: "type"`
-// }
-
-// type VariantInfo struct {
-// 	Key   string `json: "key"`
-// 	Name  string `json: "name"`
-// 	Short string `json: "short"`
-// }
-
-// type ChallengerInfo struct {
-// 	Id     string `json: "id"`
-// 	Name   string `json: "name"`
-// 	Rating int    `json: "rating"`
-// 	Title  string `json: "title"`
-// }
-
-// type Perf_ struct {
-// 	Icon string `json: "icon"`
-// 	Name string `json: "name"`
-// }
-
-// type OngoingGameVariant struct {
-// 	Key  string `json: "key"`
-// 	Name string `json: "name"`
-// }
-
-// type OngoingGameOpp struct {
-// 	Id       string `json: "id"`
-// 	Username string `json: "username"`
-// 	Rating   string `json: "rating"`
-// }
-
-// type ChallengeInfo struct {
-// 	Id          string         `json: "id"`
-// 	URL         string         `json: "url"`
-// 	Color       string         `json: "color"`
-// 	Direction   string         `json: "direction"`
-// 	TimeControl TimeInfo       `json: "timeControl"`
-// 	Variant     VariantInfo    `json: "variant"`
-// 	Challenger  ChallengerInfo `json: "challenger"`
-// 	DestUser    ChallengerInfo `json: "destUser"`
-// 	Perf        Perf_          `json: "perf"`
-// 	Rated       bool           `json: "rated"`
-// 	Speed       string         `json: "speed"`
-// 	Status      string         `json: "status"`
-// }
-
-// type ChallengeJSON struct {
-// 	In  []ChallengeInfo `json: "in"`
-// 	Out []ChallengeInfo `json: "out"`
-// }
-
-//var JSONresult ChallengeJSON
