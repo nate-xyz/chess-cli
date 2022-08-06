@@ -64,6 +64,7 @@ https://mholt.github.io/json-to-go/ JSON
 ### online game client
 
   - chat
+  - rematch
    
 
 ♞♞♞♞♞♞♞♞♞♞♞
