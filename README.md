@@ -50,10 +50,6 @@ https://mholt.github.io/json-to-go/ JSON
 
   - handle if oauth process rejected
 
-### api
-
-  - BULLET CHALLENGES BUG: when minutes are < 3 minutes for a realtime challenge, api provides an empty json for the GameFull event.
-
 ### online 
 
   - challenge construction 

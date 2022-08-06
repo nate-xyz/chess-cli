@@ -121,7 +121,7 @@ func CreateChallenge(challenge CreateChallengeType) (error, string) {
 			}
 			if !isNil(responseData["challenge"]) { // retrieve the username out of the map
 				challenge := responseData["challenge"].(map[string]interface{})
-				ChallengeId = challenge["id"].(string)
+				ChallengeId := challenge["id"].(string)
 				return nil, ChallengeId
 			}
 			//fmt.Printf("waiting 2")

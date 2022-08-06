@@ -64,12 +64,12 @@ func startNewOnlineGame() {
 	go Root.ongame.LichessGame(currentGameID)
 }
 
-func gotoPostOnline() {
-	Root.pgame.UpdateResult()
+func (online *OnlineGame) gotoPostOnline() {
+	Root.ponline.UpdateResult()
 	DrawMoveHistory(Root.ponline.History)
 	DrawBoard(Root.ponline.Board, true)
 	Root.Switch("postonline")
-	Root.App.QueueUpdateDraw(func() {})
+	Root.RefreshAll()
 }
 
 func gotoChallengeConstruction() {
@@ -118,5 +118,3 @@ func gotoChallenges() {
 	Root.challenges.UpdateList()
 	Root.Switch("listchallenge")
 }
-
-func doNothing() {}

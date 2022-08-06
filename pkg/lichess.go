@@ -15,7 +15,6 @@ import (
 LichessGame() is called after a gameID string has been retrieved from the event stream by WaitForLichessGameResponse()
 This function then starts a board stream with the gameID and loops and modifies the gamestate and view based on events from the board stream.
 */
-
 func (online *OnlineGame) LichessGame(gameID string) {
 	killGame = make(chan string)
 	gameStateChan = make(chan api.BoardEvent, 1)
@@ -24,9 +23,7 @@ func (online *OnlineGame) LichessGame(gameID string) {
 
 	updateInc := make(chan BothInc)
 	stopTicker := make(chan bool)
-	ticker1 := time.NewTicker(time.Millisecond * 500)
-	ticker2 := time.NewTicker(time.Millisecond)
-	go online.TimerLoop(stopTicker, ticker1, ticker2, updateInc)
+	go online.TimerLoop(stopTicker, updateInc)
 
 	for { //loop
 		select {
@@ -35,19 +32,19 @@ func (online *OnlineGame) LichessGame(gameID string) {
 				stopTicker <- true
 				if s != "GoHome" {
 					Root.gameState.Status += fmt.Sprintf("[green]Game ended due to %v.[white]\n", s)
-					gotoPostOnline()
+					online.gotoPostOnline()
 				} else {
 					gotoLichessAfterLogin()
 				}
-
 			})
+			return
 		case err := <-streamDoneErr:
 			Root.App.QueueUpdate(func() {
 				stopTicker <- true
-
 				Root.gameState.Status += fmt.Sprintf("Game ended due to %v.\n", err)
-				gotoPostOnline()
+				online.gotoPostOnline()
 			})
+			return
 		case b := <-gameStateChan:
 			switch b.Type {
 			case api.GameFull: //full game state json
@@ -77,10 +74,10 @@ func (online *OnlineGame) LichessGame(gameID string) {
 				Root.App.GetScreen().Beep()
 
 				if b.Full.State.Status != "started" { //the game has ended.
-					Root.App.QueueUpdate(func() {
+					go Root.App.QueueUpdate(func() {
 						stopTicker <- true
 						Root.gameState.Status += fmt.Sprintf("Game ended due to %v.\n", b.Full.State.Status)
-						gotoPostOnline()
+						online.gotoPostOnline()
 					})
 					return
 				}
@@ -141,13 +138,13 @@ func (online *OnlineGame) LichessGame(gameID string) {
 				}
 
 				if b.State.Status != "started" {
-					Root.App.QueueUpdate(func() {
+					go Root.App.QueueUpdate(func() {
 						stopTicker <- true
 						if b.State.Winner != "" {
 							Root.gameState.Status += fmt.Sprintf("Winner is [blue]%v![white]\n", b.State.Winner)
 						}
 						Root.gameState.Status += fmt.Sprintf("Game ended due to [red]%v.[white]\n", b.State.Status)
-						gotoPostOnline()
+						online.gotoPostOnline()
 					})
 					return
 				}
@@ -156,28 +153,30 @@ func (online *OnlineGame) LichessGame(gameID string) {
 			case api.ChatLineSpectator:
 			case api.GameStateResign:
 				online.Resign = b.Resign
-				Root.App.QueueUpdate(func() {
+				go Root.App.QueueUpdate(func() {
 					stopTicker <- true
 					Root.gameState.Status += "Game ended due to resignation.\n"
-					gotoPostOnline()
+					online.gotoPostOnline()
 				})
 				return
 			case api.EOF:
 				Root.App.QueueUpdate(func() {
 					stopTicker <- true
 					Root.gameState.Status += "Game ended due lost connection.\n"
-					gotoPostOnline()
+					online.gotoPostOnline()
 				})
-				Root.App.QueueUpdate(gotoPostOnline)
+				Root.App.QueueUpdate(online.gotoPostOnline)
 				return
-
 			}
 
 		}
 	}
 }
 
-func (online *OnlineGame) TimerLoop(d <-chan bool, v *time.Ticker, t *time.Ticker, bi <-chan BothInc) {
+func (online *OnlineGame) TimerLoop(d <-chan bool, bi <-chan BothInc) {
+	ticker1 := time.NewTicker(time.Millisecond * 500)
+	ticker2 := time.NewTicker(time.Millisecond * 10)
+
 	var Btime int64
 	var Wtime int64
 	var start time.Time
@@ -189,10 +188,10 @@ func (online *OnlineGame) TimerLoop(d <-chan bool, v *time.Ticker, t *time.Ticke
 			start = time.Now()
 		case <-d:
 			return
-		case <-v.C: //every half second
-			var currB int64 = Btime
-			var currW int64 = Wtime
+		case <-ticker1.C: //every half second
 			if Root.gameState.MoveCount >= 2 {
+				var currB int64 = Btime
+				var currW int64 = Wtime
 				if Root.gameState.MoveCount%2 == 0 {
 					currW -= time.Since(start).Milliseconds()
 				} else {
@@ -201,17 +200,17 @@ func (online *OnlineGame) TimerLoop(d <-chan bool, v *time.Ticker, t *time.Ticke
 				online.LiveUpdateTime(currB, currW)
 				Root.App.QueueUpdateDraw(func() {}, online.UserTimer, online.OppTimer)
 			}
-		case <-t.C: //every ms
-			var currB int64 = Btime
-			var currW int64 = Wtime
+		case <-ticker2.C: //every ms
 			if Root.gameState.MoveCount >= 2 {
-				if currB < 10000 || currW < 1000 { //start drawing millis when less than ten seconds
-					if Root.gameState.MoveCount%2 == 0 {
-						currW -= time.Since(start).Milliseconds()
-						online.LiveUpdateTime(currB, currW)
-					} else {
-						continue
-					}
+				var currB int64 = Btime
+				var currW int64 = Wtime
+				if Root.gameState.MoveCount%2 == 0 {
+					currW -= time.Since(start).Milliseconds()
+				} else {
+					currB -= time.Since(start).Milliseconds()
+				}
+
+				if currB < 10000 || currW < 10000 { //start drawing millis when less than ten seconds
 					online.LiveUpdateTime(currB, currW)
 					Root.App.QueueUpdateDraw(func() {}, online.UserTimer, online.OppTimer)
 				}
@@ -232,6 +231,20 @@ func StreamConsumer(EventChannel <-chan api.StreamEventType) {
 				// time.Sleep(time.Second)
 				Root.wonline.UpdateTitle("")
 			}
+
+			// if n == "ponline" && e.GameID == currentGameID {
+			// 	Root.App.QueueUpdate(func() {
+			// 		modal := NewOptionWindow(
+			// 			fmt.Sprintf("%s: %s", e.EventType, e.GameID),
+			// 			"Ok ✅ ", "Go Home 🏠",
+			// 			func() {
+			// 				Root.ponline.Grid.RemoveItem(Root.ponline.PopUp)
+			// 			},
+			// 			gotoLichessAfterLogin)
+			// 		Root.ponline.PopUp = modal
+			// 		Root.ponline.Grid.AddItem(modal, 2, 2, 1, 1, 0, 0, false)
+			// 	})
+			// }
 		}
 		EventStreamArr = append([]api.StreamEventType{e}, EventStreamArr...)
 	}

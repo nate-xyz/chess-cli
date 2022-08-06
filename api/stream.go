@@ -34,65 +34,54 @@ func StreamEvent(EventChannel chan<- StreamEventType, got_token chan struct{}) e
 	}
 
 	Online = true
-	// go func() {
-	// 	Root.wonline.UpdateTitle("")
-	// }()
 
 	d := json.NewDecoder(resp.Body)
 
 	for {
-		select {
-		// case <-quit_stream:
-		// 	return nil
-		default:
-			var responseData map[string]interface{}
-			err := d.Decode(&responseData)
-			if err != nil {
-				if err != io.EOF {
-					return err
-				}
-				continue
+		var responseData map[string]interface{}
+		err := d.Decode(&responseData)
+		if err != nil {
+			if err != io.EOF {
+				return err
 			}
-			if !isNil(responseData["type"]) {
+			continue
+		}
+		if !isNil(responseData["type"]) {
 
-				streamEvent := responseData["type"].(string)
-				var streamEventID string
-				var streamSource string
-				switch streamEvent {
-				case "gameStart", "gameFinish": //game type stream event
-					game := responseData["game"].(map[string]interface{})
-					streamEventID = game["id"].(string)
-					streamSource = game["source"].(string)
+			streamEvent := responseData["type"].(string)
+			var streamEventID string
+			var streamSource string
+			switch streamEvent {
+			case "gameStart", "gameFinish": //game type stream event
+				game := responseData["game"].(map[string]interface{})
+				streamEventID = game["id"].(string)
+				streamSource = game["source"].(string)
 
-					jsonStr, err := json.Marshal(responseData)
-					if err != nil {
-						log.Fatal(err)
-					}
-					if err := json.Unmarshal(jsonStr, &CurrentStreamEventGame); err != nil {
-						log.Fatal(err)
-					}
+				// jsonStr, err := json.Marshal(responseData)
+				// if err != nil {
+				// 	log.Fatal(err)
+				// }
+				// if err := json.Unmarshal(jsonStr, &CurrentStreamEventGame); err != nil {
+				// 	log.Fatal(err)
+				// }
 
-				case "challenge", "challengeCanceled", "challengeDeclined": //challenge type stream event
-					challenge := responseData["challenge"].(map[string]interface{})
-					streamEventID = challenge["id"].(string)
+			case "challenge", "challengeCanceled", "challengeDeclined": //challenge type stream event
+				challenge := responseData["challenge"].(map[string]interface{})
+				streamEventID = challenge["id"].(string)
 
-					jsonStr, err := json.Marshal(responseData)
-					if err != nil {
-						log.Fatal(err)
-					}
-					if err := json.Unmarshal(jsonStr, &CurrentStreamEventChallenge); err != nil {
-						log.Fatal(err)
-					}
+				// jsonStr, err := json.Marshal(responseData)
+				// if err != nil {
+				// 	log.Fatal(err)
+				// }
+				// if err := json.Unmarshal(jsonStr, &CurrentStreamEventChallenge); err != nil {
+				// 	log.Fatal(err)
+				// }
 
-				}
-				EventChannel <- StreamEventType{streamEvent, streamEventID, streamSource}
-			} else {
-				Online = false
-				// go func() {
-				// 	Root.wonline.UpdateTitle("")
-				// }()
-				return fmt.Errorf("invalid stream event")
 			}
+			EventChannel <- StreamEventType{streamEvent, streamEventID, streamSource}
+		} else {
+			Online = false
+			return fmt.Errorf("invalid stream event")
 		}
 	}
 }

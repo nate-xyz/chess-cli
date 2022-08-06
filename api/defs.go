@@ -58,23 +58,13 @@ var (
 	AuthURL            string = fmt.Sprintf("%s/oauth", HostUrl)
 	TokenURL           string = fmt.Sprintf("%s/api/token", HostUrl)
 	RedirectURL        string
-	redirectPort       int
 	json_path               = "user_config.json"
 	StreamEventStarted bool = false
 	Ready              chan struct{}
 	Online             bool = false
-	ChallengeId        string
 	OngoingGames       []OngoingGameInfo
 	IncomingChallenges []ChallengeInfo
 	OutgoingChallenges []ChallengeInfo
-
-	// BoardFullGame               StreamBoardGameFull
-	// BoardGameState              StreamBoardGameState
-	// BoardChatLine               StreamBoardChat
-	// BoardChatLineSpectator      StreamBoardChat
-	// BoardResign                 StreamBoardResign
-	CurrentStreamEventChallenge StreamEventChallenge
-	CurrentStreamEventGame      StreamEventGame
 )
 
 //type for storing user info into a json
@@ -86,7 +76,6 @@ type UserConfig struct {
 
 type CreateChallengeType struct {
 	Type           int
-	Username       string
 	DestUser       string
 	Variant        string
 	VariantIndex   int

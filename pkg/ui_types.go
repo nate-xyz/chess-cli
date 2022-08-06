@@ -49,9 +49,12 @@ type OnlineGame struct {
 }
 
 type OnlinePostGame struct {
+	Grid *cv.Grid
+
 	Board   *cv.Table
 	Result  *cv.TextView
 	History *cv.TextView
+	PopUp   *cv.Flex
 }
 
 type Ongoing struct {

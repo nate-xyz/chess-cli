@@ -203,11 +203,11 @@ func (pg *OnlinePostGame) Init() *cv.Grid {
 
 	//list construction
 	postList := cv.NewList()
-	choices := []string{"Home", "Rematch", "New", "Quit"}
-	explain := []string{"Back to the welcome screen", "Send rematch offer", "Create a new game", "Press to exit"}
-	shortcuts := []rune{'h', 'r', 'n', 'q'}
+	choices := []string{"Home", "New", "Quit"}
+	explain := []string{"Back to the welcome screen", "Create a new game", "Press to exit"}
+	shortcuts := []rune{'h', 'n', 'q'}
 
-	selectFunc := []ListSelectedFunc{gotoLichess, doNothing, gotoChallengeConstruction, Root.App.Stop}
+	selectFunc := []ListSelectedFunc{gotoLichess, gotoChallengeConstruction, Root.App.Stop}
 
 	postList.SetWrapAround(true)
 	postList.SetHover(true)
@@ -234,6 +234,7 @@ func (pg *OnlinePostGame) Init() *cv.Grid {
 	grid.AddItem(Ribbon, 3, 0, 1, 3, 0, 0, false)
 	grid.AddItem(historyBox, 1, 0, 2, 1, 0, 0, false)
 
+	pg.Grid = grid
 	pg.Board = gameBox
 	pg.Result = resultBox
 	pg.History = historyBox
@@ -258,7 +259,7 @@ func (ong *Ongoing) Init() *cv.Grid {
 			if game.FullID == gameID {
 				FEN := game.Fen
 				var white bool = (game.IsMyTurn && game.Color == "white") || (!game.IsMyTurn && game.Color == "black")
-				FENtoBoard(Root.ongoing.Preview, FEN, white)
+				FENtoBoard(ong.Preview, FEN, white)
 			}
 		}
 	})

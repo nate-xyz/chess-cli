@@ -193,10 +193,6 @@ func (og *OnlineGame) DoMove(move string) error {
 	return nil
 }
 
-func UpdateChessGame() {
-	Root.gameState.Game = NewChessGame
-}
-
 func (og *OnlineGame) InitTimeView() {
 	b := int64(og.Full.State.Btime)
 	w := int64(og.Full.State.Wtime)
@@ -395,85 +391,7 @@ func (c *Challenges) UpdateList() {
 
 }
 
-func (on *OnlineGame) doAbort() {
-	err := api.AbortGame(currentGameID)
-	if err != nil {
-		Root.gameState.Status += fmt.Sprintf("[red]%v[white]\n", err)
-		Root.ongame.UpdateStatus()
-		return
-	}
-	killGame <- "abort"
-}
-
-func (on *OnlineGame) doResign() {
-	err := api.ResignGame(currentGameID)
-	if err != nil {
-		Root.gameState.Status += fmt.Sprintf("[red]%v[white]\n", err)
-		Root.ongame.UpdateStatus()
-		return
-	}
-	killGame <- "resign"
-}
-
-func (on *OnlineGame) doOfferDraw() {
-	err := api.HandleDraw(currentGameID, true)
-	if err != nil {
-		Root.gameState.Status += fmt.Sprintf("[red]%v[white]\n", err)
-		Root.ongame.UpdateStatus()
-		return
-	}
-
-}
-
-func (on *OnlineGame) doAcceptDraw() {
-	err := api.HandleDraw(currentGameID, true)
-	if err != nil {
-		Root.gameState.Status += fmt.Sprintf("[red]%v[white]\n", err)
-		on.UpdateStatus()
-		on.Grid.RemoveItem(on.PopUp)
-		return
-	}
-	on.Grid.RemoveItem(on.PopUp)
-}
-
-func (on *OnlineGame) doRejectDraw() {
-	err := api.HandleDraw(currentGameID, false)
-	if err != nil {
-		Root.gameState.Status += fmt.Sprintf("[red]%v[white]\n", err)
-		on.UpdateStatus()
-		on.Grid.RemoveItem(on.PopUp)
-		return
-	}
-	on.Grid.RemoveItem(on.PopUp)
-}
-
-func (on *OnlineGame) doProposeTakeBack() {
-	err := api.HandleTakeback(currentGameID, true)
-	if err != nil {
-		Root.gameState.Status += fmt.Sprintf("[red]%v[white]\n", err)
-		on.UpdateStatus()
-		return
-	}
-}
-
-func (on *OnlineGame) doAcceptTakeBack() {
-	err := api.HandleTakeback(currentGameID, true)
-	if err != nil {
-		Root.gameState.Status += fmt.Sprintf("[red]%v[white]\n", err)
-		on.UpdateStatus()
-		on.Grid.RemoveItem(on.PopUp)
-		return
-	}
-	on.Grid.RemoveItem(on.PopUp)
-}
-
-func (on *OnlineGame) doRejectTakeBack() {
-	err := api.HandleTakeback(currentGameID, false)
-	if err != nil {
-		Root.gameState.Status += fmt.Sprintf("[red]%v[white]\n", err)
-		on.UpdateStatus()
-		on.Grid.RemoveItem(on.PopUp)
-		return
-	}
-	on.Grid.RemoveItem(on.PopUp)
+func (pg *OnlinePostGame) UpdateResult() {
+	pg.Result.SetText(Root.gameState.Status)
+	Root.gameState.Status = ""
 }
