@@ -156,7 +156,7 @@ func (g *OnlineGame) Init() *cv.Grid {
 	grid := cv.NewGrid()
 	grid.SetColumns(-1, -2, -1)
 	grid.SetRows(-1, 1, 1, -1, 12, 1)
-	grid.SetBorders(false)
+	grid.SetBorders(true)
 
 	//row, col, rowSpan, colSpain
 	grid.AddItem(inputBox, 4, 1, 1, 1, 0, 0, true)
@@ -176,8 +176,8 @@ func (g *OnlineGame) Init() *cv.Grid {
 	g.Board = gameBox
 	g.Status = statusBox
 	g.History = historyBox
-	g.OppTimer = oppInfoBox
-	g.OppInfo = oppTimerBox
+	g.OppTimer = oppTimerBox
+	g.OppInfo = oppInfoBox
 	g.UserTimer = userTimerBox
 	g.UserInfo = userInfoBox
 	g.List = options

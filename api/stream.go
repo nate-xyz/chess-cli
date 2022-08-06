@@ -218,17 +218,3 @@ func StreamBoardState(EventChannel chan<- BoardEvent, StreamError chan<- error, 
 		}
 	}
 }
-
-//consumes board events after the board stream has been started for a game
-
-// func BoardConsumer(EventChannel <-chan BoardEvent) {
-// 	for {
-// 		select {
-// 		case e := <-EventChannel:
-// 			//fmt.Printf("consumer: %v %v \n", e.Event, e.Id)
-// 			BoardStreamArr = append([]BoardState{e}, BoardStreamArr...)
-// 			WriteLocal(fmt.Sprintf("BoardEvent_%v", time.Now().Format("2006-01-02_15:04:05")),
-// 				fmt.Sprintf("%v\n%v\n%v\n%v", e.Type, e.Moves, e.Status, e.Rated))
-// 		}
-// 	}
-// }

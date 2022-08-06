@@ -38,10 +38,10 @@ func (og *OnlineGame) UpdateList() {
 	optionsExplain = []string{"Propose a takeback", "Abort the current game", "Offer a draw to your opponent", "Resign from the current game"}
 	optionsFunc = []ListSelectedFunc{og.doProposeTakeBack, og.doAbort, og.doOfferDraw, og.doResign}
 	for i, opt := range optionsList {
-		if opt == "Takeback" && MoveCount == 0 {
+		if opt == "Takeback" && Root.gameState.MoveCount == 0 {
 			continue
 		}
-		if (opt == "Offer Draw" || opt == "Resign") && MoveCount < 2 {
+		if (opt == "Offer Draw" || opt == "Resign") && Root.gameState.MoveCount < 2 {
 			continue
 		}
 		item := cv.NewListItem(opt)
@@ -232,8 +232,8 @@ func (og *OnlineGame) LiveUpdateTime(b int64, w int64) { //MoveCount
 		}
 	}
 
-	if MoveCount > 1 {
-		if MoveCount%2 == 0 {
+	if Root.gameState.MoveCount > 1 {
+		if Root.gameState.MoveCount%2 == 0 {
 			if White {
 				UserStr += " ⏲️\t"
 				og.UserTimer.SetBackgroundColor(tc.ColorSeaGreen)
@@ -262,6 +262,7 @@ func (og *OnlineGame) LiveUpdateTime(b int64, w int64) { //MoveCount
 
 func (online *OnlineGame) OnlineTableHandler(row, col int) {
 	selectedCell := translateSelectedCell(row, col, api.BoardFullGame.White.Name == api.Username)
+
 	if LastSelectedCell.Alg == selectedCell { //toggle selected status of this cell
 
 		online.Board.Select(100, 100)

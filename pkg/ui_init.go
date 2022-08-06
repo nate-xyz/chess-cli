@@ -5,7 +5,6 @@ import (
 )
 
 func InitUI() {
-	panels := cv.NewPanels()
 	lgame := new(GameScreen)
 	pgame := new(PostGameScreen)
 	wonline := new(WelcomeOnline)
@@ -22,6 +21,7 @@ func InitUI() {
 	Root.ponline = ponline
 	Root.ongoing = ongoing
 	Root.challenges = challenges
+	panels := cv.NewPanels()
 	panels.AddPanel("welcome", WelcomeInit(), true, true)
 	panels.AddPanel("localgame", lgame.Init(), true, false)
 	panels.AddPanel("postlocal", pgame.Init(), true, false)
@@ -32,8 +32,6 @@ func InitUI() {
 	panels.AddPanel("challenge", initConstruct(), true, false)
 	panels.AddPanel("ongoing", ongoing.Init(), true, false)
 	panels.AddPanel("listchallenge", challenges.Init(), true, false)
-
 	Root.nav = panels
 	Root.App.SetRoot(panels, true)
-
 }

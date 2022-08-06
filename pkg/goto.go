@@ -7,8 +7,6 @@ import (
 	"github.com/notnil/chess"
 )
 
-func doNothing() {}
-
 func gotoWelcome() {
 	Root.Switch("welcome")
 
@@ -120,3 +118,5 @@ func gotoChallenges() {
 	Root.challenges.UpdateList()
 	Root.Switch("listchallenge")
 }
+
+func doNothing() {}

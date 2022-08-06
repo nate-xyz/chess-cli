@@ -134,16 +134,7 @@ func (g *GameScreen) Init() *cv.Grid {
 
 	grid.AddItem(g.List, 4, 0, 1, 1, 0, 0, false)
 
-	// Root.Board = g.Board
-	// Root.Status = g.Status
-	// Root.History = g.History
-	// Root.InfoOppo = g.OppInfo
-	// Root.TimeOppo = g.OppTimer
-	// Root.TimeUser = g.UserTimer
-	// Root.InfoUser = g.UserInfo
-
 	return grid
-
 }
 
 func (p *PostGameScreen) Init() *cv.Grid {
