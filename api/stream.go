@@ -35,7 +35,7 @@ func StreamEvent(EventChannel chan<- StreamEventType, got_token chan struct{}) e
 
 	Online = true
 	// go func() {
-	// 	UpdateLichessTitle("")
+	// 	Root.wonline.UpdateTitle("")
 	// }()
 
 	d := json.NewDecoder(resp.Body)
@@ -89,7 +89,7 @@ func StreamEvent(EventChannel chan<- StreamEventType, got_token chan struct{}) e
 			} else {
 				Online = false
 				// go func() {
-				// 	UpdateLichessTitle("")
+				// 	Root.wonline.UpdateTitle("")
 				// }()
 				return fmt.Errorf("invalid stream event")
 			}

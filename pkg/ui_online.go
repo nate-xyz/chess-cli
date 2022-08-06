@@ -8,37 +8,7 @@ import (
 	"github.com/nate-xyz/chess-cli/api"
 )
 
-func initLoadingScreen() *cv.Grid {
-	grid := cv.NewGrid()
-	grid.SetColumns(-1)
-	grid.SetRows(-1, -1, 1)
-	grid.SetBorders(false)
-
-	loaderIconBox := cv.NewTextView()
-	loaderIconBox.SetWordWrap(false)
-	loaderIconBox.SetDynamicColors(true)
-	loaderIconBox.SetTextAlign(cv.AlignCenter)
-	loaderIconBox.SetVerticalAlign(cv.AlignMiddle)
-
-	loaderMsgBox := cv.NewTextView()
-	loaderMsgBox.SetWordWrap(true)
-	loaderMsgBox.SetDynamicColors(true)
-	loaderMsgBox.SetTextAlign(cv.AlignCenter)
-	loaderMsgBox.SetVerticalAlign(cv.AlignMiddle)
-
-	loaderRibbon := ribbonPrimitive("CHESS-CLI -> Loading, please wait...")
-
-	grid.AddItem(loaderMsgBox, 1, 0, 1, 1, 0, 0, true)
-	grid.AddItem(loaderIconBox, 0, 0, 1, 1, 0, 0, false)
-	grid.AddItem(loaderRibbon, 2, 0, 1, 1, 0, 0, false)
-
-	Root.LoaderIcon = loaderIconBox
-	Root.LoaderMsg = loaderMsgBox
-
-	return grid
-}
-
-func initWelcomeLichess() *cv.Grid {
+func (w *WelcomeOnline) Init() *cv.Grid {
 	grid := cv.NewGrid()
 	grid.SetColumns(-2, -1)
 	grid.SetRows(-1, -2, -1, 1)
@@ -72,14 +42,44 @@ func initWelcomeLichess() *cv.Grid {
 	grid.AddItem(quoteBox, 2, 0, 1, 2, 0, 0, false)
 	grid.AddItem(welcomeRibbon, 3, 0, 1, 2, 0, 0, false)
 
-	Root.LichessTitle = titleBox
+	Root.wonline.Title = titleBox
 
 	return grid
 
 }
 
-func initLichessGameGrid() *cv.Grid {
-	gameBox := boardPrimitive(OnlineTableHandler)
+func (l *Loader) Init() *cv.Grid {
+	grid := cv.NewGrid()
+	grid.SetColumns(-1)
+	grid.SetRows(-1, -1, 1)
+	grid.SetBorders(false)
+
+	loaderIconBox := cv.NewTextView()
+	loaderIconBox.SetWordWrap(false)
+	loaderIconBox.SetDynamicColors(true)
+	loaderIconBox.SetTextAlign(cv.AlignCenter)
+	loaderIconBox.SetVerticalAlign(cv.AlignMiddle)
+
+	loaderMsgBox := cv.NewTextView()
+	loaderMsgBox.SetWordWrap(true)
+	loaderMsgBox.SetDynamicColors(true)
+	loaderMsgBox.SetTextAlign(cv.AlignCenter)
+	loaderMsgBox.SetVerticalAlign(cv.AlignMiddle)
+
+	loaderRibbon := ribbonPrimitive("CHESS-CLI -> Loading, please wait...")
+
+	grid.AddItem(loaderMsgBox, 1, 0, 1, 1, 0, 0, true)
+	grid.AddItem(loaderIconBox, 0, 0, 1, 1, 0, 0, false)
+	grid.AddItem(loaderRibbon, 2, 0, 1, 1, 0, 0, false)
+
+	l.Message = loaderMsgBox
+	l.Icon = loaderIconBox
+
+	return grid
+}
+
+func (g *OnlineGame) Init() *cv.Grid {
+	gameBox := boardPrimitive(g.OnlineTableHandler)
 
 	statusBox := cv.NewTextView()
 	statusBox.SetWordWrap(true)
@@ -116,23 +116,23 @@ func initLichessGameGrid() *cv.Grid {
 	inputBox := cv.NewInputField()
 
 	inputBox.SetDoneFunc(func(key tc.Key) {
-		Root.currentLocalGame.NextMove = inputBox.GetText()
+		Root.gameState.NextMove = inputBox.GetText()
 		inputBox.SetText("")
 		//TODO: print response status body to window if invalid
 		if key == tc.KeyEnter {
-			if contains(Root.currentLocalGame.LegalMoves, Root.currentLocalGame.NextMove) {
-				err := OnlineGameDoMove(Root.currentLocalGame.NextMove)
+			if contains(Root.gameState.LegalMoves, Root.gameState.NextMove) {
+				err := g.DoMove(Root.gameState.NextMove)
 				if err != nil {
-					Root.currentLocalGame.Status += fmt.Sprintf("%v", err)
-					UpdateGameStatus(Root.Status)
+					Root.gameState.Status += fmt.Sprintf("%v", err)
+					Root.lgame.UpdateStatus()
 				}
 			} else {
-				Root.currentLocalGame.Status += "Last input [red]invalid.[white]\n"
-				UpdateGameStatus(Root.OnlineStatus)
+				Root.gameState.Status += "Last input [red]invalid.[white]\n"
+				g.UpdateStatus()
 			}
 
 		} else {
-			Root.currentLocalGame.NextMove = ""
+			Root.gameState.NextMove = ""
 		}
 	})
 	inputBox.SetLabel("Enter your move: ")
@@ -172,22 +172,20 @@ func initLichessGameGrid() *cv.Grid {
 
 	grid.AddItem(options, 4, 0, 1, 1, 0, 0, false)
 
-	Root.OnlineBoard = gameBox
-	Root.OnlineStatus = statusBox
-	Root.OnlineHistory = historyBox
-
-	Root.OnlineInfoOppo = oppInfoBox
-	Root.OnlineTimeOppo = oppTimerBox
-	Root.OnlineTimeUser = userTimerBox
-	Root.OnlineInfoUser = userInfoBox
-	Root.Online = grid
-	Root.OnlineExitList = options
+	g.Grid = grid
+	g.Board = gameBox
+	g.Status = statusBox
+	g.History = historyBox
+	g.OppTimer = oppInfoBox
+	g.OppInfo = oppTimerBox
+	g.UserTimer = userTimerBox
+	g.UserInfo = userInfoBox
+	g.List = options
 
 	return grid
 }
 
-func initPostOnline() *cv.Grid {
-
+func (pg *OnlinePostGame) Init() *cv.Grid {
 	gameBox := cv.NewTable()
 	gameBox.SetSelectable(false, false)
 	gameBox.SetSortClicked(false)
@@ -236,21 +234,21 @@ func initPostOnline() *cv.Grid {
 	grid.AddItem(Ribbon, 3, 0, 1, 3, 0, 0, false)
 	grid.AddItem(historyBox, 1, 0, 2, 1, 0, 0, false)
 
-	Root.OnlinePostBoard = gameBox
-	Root.OnlinePostStatus = resultBox
-	Root.OnlinePostHistory = historyBox
+	pg.Board = gameBox
+	pg.Result = resultBox
+	pg.History = historyBox
 
 	return grid
 }
 
-func initOngoing() *cv.Grid {
+func (ong *Ongoing) Init() *cv.Grid {
 	grid := cv.NewGrid()
 	grid.SetColumns(-1, -2, -4)
 	grid.SetRows(10, -2, 10, 1)
 	grid.SetBorders(false)
 
 	preview := boardPrimitive(func(row, col int) {})
-	Root.OngoingPreview = preview
+
 	gameList := cv.NewList()
 	gameList.SetHover(true)
 	gameList.SetWrapAround(true)
@@ -260,7 +258,7 @@ func initOngoing() *cv.Grid {
 			if game.FullID == gameID {
 				FEN := game.Fen
 				var white bool = (game.IsMyTurn && game.Color == "white") || (!game.IsMyTurn && game.Color == "black")
-				FENtoBoard(Root.OngoingPreview, FEN, white)
+				FENtoBoard(ong.Preview, FEN, white)
 			}
 		}
 	})
@@ -302,11 +300,16 @@ func initOngoing() *cv.Grid {
 	grid.AddItem(Center(30, 10, preview), 1, 0, 1, 2, 0, 0, false)
 	grid.AddItem(ribbon, 3, 0, 1, 3, 0, 0, false)
 	grid.AddItem(options, 2, 1, 1, 1, 0, 0, false)
-	Root.OngoingList = gameList
+
+	//Root.OngoingList = gameList
+
+	ong.List = gameList
+	ong.Preview = preview
+
 	return grid
 }
 
-func initChallenges() *cv.Grid {
+func (c *Challenges) Init() *cv.Grid {
 	grid := cv.NewGrid()
 	grid.SetColumns(-1, -3, -3, -1)
 	grid.SetRows(-1, -3, 5, 1)
@@ -364,9 +367,8 @@ func initChallenges() *cv.Grid {
 	grid.AddItem(intitle, 0, 0, 1, 2, 0, 0, false)
 	grid.AddItem(outtitle, 0, 2, 1, 2, 0, 0, false)
 
-	Root.OutChallengeList = outgoing
-	Root.InChallengeList = incoming
+	c.Out = outgoing
+	c.In = incoming
 
 	return grid
-
 }

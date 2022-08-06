@@ -2,7 +2,6 @@ package pkg
 
 import (
 	"fmt"
-	"os"
 
 	cv "code.rocketnine.space/tslocum/cview"
 	"github.com/nate-xyz/chess-cli/api"
@@ -10,58 +9,19 @@ import (
 )
 
 type State struct {
-	App              *cv.Application
-	nav              *cv.Panels
-	Shell            string
-	currentLocalGame *LocalGame
-	//window pointers
-	//local
-	Board   *cv.Table
-	Status  *cv.TextView
-	History *cv.TextView
+	App       *cv.Application
+	nav       *cv.Panels
+	Shell     string
+	gameState *LocalGame
 
-	InfoUser *cv.TextView
-	InfoOppo *cv.TextView
-	TimeUser *cv.TextView
-	TimeOppo *cv.TextView
-
-	//post local
-	PostStatus  *cv.TextView
-	PostBoard   *cv.Table
-	PostHistory *cv.TextView
-
-	//lichess welcome
-	LichessTitle *cv.TextView
-
-	//loader
-	LoaderIcon *cv.TextView
-	LoaderMsg  *cv.TextView
-
-	//online
-	Online         *cv.Grid
-	OnlineBoard    *cv.Table
-	OnlineStatus   *cv.TextView
-	OnlineHistory  *cv.TextView
-	OnlineExitList *cv.List
-
-	OnlineInfoUser *cv.TextView
-	OnlineInfoOppo *cv.TextView
-	OnlineTimeUser *cv.TextView
-	OnlineTimeOppo *cv.TextView
-	OnlineModal    *cv.Flex
-
-	//online post
-	OnlinePostStatus  *cv.TextView
-	OnlinePostBoard   *cv.Table
-	OnlinePostHistory *cv.TextView
-
-	//ongoing
-	OngoingList    *cv.List
-	OngoingPreview *cv.Table
-
-	//challenges
-	OutChallengeList *cv.List
-	InChallengeList  *cv.List
+	lgame      *GameScreen
+	pgame      *PostGameScreen
+	wonline    *WelcomeOnline
+	loader     *Loader
+	ongame     *OnlineGame
+	ponline    *OnlinePostGame
+	ongoing    *Ongoing
+	challenges *Challenges
 }
 
 const (
@@ -79,7 +39,6 @@ Play locally with a [yellow]friend[white] or online with [red]Lichess!`
 
 var (
 	Root = new(State)
-	Sigs chan os.Signal
 
 	killGame     chan string
 	NewChessGame *chess.Game             //used in online.go in the LichessGame() function to update the board position from new stream event

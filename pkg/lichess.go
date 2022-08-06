@@ -46,12 +46,12 @@ func WaitForLichessGameResponse() {
 	var RandomSeek bool = CurrentChallenge.Type == 0
 	go SendChallengeRequest(getgameid, RequestError) //send the request
 	load_msg := "Requesting new game from Lichess, please wait."
-	UpdateLoaderMsg(load_msg)
+	Root.loader.DrawMessage(load_msg)
 	for {
 		select {
 		case e := <-RequestError:
 			load_msg = fmt.Sprintf("ERROR: %v", e)
-			UpdateLoaderMsg(load_msg)
+			Root.loader.DrawMessage(load_msg)
 			go func() {
 				time.Sleep(time.Second * 5)
 				Root.App.QueueUpdate(gotoLichessAfterLogin)
@@ -61,14 +61,14 @@ func WaitForLichessGameResponse() {
 				localid = id
 			} else {
 				load_msg = id
-				UpdateLoaderMsg(load_msg)
+				Root.loader.DrawMessage(load_msg)
 			}
 		case e := <-StreamChannel: // receive event directly
 			api.EventStreamArr = append([]api.StreamEventType{e}, api.EventStreamArr...)
 			if !RandomSeek { //friend or AI challenge
 				if e.GameID == localid {
 					load_msg = "Game started, going to game screen. (FROM ARRAY)"
-					UpdateLoaderMsg(load_msg)
+					Root.loader.DrawMessage(load_msg)
 					currentGameID = e.GameID
 					Root.App.QueueUpdate(startNewOnlineGame) //goto game
 					return                                   //necessary for QueueUpdate
@@ -76,7 +76,7 @@ func WaitForLichessGameResponse() {
 			} else {
 				if e.EventType == "gameStart" && e.Source != "friend" { //TODO: check to make sure match random seek request
 					load_msg = "Found random opponent!"
-					UpdateLoaderMsg(load_msg)
+					Root.loader.DrawMessage(load_msg)
 					go func() {
 						currentGameID = e.GameID
 						time.Sleep(time.Second)
@@ -92,28 +92,28 @@ func WaitForLichessGameResponse() {
 						switch s {
 						case "challenge":
 							load_msg = fmt.Sprintf("Waiting for %v to accept the challenge %v/%v.", CurrentChallenge.DestUser, api.HostUrl, localid)
-							UpdateLoaderMsg(load_msg)
+							Root.loader.DrawMessage(load_msg)
 						case "gameFinish":
 							return
 						case "challengeCanceled", "challengeDeclined":
 							return
 						case "gameStart":
 							load_msg = "Game started, going to game screen. (FROM STREAM)"
-							UpdateLoaderMsg(load_msg)
+							Root.loader.DrawMessage(load_msg)
 							currentGameID = localid
 							Root.App.QueueUpdate(startNewOnlineGame) ///goto game
 							return                                   //necessary for QueueUpdate
 						}
 					} else {
 						load_msg = fmt.Sprintf("Waiting for %v to accept the challenge %v/%v.", CurrentChallenge.DestUser, api.HostUrl, localid)
-						UpdateLoaderMsg(load_msg)
+						Root.loader.DrawMessage(load_msg)
 					}
 				}
 			} else {
 				e, b := EventContainedInEventStream(api.EventStreamArr, "gameStart") //TODO: check to make sure match random seek request
 				if b && (e.Source != "friend") {
 					load_msg = "Found random opponent!"
-					UpdateLoaderMsg(load_msg)
+					Root.loader.DrawMessage(load_msg)
 					go func() {
 						currentGameID = e.GameID
 						time.Sleep(time.Second)
@@ -121,9 +121,9 @@ func WaitForLichessGameResponse() {
 					}()
 				}
 			}
-			icon_index = UpdateLoaderIcon(icon_index)
+			icon_index = Root.loader.DrawIcon(icon_index)
 		default:
-			UpdateLoaderMsg(load_msg)
+			Root.loader.DrawMessage(load_msg)
 		}
 	}
 }
@@ -133,7 +133,7 @@ LichessGame() is called after a gameID string has been retrieved from the event 
 This function then starts a board stream with the gameID and loops and modifies the gamestate and view based on events from the board stream.
 */
 
-func LichessGame(gameID string) {
+func (online *OnlineGame) LichessGame(gameID string) {
 	killGame = make(chan string)
 	gameStateChan = make(chan api.BoardEvent, 1)
 	streamDoneErr := make(chan error)
@@ -143,7 +143,7 @@ func LichessGame(gameID string) {
 	stopTicker := make(chan bool)
 	ticker1 := time.NewTicker(time.Millisecond * 500)
 	ticker2 := time.NewTicker(time.Millisecond)
-	go TimerLoop(stopTicker, ticker1, ticker2, updateInc)
+	go online.TimerLoop(stopTicker, ticker1, ticker2, updateInc)
 
 	for { //loop
 		select {
@@ -151,7 +151,7 @@ func LichessGame(gameID string) {
 			Root.App.QueueUpdate(func() {
 				stopTicker <- true
 				if s != "GoHome" {
-					Root.currentLocalGame.Status += fmt.Sprintf("[green]Game ended due to %v.[white]\n", s)
+					Root.gameState.Status += fmt.Sprintf("[green]Game ended due to %v.[white]\n", s)
 					gotoPostOnline()
 				} else {
 					gotoLichessAfterLogin()
@@ -162,7 +162,7 @@ func LichessGame(gameID string) {
 			Root.App.QueueUpdate(func() {
 				stopTicker <- true
 
-				Root.currentLocalGame.Status += fmt.Sprintf("Game ended due to %v.\n", err)
+				Root.gameState.Status += fmt.Sprintf("Game ended due to %v.\n", err)
 				gotoPostOnline()
 			})
 		case b := <-gameStateChan:
@@ -183,15 +183,15 @@ func LichessGame(gameID string) {
 
 				NewChessGame = chess.NewGame(fen)
 
-				Root.App.QueueUpdate(UpdateOnlineTimeView)
+				Root.App.QueueUpdate(online.InitTimeView)
 				Root.App.QueueUpdate(UpdateChessGame)
-				Root.App.QueueUpdate(UpdateOnline)
+				Root.App.QueueUpdate(online.UpdateAll)
 				Root.App.GetScreen().Beep()
 
 				if api.BoardFullGame.State.Status != "started" { //the game has ended.
 					Root.App.QueueUpdate(func() {
 						stopTicker <- true
-						Root.currentLocalGame.Status += fmt.Sprintf("Game ended due to %v.\n", api.BoardFullGame.State.Status)
+						Root.gameState.Status += fmt.Sprintf("Game ended due to %v.\n", api.BoardFullGame.State.Status)
 						gotoPostOnline()
 					})
 					return
@@ -215,7 +215,7 @@ func LichessGame(gameID string) {
 					log.Fatal(err)
 					os.Exit(1)
 				}
-				Root.currentLocalGame.MoveHistoryArray = MoveArr
+				Root.gameState.MoveHistoryArray = MoveArr
 				NewChessGame = chess.NewGame(fen)
 
 				updateInc <- BothInc{
@@ -224,16 +224,16 @@ func LichessGame(gameID string) {
 				}
 
 				Root.App.QueueUpdate(UpdateChessGame)
-				Root.App.QueueUpdate(UpdateOnline)
+				Root.App.QueueUpdate(online.UpdateAll)
 				Root.App.GetScreen().Beep()
 
 				if (api.BoardGameState.Bdraw && api.Username == api.BoardFullGame.White.ID) || (api.BoardGameState.Wdraw && api.Username == api.BoardFullGame.Black.ID) {
 					api.BoardGameState.Bdraw = false
 					api.BoardGameState.Wdraw = false
 					Root.App.QueueUpdate(func() {
-						modal := NewOptionWindow("Your opponent has offered a draw.", "Accept ✅ ", "Reject ❌ ", doAcceptDraw, doRejectDraw)
-						Root.OnlineModal = modal
-						Root.Online.AddItem(modal, 4, 2, 1, 1, 0, 0, false)
+						modal := NewOptionWindow("Your opponent has offered a draw.", "Accept ✅ ", "Reject ❌ ", online.doAcceptDraw, online.doRejectDraw)
+						online.PopUp = modal
+						online.Grid.AddItem(modal, 4, 2, 1, 1, 0, 0, false)
 					})
 				}
 
@@ -241,9 +241,9 @@ func LichessGame(gameID string) {
 					api.BoardGameState.Btakeback = false
 					api.BoardGameState.Wtakeback = false
 					Root.App.QueueUpdate(func() {
-						modal := NewOptionWindow("Your opponent has proposed a takeback.", "Accept ✅ ", "Reject ❌ ", doAcceptTakeBack, doRejectTakeBack)
-						Root.OnlineModal = modal
-						Root.Online.AddItem(modal, 4, 2, 1, 1, 0, 0, false)
+						modal := NewOptionWindow("Your opponent has proposed a takeback.", "Accept ✅ ", "Reject ❌ ", online.doAcceptTakeBack, online.doRejectTakeBack)
+						online.PopUp = modal
+						online.Grid.AddItem(modal, 4, 2, 1, 1, 0, 0, false)
 					})
 				}
 
@@ -251,9 +251,9 @@ func LichessGame(gameID string) {
 					Root.App.QueueUpdate(func() {
 						stopTicker <- true
 						if api.BoardGameState.Winner != "" {
-							Root.currentLocalGame.Status += fmt.Sprintf("Winner is [blue]%v![white]\n", api.BoardGameState.Winner)
+							Root.gameState.Status += fmt.Sprintf("Winner is [blue]%v![white]\n", api.BoardGameState.Winner)
 						}
-						Root.currentLocalGame.Status += fmt.Sprintf("Game ended due to [red]%v.[white]\n", api.BoardGameState.Status)
+						Root.gameState.Status += fmt.Sprintf("Game ended due to [red]%v.[white]\n", api.BoardGameState.Status)
 						gotoPostOnline()
 					})
 					return
@@ -264,21 +264,63 @@ func LichessGame(gameID string) {
 			case api.GameStateResign:
 				Root.App.QueueUpdate(func() {
 					stopTicker <- true
-
-					Root.currentLocalGame.Status += "Game ended due to resignation.\n"
+					Root.gameState.Status += "Game ended due to resignation.\n"
 					gotoPostOnline()
 				})
 				return
 			case api.EOF:
 				Root.App.QueueUpdate(func() {
 					stopTicker <- true
-
-					Root.currentLocalGame.Status += "Game ended due lost connection.\n"
+					Root.gameState.Status += "Game ended due lost connection.\n"
 					gotoPostOnline()
 				})
 				Root.App.QueueUpdate(gotoPostOnline)
 				return
 
+			}
+
+		}
+	}
+}
+
+func (online *OnlineGame) TimerLoop(d <-chan bool, v *time.Ticker, t *time.Ticker, bi <-chan BothInc) {
+	var Btime int64
+	var Wtime int64
+	var start time.Time
+	for {
+		select {
+		case b := <-bi:
+			Wtime = b.wtime
+			Btime = b.btime
+			start = time.Now()
+		case <-d:
+			return
+		case <-v.C: //every half second
+			var currB int64 = Btime
+			var currW int64 = Wtime
+			if MoveCount >= 2 {
+				if MoveCount%2 == 0 {
+					currW -= time.Since(start).Milliseconds()
+				} else {
+					currB -= time.Since(start).Milliseconds()
+				}
+				online.LiveUpdateTime(currB, currW)
+				Root.App.QueueUpdateDraw(func() {}, online.UserTimer, online.OppTimer)
+			}
+		case <-t.C: //every ms
+			var currB int64 = Btime
+			var currW int64 = Wtime
+			if MoveCount >= 2 {
+				if currB < 10000 || currW < 1000 { //start drawing millis when less than ten seconds
+					if MoveCount%2 == 0 {
+						currW -= time.Since(start).Milliseconds()
+						online.LiveUpdateTime(currB, currW)
+					} else {
+						continue
+					}
+					online.LiveUpdateTime(currB, currW)
+					Root.App.QueueUpdateDraw(func() {}, online.UserTimer, online.OppTimer)
+				}
 			}
 
 		}

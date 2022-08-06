@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"strings"
-	"time"
 
 	cv "code.rocketnine.space/tslocum/cview"
 	tc "github.com/gdamore/tcell/v2"
@@ -12,19 +11,18 @@ import (
 	"github.com/notnil/chess"
 )
 
-func UpdateOnline() {
-	UpdateLegalMoves()
-	UpdateGameHistory(Root.OnlineHistory)
-	UpdateBoard(Root.OnlineBoard, api.BoardFullGame.White.Name == api.Username)
-	//UpdateGameStatus(Root.OnlineStatus)
-	UpdateOnlineStatus(Root.OnlineStatus)
-	UpdateUserInfo()
-	UpdateOnlineList()
-	Root.App.QueueUpdateDraw(func() {})
+func (og *OnlineGame) UpdateAll() {
+	Root.gameState.UpdateLegalMoves()
+	DrawMoveHistory(og.History)
+	DrawBoard(og.Board, api.BoardFullGame.White.Name == api.Username)
+	og.UpdateStatus()
+	og.UpdateUserInfo()
+	og.UpdateList()
+	Root.RefreshAll()
 }
 
-func UpdateOnlineList() {
-	list := Root.OnlineExitList
+func (og *OnlineGame) UpdateList() {
+	list := og.List
 	list.Clear()
 	optionsList := []string{"Back", "Quit"}
 	optionsExplain := []string{"Go back Home", "Close chess-cli"}
@@ -38,7 +36,7 @@ func UpdateOnlineList() {
 
 	optionsList = []string{"Takeback", "Abort", "Offer Draw", "Resign"}
 	optionsExplain = []string{"Propose a takeback", "Abort the current game", "Offer a draw to your opponent", "Resign from the current game"}
-	optionsFunc = []ListSelectedFunc{doProposeTakeBack, doAbort, doOfferDraw, doResign}
+	optionsFunc = []ListSelectedFunc{og.doProposeTakeBack, og.doAbort, og.doOfferDraw, og.doResign}
 	for i, opt := range optionsList {
 		if opt == "Takeback" && MoveCount == 0 {
 			continue
@@ -54,7 +52,7 @@ func UpdateOnlineList() {
 
 }
 
-func UpdateLichessTitle(msg string) {
+func (w *WelcomeOnline) UpdateTitle(msg string) {
 	var titlestr string = LichessTitle
 	if api.Online {
 		titlestr += " 🟢"
@@ -69,12 +67,13 @@ func UpdateLichessTitle(msg string) {
 	if msg != "" {
 		titlestr += msg
 	}
-	Root.LichessTitle.SetText(titlestr)
-	Root.App.QueueUpdateDraw(func() {}, Root.LichessTitle)
+	w.Title.SetText(titlestr)
+	Root.App.QueueUpdateDraw(func() {}, w.Title)
 }
 
-func UpdateOnlineStatus(s *cv.TextView) {
-	var status string
+func (og *OnlineGame) UpdateStatus() {
+	var status string = Root.gameState.Status
+	Root.gameState.Status = ""
 	var ratestr string
 
 	if api.BoardFullGame.Rated {
@@ -97,26 +96,22 @@ func UpdateOnlineStatus(s *cv.TextView) {
 			currentGameID)
 	}
 
-	if Root.currentLocalGame.Game.Position().Turn() == chess.White {
+	if Root.gameState.Game.Position().Turn() == chess.White {
 		status += "White's turn. \n\n"
 	} else {
 		status += "Black's turn. \n\n"
 	}
-
-	status += Root.currentLocalGame.Status
-	Root.currentLocalGame.Status = ""
-
-	s.SetText(status)
+	og.Status.SetText(status)
 }
 
-func UpdateUserInfo() {
+func (og *OnlineGame) UpdateUserInfo() {
 	var (
 		OppName      string = "%s"
 		You          string = "%s"
 		UserString   string = "\n[blue]%v[white]"
 		OppString    string = "\n[red]%v[white]"
-		BlackCapture string = strings.Join(Root.currentLocalGame.BlackCaptured, "") + " \t"
-		WhiteCapture string = strings.Join(Root.currentLocalGame.WhiteCaptured, "") + " \t"
+		BlackCapture string = strings.Join(Root.gameState.BlackCaptured, "") + " \t"
+		WhiteCapture string = strings.Join(Root.gameState.WhiteCaptured, "") + " \t"
 	)
 
 	if api.BoardFullGame.White.Name == api.Username {
@@ -152,42 +147,35 @@ func UpdateUserInfo() {
 	UserString = fmt.Sprintf(UserString, You)
 	OppString = fmt.Sprintf(OppString, OppName)
 
-	Root.OnlineInfoUser.SetText(UserString)
-	Root.OnlineInfoOppo.SetText(OppString)
+	og.UserInfo.SetText(UserString)
+	og.OppInfo.SetText(OppString)
 }
 
-func UpdateLoaderIcon(i int) int {
+func (l *Loader) DrawIcon(i int) int {
 	if i > 7 {
 		i = 0
 	}
 	loadingstr := "\n\t ... [red]" + KnightIconMap[i] + "[white] ... \t\n"
-
-	Root.LoaderIcon.SetText(loadingstr + loadingstr + loadingstr + loadingstr + loadingstr + loadingstr)
-
+	l.Icon.SetText(loadingstr + loadingstr + loadingstr + loadingstr + loadingstr + loadingstr)
 	i++
 	if i > 7 {
 		i = 0
 	}
-
-	Root.App.QueueUpdateDraw(func() {})
-
+	Root.RefreshAll()
 	return i
 }
 
-func UpdateLoaderMsg(msg string) {
-
-	Root.LoaderMsg.SetText(msg)
-	Root.App.QueueUpdateDraw(func() {})
-
+func (l *Loader) DrawMessage(msg string) {
+	l.Message.SetText(msg)
+	Root.RefreshAll()
 }
 
-func OnlineGameDoMove(move string) error {
-
+func (og *OnlineGame) DoMove(move string) error {
 	go func() {
-		err := Root.currentLocalGame.Game.MoveStr(move)
+		err := Root.gameState.Game.MoveStr(move)
 		if err == nil {
-			UpdateBoard(Root.OnlineBoard, api.BoardFullGame.White.Name == api.Username)
-			Root.App.QueueUpdateDraw(func() {}, Root.OnlineBoard)
+			DrawBoard(og.Board, api.BoardFullGame.White.Name == api.Username)
+			Root.App.QueueUpdateDraw(func() {}, og.Board)
 		}
 	}()
 
@@ -197,69 +185,25 @@ func OnlineGameDoMove(move string) error {
 	}
 	Root.App.GetScreen().Beep()
 
-	UpdateBoard(Root.OnlineBoard, api.BoardFullGame.White.Name == api.Username)
+	DrawBoard(og.Board, api.BoardFullGame.White.Name == api.Username)
 
-	Root.currentLocalGame.NextMove = "" //clear the next move
-	UpdateGameStatus(Root.OnlineStatus)
+	Root.gameState.NextMove = "" //clear the next move
+	og.UpdateStatus()
 
 	return nil
 }
 
 func UpdateChessGame() {
-	Root.currentLocalGame.Game = NewChessGame
+	Root.gameState.Game = NewChessGame
 }
 
-func UpdateOnlineTimeView() {
+func (og *OnlineGame) InitTimeView() {
 	b := int64(api.BoardFullGame.State.Btime)
 	w := int64(api.BoardFullGame.State.Wtime)
-	LiveUpdateOnlineTimeView(b, w)
+	og.LiveUpdateTime(b, w)
 }
 
-func TimerLoop(d <-chan bool, v *time.Ticker, t *time.Ticker, bi <-chan BothInc) {
-	var Btime int64
-	var Wtime int64
-	var start time.Time
-	for {
-		select {
-		case b := <-bi:
-			Wtime = b.wtime
-			Btime = b.btime
-			start = time.Now()
-		case <-d:
-			return
-		case <-v.C: //every half second
-			var currB int64 = Btime
-			var currW int64 = Wtime
-			if MoveCount >= 2 {
-				if MoveCount%2 == 0 {
-					currW -= time.Since(start).Milliseconds()
-				} else {
-					currB -= time.Since(start).Milliseconds()
-				}
-				LiveUpdateOnlineTimeView(currB, currW)
-				Root.App.QueueUpdateDraw(func() {}, Root.OnlineTimeUser, Root.OnlineTimeOppo)
-			}
-		case <-t.C: //every ms
-			var currB int64 = Btime
-			var currW int64 = Wtime
-			if MoveCount >= 2 {
-				if currB < 10000 || currW < 1000 { //start drawing millis when less than ten seconds
-					if MoveCount%2 == 0 {
-						currW -= time.Since(start).Milliseconds()
-						LiveUpdateOnlineTimeView(currB, currW)
-					} else {
-
-					}
-					LiveUpdateOnlineTimeView(currB, currW)
-					Root.App.QueueUpdateDraw(func() {}, Root.OnlineTimeUser, Root.OnlineTimeOppo)
-				}
-			}
-
-		}
-	}
-}
-
-func LiveUpdateOnlineTimeView(b int64, w int64) { //MoveCount
+func (og *OnlineGame) LiveUpdateTime(b int64, w int64) { //MoveCount
 	if api.BoardFullGame.State.Btime == math.MaxInt32 {
 		return
 	}
@@ -292,55 +236,55 @@ func LiveUpdateOnlineTimeView(b int64, w int64) { //MoveCount
 		if MoveCount%2 == 0 {
 			if White {
 				UserStr += " ⏲️\t"
-				Root.OnlineTimeUser.SetBackgroundColor(tc.ColorSeaGreen)
-				Root.OnlineTimeOppo.SetBackgroundColor(tc.ColorBlack.TrueColor())
+				og.UserTimer.SetBackgroundColor(tc.ColorSeaGreen)
+				og.OppTimer.SetBackgroundColor(tc.ColorBlack.TrueColor())
 			} else {
 				OppoStr += " ⏲️\t"
-				Root.OnlineTimeOppo.SetBackgroundColor(tc.ColorSeaGreen)
-				Root.OnlineTimeUser.SetBackgroundColor(tc.ColorBlack.TrueColor())
+				og.OppTimer.SetBackgroundColor(tc.ColorSeaGreen)
+				og.UserTimer.SetBackgroundColor(tc.ColorBlack.TrueColor())
 			}
 		} else {
 			if !White {
 				UserStr += " ⏲️\t"
-				Root.OnlineTimeUser.SetBackgroundColor(tc.ColorSeaGreen)
-				Root.OnlineTimeOppo.SetBackgroundColor(tc.ColorBlack.TrueColor())
+				og.UserTimer.SetBackgroundColor(tc.ColorSeaGreen)
+				og.OppTimer.SetBackgroundColor(tc.ColorBlack.TrueColor())
 			} else {
 				OppoStr += " ⏲️\t"
-				Root.OnlineTimeOppo.SetBackgroundColor(tc.ColorSeaGreen)
-				Root.OnlineTimeUser.SetBackgroundColor(tc.ColorBlack.TrueColor())
+				og.OppTimer.SetBackgroundColor(tc.ColorSeaGreen)
+				og.UserTimer.SetBackgroundColor(tc.ColorBlack.TrueColor())
 			}
 		}
 	}
 
-	Root.OnlineTimeUser.SetText(UserStr)
-	Root.OnlineTimeOppo.SetText(OppoStr)
+	og.UserTimer.SetText(UserStr)
+	og.OppTimer.SetText(OppoStr)
 }
 
-func OnlineTableHandler(row, col int) {
+func (online *OnlineGame) OnlineTableHandler(row, col int) {
 	selectedCell := translateSelectedCell(row, col, api.BoardFullGame.White.Name == api.Username)
 	if LastSelectedCell.Alg == selectedCell { //toggle selected status of this cell
 
-		Root.OnlineBoard.Select(100, 100)
+		online.Board.Select(100, 100)
 		LastSelectedCell = PiecePosition{-1, -1, "", true, ""}
 	} else { //try to do move
 
 		todoMove := LastSelectedCell.Alg + selectedCell
-		if contains(Root.currentLocalGame.LegalMoves, todoMove) {
-			err := OnlineGameDoMove(todoMove)
+		if contains(Root.gameState.LegalMoves, todoMove) {
+			err := online.DoMove(todoMove)
 			if err != nil {
-				Root.currentLocalGame.Status += fmt.Sprintf("%v", err)
-				UpdateGameStatus(Root.OnlineStatus)
+				Root.gameState.Status += fmt.Sprintf("%v", err)
+				online.UpdateStatus()
 			}
 		}
 		//check if select is empty for updateBoard
-		symbol := Root.OnlineBoard.GetCell(row, col).GetText()
+		symbol := online.Board.GetCell(row, col).GetText()
 		LastSelectedCell = PiecePosition{row, col, selectedCell, (symbol == EmptyChar), symbol}
 	}
-	UpdateBoard(Root.OnlineBoard, api.BoardFullGame.White.Name == api.Username)
+	DrawBoard(online.Board, api.BoardFullGame.White.Name == api.Username)
 }
 
-func UpdateOngoingList() {
-	Root.OngoingList.Clear()
+func (ongoing *Ongoing) UpdateList() {
+	ongoing.List.Clear()
 	GameListIDArr = []string{}
 	for i, game := range api.OngoingGames {
 		if contains(GameListIDArr, game.FullID) {
@@ -387,13 +331,13 @@ func UpdateOngoingList() {
 		item.SetSecondaryText(text)
 		item.SetShortcut(rune('a' + i))
 
-		Root.OngoingList.AddItem(item)
+		ongoing.List.AddItem(item)
 	}
 }
 
-func UpdateChallengeList() {
-	Root.InChallengeList.Clear()
-	Root.OutChallengeList.Clear()
+func (c *Challenges) UpdateList() {
+	c.In.Clear()
+	c.Out.Clear()
 
 	for i, challenge := range api.IncomingChallenges {
 		if contains(InChallengeGameID, challenge.Id) {
@@ -419,7 +363,7 @@ func UpdateChallengeList() {
 		text += fmt.Sprintf("%v plays %v", challenge.Challenger.Name, challenge.Color)
 		item.SetSecondaryText(text)
 		item.SetShortcut(rune('a' + i))
-		Root.InChallengeList.AddItem(item)
+		c.In.AddItem(item)
 	}
 	for i, challenge := range api.OutgoingChallenges {
 		if contains(OutChallengeGameID, challenge.Id) {
@@ -445,90 +389,90 @@ func UpdateChallengeList() {
 		text += fmt.Sprintf("%v plays %v", challenge.Challenger.Name, challenge.Color)
 		item.SetSecondaryText(text)
 		item.SetShortcut(rune('a' + i))
-		Root.OutChallengeList.AddItem(item)
+		c.Out.AddItem(item)
 	}
 
 }
 
-func doAbort() {
+func (on *OnlineGame) doAbort() {
 	err := api.AbortGame(currentGameID)
 	if err != nil {
-		Root.currentLocalGame.Status += fmt.Sprintf("[red]%v[white]\n", err)
-		UpdateOnlineStatus(Root.OnlineStatus)
+		Root.gameState.Status += fmt.Sprintf("[red]%v[white]\n", err)
+		Root.ongame.UpdateStatus()
 		return
 	}
 	killGame <- "abort"
 }
 
-func doResign() {
+func (on *OnlineGame) doResign() {
 	err := api.ResignGame(currentGameID)
 	if err != nil {
-		Root.currentLocalGame.Status += fmt.Sprintf("[red]%v[white]\n", err)
-		UpdateOnlineStatus(Root.OnlineStatus)
+		Root.gameState.Status += fmt.Sprintf("[red]%v[white]\n", err)
+		Root.ongame.UpdateStatus()
 		return
 	}
 	killGame <- "resign"
 }
 
-func doOfferDraw() {
+func (on *OnlineGame) doOfferDraw() {
 	err := api.HandleDraw(currentGameID, true)
 	if err != nil {
-		Root.currentLocalGame.Status += fmt.Sprintf("[red]%v[white]\n", err)
-		UpdateOnlineStatus(Root.OnlineStatus)
+		Root.gameState.Status += fmt.Sprintf("[red]%v[white]\n", err)
+		Root.ongame.UpdateStatus()
 		return
 	}
 
 }
 
-func doAcceptDraw() {
+func (on *OnlineGame) doAcceptDraw() {
 	err := api.HandleDraw(currentGameID, true)
 	if err != nil {
-		Root.currentLocalGame.Status += fmt.Sprintf("[red]%v[white]\n", err)
-		UpdateOnlineStatus(Root.OnlineStatus)
-		Root.Online.RemoveItem(Root.OnlineModal)
+		Root.gameState.Status += fmt.Sprintf("[red]%v[white]\n", err)
+		on.UpdateStatus()
+		on.Grid.RemoveItem(on.PopUp)
 		return
 	}
-	Root.Online.RemoveItem(Root.OnlineModal)
+	on.Grid.RemoveItem(on.PopUp)
 }
 
-func doRejectDraw() {
+func (on *OnlineGame) doRejectDraw() {
 	err := api.HandleDraw(currentGameID, false)
 	if err != nil {
-		Root.currentLocalGame.Status += fmt.Sprintf("[red]%v[white]\n", err)
-		UpdateOnlineStatus(Root.OnlineStatus)
-		Root.Online.RemoveItem(Root.OnlineModal)
+		Root.gameState.Status += fmt.Sprintf("[red]%v[white]\n", err)
+		on.UpdateStatus()
+		on.Grid.RemoveItem(on.PopUp)
 		return
 	}
-	Root.Online.RemoveItem(Root.OnlineModal)
+	on.Grid.RemoveItem(on.PopUp)
 }
 
-func doProposeTakeBack() {
+func (on *OnlineGame) doProposeTakeBack() {
 	err := api.HandleTakeback(currentGameID, true)
 	if err != nil {
-		Root.currentLocalGame.Status += fmt.Sprintf("[red]%v[white]\n", err)
-		UpdateOnlineStatus(Root.OnlineStatus)
+		Root.gameState.Status += fmt.Sprintf("[red]%v[white]\n", err)
+		on.UpdateStatus()
 		return
 	}
 }
 
-func doAcceptTakeBack() {
+func (on *OnlineGame) doAcceptTakeBack() {
 	err := api.HandleTakeback(currentGameID, true)
 	if err != nil {
-		Root.currentLocalGame.Status += fmt.Sprintf("[red]%v[white]\n", err)
-		UpdateOnlineStatus(Root.OnlineStatus)
-		Root.Online.RemoveItem(Root.OnlineModal)
+		Root.gameState.Status += fmt.Sprintf("[red]%v[white]\n", err)
+		on.UpdateStatus()
+		on.Grid.RemoveItem(on.PopUp)
 		return
 	}
-	Root.Online.RemoveItem(Root.OnlineModal)
+	on.Grid.RemoveItem(on.PopUp)
 }
 
-func doRejectTakeBack() {
+func (on *OnlineGame) doRejectTakeBack() {
 	err := api.HandleTakeback(currentGameID, false)
 	if err != nil {
-		Root.currentLocalGame.Status += fmt.Sprintf("[red]%v[white]\n", err)
-		UpdateOnlineStatus(Root.OnlineStatus)
-		Root.Online.RemoveItem(Root.OnlineModal)
+		Root.gameState.Status += fmt.Sprintf("[red]%v[white]\n", err)
+		on.UpdateStatus()
+		on.Grid.RemoveItem(on.PopUp)
 		return
 	}
-	Root.Online.RemoveItem(Root.OnlineModal)
+	on.Grid.RemoveItem(on.PopUp)
 }

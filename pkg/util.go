@@ -152,8 +152,8 @@ func GetCapturePiecesArr(seq string) error {
 	if seq == "" {
 		return nil
 	}
-	Root.currentLocalGame.WhiteCaptured = []string{}
-	Root.currentLocalGame.BlackCaptured = []string{}
+	Root.gameState.WhiteCaptured = []string{}
+	Root.gameState.BlackCaptured = []string{}
 	moveArr := strings.Split(seq, " ")
 	game := chess.NewGame(chess.UseNotation(chess.UCINotation{}))
 	for i, mStr := range moveArr {
@@ -163,9 +163,9 @@ func GetCapturePiecesArr(seq string) error {
 				//get piece
 				p := GetPiece(mStr[2:], game).String()
 				if i%2 == 0 {
-					Root.currentLocalGame.WhiteCaptured = append(Root.currentLocalGame.WhiteCaptured, p)
+					Root.gameState.WhiteCaptured = append(Root.gameState.WhiteCaptured, p)
 				} else {
-					Root.currentLocalGame.BlackCaptured = append(Root.currentLocalGame.BlackCaptured, p)
+					Root.gameState.BlackCaptured = append(Root.gameState.BlackCaptured, p)
 				}
 			}
 			err := game.MoveStr(mStr)

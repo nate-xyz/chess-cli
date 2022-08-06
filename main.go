@@ -12,8 +12,6 @@ import (
 
 func main() {
 	encoding.Register()
-	// Sigs = make(chan os.Signal, 1)
-	// signal.Notify(Sigs, syscall.SIGWINCH)
 	shell := os.Getenv("SHELL")
 	if shell == "" {
 		if runtime.GOOS == "windows" {
