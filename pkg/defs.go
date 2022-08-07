@@ -39,6 +39,7 @@ Play locally with a [yellow]friend[white] or online with [red]Lichess!`
 	gameOnlineRibbonstr string = "CHESS-CLI -> online game | Press 'Ctrl-c' to quit"
 	OngoingRibbonstr    string = "CHESS-CLI -> Ongoing Games | Press 'Ctrl-c' to quit"
 	EmptyChar           string = "博"
+	saved_path          string = "saved_games.json"
 )
 
 type State struct {
@@ -48,6 +49,7 @@ type State struct {
 	gameState  *GameState
 	User       *Login
 	lgame      *GameScreen
+	sgame      *SavedGames
 	pgame      *PostGameScreen
 	wonline    *WelcomeOnline
 	loader     *Loader
@@ -55,6 +57,7 @@ type State struct {
 	ponline    *OnlinePostGame
 	ongoing    *Ongoing
 	challenges *Challenges
+	sglist     *SavedGameList
 }
 
 type Login struct {

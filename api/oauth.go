@@ -18,8 +18,6 @@ import (
 	"github.com/skratchdot/open-golang/open"
 )
 
-//TODO: check if token is expired
-
 func PerformOAuth() (string, error) {
 	var token string
 	err := checkForJSON() //check JSON exists, if not, make
@@ -144,7 +142,6 @@ func AuthUser() (string, error) {
 
 // getAccessToken trades the authorization code retrieved from the first OAuth2 leg for an access token
 func getAccessToken(code string, codeVerifier string, RedirectURL string, ClientID string) (string, error) {
-
 	tokenParameters := url.Values{
 		"grant_type":    {"authorization_code"},
 		"code":          {code},
@@ -247,9 +244,7 @@ func checkForJSON() error {
 		if err != nil {
 			return err
 		}
-	} else if errors.Is(err, os.ErrNotExist) {
-		// path/to/whatever does *not* exist
-
+	} else if errors.Is(err, os.ErrNotExist) { // path/to/whatever does *not* exist
 		b, err := json.Marshal(&UserInfo)
 		if err != nil {
 			return err

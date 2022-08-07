@@ -24,18 +24,52 @@ func WelcomeInit() *cv.Grid {
 	List.SetHover(true)
 	List.SetWrapAround(true)
 
-	choices := []string{"Local", "Online", "Quit"}
-	explain := []string{"Play a local chess game", "Play a game on lichess", "Press to exit"}
-	shortcuts := []rune{'l', 'o', 'q'}
-	selectFunc := []ListSelectedFunc{startNewLocalGame, gotoLichess, Root.App.Stop}
+	var secondList func()
 
-	for i := 0; i < len(choices); i++ {
-		item := cv.NewListItem(choices[i])
-		item.SetSecondaryText(explain[i])
-		item.SetShortcut(rune(shortcuts[i]))
-		item.SetSelectedFunc(selectFunc[i])
-		List.AddItem(item)
+	mainList := func() {
+		List.Clear()
+		choices := []string{"Local", "Online", "Quit"}
+		explain := []string{"Play a local chess game", "Play a game on lichess", "Press to exit"}
+		shortcuts := []rune{'l', 'o', 'q'}
+		selectFunc := []ListSelectedFunc{secondList, gotoLichess, Root.App.Stop}
+
+		for i := 0; i < len(choices); i++ {
+			item := cv.NewListItem(choices[i])
+			item.SetSecondaryText(explain[i])
+			item.SetShortcut(rune(shortcuts[i]))
+			item.SetSelectedFunc(selectFunc[i])
+			List.AddItem(item)
+		}
 	}
+
+	secondList = func() {
+		List.Clear()
+		standard := cv.NewListItem("New")
+		standard.SetShortcut('n')
+		standard.SetSecondaryText("Begin a new game")
+		standard.SetSelectedFunc(startNewLocalGame)
+
+		ongoing := cv.NewListItem("Saved")
+		ongoing.SetSecondaryText("Select a game from your saved games")
+		ongoing.SetShortcut('s')
+		ongoing.SetSelectedFunc(gotoSaved)
+
+		back := cv.NewListItem("Back")
+		back.SetShortcut('b')
+		back.SetSecondaryText("Go back to main options")
+		back.SetSelectedFunc(mainList)
+
+		quit := cv.NewListItem("Quit")
+		quit.SetShortcut('q')
+		quit.SetSecondaryText("Press to exit")
+		quit.SetSelectedFunc(Root.App.Stop)
+		List.AddItem(standard)
+		List.AddItem(ongoing)
+		List.AddItem(back)
+		List.AddItem(quit)
+	}
+
+	mainList()
 
 	grid.AddItem(List, 1, 1, 1, 1, 0, 0, true)
 	grid.AddItem(titleBox, 0, 0, 2, 1, 0, 0, false)
@@ -107,9 +141,9 @@ func (g *GameScreen) Init() *cv.Grid {
 	Input.SetLabel("Enter your move: ")
 
 	g.List = cv.NewList()
-	optionsList := []string{"Leave", "Quit"}
-	optionsExplain := []string{"Go back Home", "Close chess-cli"}
-	optionsFunc := []ListSelectedFunc{gotoWelcome, Root.App.Stop}
+	optionsList := []string{"Leave", "Save", "Quit"}
+	optionsExplain := []string{"Go back Home", "Save this game locally for later", "Close chess-cli"}
+	optionsFunc := []ListSelectedFunc{gotoWelcome, doSave, Root.App.Stop}
 	for i, opt := range optionsList {
 		item := cv.NewListItem(opt)
 		item.SetSecondaryText(optionsExplain[i])
@@ -183,6 +217,63 @@ func (p *PostGameScreen) Init() *cv.Grid {
 	p.Board = gameBox
 	p.Result = resultBox
 	p.History = historyBox
+
+	return grid
+}
+
+func (sg *SavedGames) Init() *cv.Grid {
+	grid := cv.NewGrid()
+	grid.SetColumns(-1, -2, -4)
+	grid.SetRows(10, -2, 10, 1)
+	grid.SetBorders(false)
+
+	preview := boardPrimitive(func(row, col int) {})
+
+	gameList := cv.NewList()
+	gameList.SetHover(false)
+	gameList.SetWrapAround(true)
+	gameList.SetChangedFunc(func(i int, li *cv.ListItem) {
+		game := Root.sglist.Games[i]
+		FENtoBoard(sg.Preview, game.FEN, game.MoveCount%2 == 0)
+	})
+	gameList.SetSelectedFunc(func(i int, li *cv.ListItem) {
+		game := Root.sglist.Games[i]
+		err := RestoreGame(game)
+		if err != nil {
+			gotoWelcome()
+		}
+	})
+
+	options := cv.NewList()
+	optionsList := []string{"Leave", "Quit"}
+	optionsExplain := []string{"Go back Home", "Close chess-cli"}
+	optionsFunc := []ListSelectedFunc{gotoLichessAfterLogin, Root.App.Stop}
+	for i, opt := range optionsList {
+		item := cv.NewListItem(opt)
+		item.SetSecondaryText(optionsExplain[i])
+		item.SetSelectedFunc(optionsFunc[i])
+		options.AddItem(item)
+	}
+	options.SetSelectedFocusOnly(true)
+	options.SetHover(true)
+
+	ribbon := ribbonPrimitive(OngoingRibbonstr)
+
+	title := cv.NewTextView()
+	title.SetTextAlign(cv.AlignCenter)
+	title.SetVerticalAlign(cv.AlignMiddle)
+	title.SetDynamicColors(true)
+	title.SetText("Select a saved game.")
+
+	//row col rowSpan colSpan
+	grid.AddItem(gameList, 1, 2, 2, 1, 0, 0, true)
+	grid.AddItem(title, 0, 0, 1, 3, 0, 0, false)
+	grid.AddItem(Center(30, 10, preview), 1, 0, 1, 2, 0, 0, false)
+	grid.AddItem(ribbon, 3, 0, 1, 3, 0, 0, false)
+	grid.AddItem(options, 2, 1, 1, 1, 0, 0, false)
+
+	sg.List = gameList
+	sg.Preview = preview
 
 	return grid
 }

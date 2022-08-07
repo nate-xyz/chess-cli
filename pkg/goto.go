@@ -108,3 +108,9 @@ func gotoChallenges() {
 	Root.challenges.UpdateList()
 	Root.Switch("listchallenge")
 }
+
+func gotoSaved() {
+	checkForSavedGames()
+	Root.sgame.UpdateList()
+	Root.Switch("saved")
+}
