@@ -1,8 +1,6 @@
 package pkg
 
 import (
-	"fmt"
-
 	cv "code.rocketnine.space/tslocum/cview"
 	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"
@@ -203,51 +201,3 @@ var (
 
 	letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 )
-
-var testChallenge = api.CreateChallengeType{
-	Type:           1, //friend
-	TimeOption:     0, //real time
-	DestUser:       "",
-	Rated:          "false",
-	Color:          "black",
-	Variant:        "standard",
-	ClockLimit:     fmt.Sprintf("%v", int(3*60)), //minutes
-	ClockIncrement: fmt.Sprintf("%v", 0),         //seconds
-}
-
-// var testChallenge = CreateChallengeType{
-// 	Type:       1, //friend
-// 	TimeOption: 1, //Correspondence
-// 	DestUser:   "",
-// 	Rated:      "false",
-// 	Color:      "black",
-// 	Variant:    "standard",
-// 	Days:       "5",
-// }
-
-// var testChallenge = CreateChallengeType{
-// 	Type:       1, //friend
-// 	TimeOption: 2, //unlimited
-// 	DestUser:   "",
-// 	Rated:      "false",
-// 	Color:      "black",
-// 	Variant:    "standard",
-// }
-
-// var testAiChallenge = CreateChallengeType{
-// 	Level:      "1",
-// 	Type:       2,
-// 	TimeOption: 2,
-// 	Color:      "white",
-// 	Variant:    "standard",
-// }
-
-var testAiChallenge = api.CreateChallengeType{
-	Level:          "1",
-	Type:           2,
-	TimeOption:     0,
-	Color:          "white",
-	Variant:        "standard",
-	ClockLimit:     fmt.Sprintf("%v", int(4*60)), //minutes
-	ClockIncrement: fmt.Sprintf("%v", 15),        //seconds
-}

@@ -103,8 +103,6 @@ func checkForSavedGames() error {
 			return err
 		}
 	} else if errors.Is(err, os.ErrNotExist) {
-		// path/to/whatever does *not* exist
-
 		b, err := json.Marshal(&Root.sglist)
 		if err != nil {
 			return err
@@ -114,7 +112,7 @@ func checkForSavedGames() error {
 			return err
 		}
 	} else {
-		return err // file may or may not exist. See err for details.
+		return err
 	}
 	return nil
 }
