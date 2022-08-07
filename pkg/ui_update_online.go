@@ -14,7 +14,7 @@ import (
 func (og *OnlineGame) UpdateAll() {
 	Root.gameState.UpdateLegalMoves()
 	DrawMoveHistory(og.History)
-	DrawBoard(og.Board, og.Full.White.Name == api.Username)
+	DrawBoard(og.Board, og.Full.White.Name == Root.User.Name)
 	og.UpdateStatus()
 	og.UpdateUserInfo()
 	og.UpdateList()
@@ -62,7 +62,7 @@ func (w *WelcomeOnline) UpdateTitle(msg string) {
 	if api.UserInfo.ApiToken == "" {
 		titlestr += "[red]\nNot logged into lichess.[blue]\nPlease login through your browser.[white]\nLink should open automatically."
 	} else {
-		titlestr += fmt.Sprintf("\n[green]Logged in[white] as: [blue]%s, %s[white]\n", api.Username, api.UserEmail)
+		titlestr += fmt.Sprintf("\n[green]Logged in[white] as: [blue]%s, %s[white]\n", Root.User.Name, Root.User.Email)
 	}
 	if msg != "" {
 		titlestr += msg
@@ -114,13 +114,13 @@ func (og *OnlineGame) UpdateUserInfo() {
 		WhiteCapture string = strings.Join(Root.gameState.WhiteCaptured, "") + " \t"
 	)
 
-	if og.Full.White.Name == api.Username {
+	if og.Full.White.Name == Root.User.Name {
 		if og.Full.Rated {
 			OppName = fmt.Sprintf("%s (%d)", og.Full.Black.Name, og.Full.Black.Rating)
-			You = fmt.Sprintf("%s (%d)", api.Username, og.Full.White.Rating)
+			You = fmt.Sprintf("%s (%d)", Root.User.Name, og.Full.White.Rating)
 		} else {
 			OppName = og.Full.Black.Name
-			You = api.Username
+			You = Root.User.Name
 		}
 		UserString = UserString + " (white)\n"
 		UserString += WhiteCapture
@@ -129,10 +129,10 @@ func (og *OnlineGame) UpdateUserInfo() {
 	} else {
 		if og.Full.Rated {
 			OppName = fmt.Sprintf("%s (%d)", og.Full.White.Name, og.Full.White.Rating)
-			You = fmt.Sprintf("%s (%d)", api.Username, og.Full.Black.Rating)
+			You = fmt.Sprintf("%s (%d)", Root.User.Name, og.Full.Black.Rating)
 		} else {
 			OppName = og.Full.White.Name
-			You = api.Username
+			You = Root.User.Name
 		}
 		OppString = OppString + " (white)\n"
 		OppString = WhiteCapture + OppString
@@ -174,7 +174,7 @@ func (og *OnlineGame) DoMove(move string) error {
 	go func() {
 		err := Root.gameState.Game.MoveStr(move)
 		if err == nil {
-			DrawBoard(og.Board, og.Full.White.Name == api.Username)
+			DrawBoard(og.Board, og.Full.White.Name == Root.User.Name)
 			Root.App.QueueUpdateDraw(func() {}, og.Board)
 		}
 	}()
@@ -185,7 +185,7 @@ func (og *OnlineGame) DoMove(move string) error {
 	}
 	Root.App.GetScreen().Beep()
 
-	DrawBoard(og.Board, og.Full.White.Name == api.Username)
+	DrawBoard(og.Board, og.Full.White.Name == Root.User.Name)
 
 	Root.gameState.NextMove = "" //clear the next move
 	og.UpdateStatus()
@@ -204,7 +204,7 @@ func (og *OnlineGame) LiveUpdateTime(b int64, w int64) { //MoveCount
 		return
 	}
 
-	var White bool = og.Full.White.Name == api.Username
+	var White bool = og.Full.White.Name == Root.User.Name
 	var UserStr string
 	var OppoStr string
 
@@ -257,7 +257,7 @@ func (og *OnlineGame) LiveUpdateTime(b int64, w int64) { //MoveCount
 }
 
 func (online *OnlineGame) OnlineTableHandler(row, col int) {
-	selectedCell := translateSelectedCell(row, col, online.Full.White.Name == api.Username)
+	selectedCell := translateSelectedCell(row, col, online.Full.White.Name == Root.User.Name)
 
 	if LastSelectedCell.Alg == selectedCell { //toggle selected status of this cell
 
@@ -277,13 +277,13 @@ func (online *OnlineGame) OnlineTableHandler(row, col int) {
 		symbol := online.Board.GetCell(row, col).GetText()
 		LastSelectedCell = PiecePosition{row, col, selectedCell, (symbol == EmptyChar), symbol}
 	}
-	DrawBoard(online.Board, online.Full.White.Name == api.Username)
+	DrawBoard(online.Board, online.Full.White.Name == Root.User.Name)
 }
 
 func (ongoing *Ongoing) UpdateList() {
 	ongoing.List.Clear()
 	GameListIDArr = []string{}
-	for i, game := range api.OngoingGames {
+	for i, game := range Root.User.OngoingGames {
 		if contains(GameListIDArr, game.FullID) {
 			continue
 		}
@@ -316,7 +316,7 @@ func (ongoing *Ongoing) UpdateList() {
 			} else {
 				text += " White to play, "
 			}
-			text += fmt.Sprintf("(%v)", api.Username)
+			text += fmt.Sprintf("(%v)", Root.User.Name)
 		} else {
 			if game.Color == "black" {
 				text += "White to play, "
@@ -336,7 +336,7 @@ func (c *Challenges) UpdateList() {
 	c.In.Clear()
 	c.Out.Clear()
 
-	for i, challenge := range api.IncomingChallenges {
+	for i, challenge := range Root.User.IncomingChallenges {
 		if contains(InChallengeGameID, challenge.Id) {
 			continue
 		}
@@ -362,7 +362,7 @@ func (c *Challenges) UpdateList() {
 		item.SetShortcut(rune('a' + i))
 		c.In.AddItem(item)
 	}
-	for i, challenge := range api.OutgoingChallenges {
+	for i, challenge := range Root.User.OutgoingChallenges {
 		if contains(OutChallengeGameID, challenge.Id) {
 			continue
 		}

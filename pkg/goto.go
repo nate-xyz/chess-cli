@@ -30,25 +30,15 @@ func gotoPostLocal() {
 }
 
 func gotoLichess() {
-	err := LichessLogin()
+	err := Root.Login()
 	if err != nil {
-		Root.wonline.UpdateTitle(fmt.Sprintf("%v", err))
+		Root.App.QueueUpdate(func() {
+			Root.wonline.UpdateTitle(fmt.Sprintf("%v", err))
+		})
 	} else {
-		Root.wonline.UpdateTitle("")
+		Root.RefreshAll()
 	}
 	Root.Switch("lichesswelcome")
-}
-
-func LichessLogin() error {
-	err := api.PerformOAuth()
-	if err != nil {
-		return err
-	}
-	err = api.GetLichessUserInfo()
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func gotoLichessAfterLogin() {
@@ -96,10 +86,10 @@ func gotoLoaderFromChallenge() {
 }
 
 func gotoOngoing() {
-	err := api.GetOngoingGames()
+	err := Root.User.GetOngoing()
 	if err != nil {
 		Root.wonline.UpdateTitle(fmt.Sprintf("Ongoing Games: %v", err))
-		if api.OngoingGames == nil {
+		if Root.User.OngoingGames == nil {
 			return
 		}
 	}
@@ -108,10 +98,10 @@ func gotoOngoing() {
 }
 
 func gotoChallenges() {
-	err := api.GetChallenges()
+	err := Root.User.GetChallenges()
 	if err != nil {
 		Root.wonline.UpdateTitle(fmt.Sprintf("Challenges: %v", err))
-		if api.IncomingChallenges == nil && api.OutgoingChallenges == nil {
+		if Root.User.IncomingChallenges == nil && Root.User.OutgoingChallenges == nil {
 			return
 		}
 	}

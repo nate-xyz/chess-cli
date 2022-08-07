@@ -207,7 +207,7 @@ func (pg *OnlinePostGame) Init() *cv.Grid {
 	explain := []string{"Back to the welcome screen", "Create a new game", "Press to exit"}
 	shortcuts := []rune{'h', 'n', 'q'}
 
-	selectFunc := []ListSelectedFunc{gotoLichess, gotoChallengeConstruction, Root.App.Stop}
+	selectFunc := []ListSelectedFunc{gotoLichessAfterLogin, gotoChallengeConstruction, Root.App.Stop}
 
 	postList.SetWrapAround(true)
 	postList.SetHover(true)
@@ -255,7 +255,7 @@ func (ong *Ongoing) Init() *cv.Grid {
 	gameList.SetWrapAround(true)
 	gameList.SetChangedFunc(func(i int, li *cv.ListItem) {
 		gameID := GameListIDArr[i]
-		for _, game := range api.OngoingGames {
+		for _, game := range Root.User.OngoingGames {
 			if game.FullID == gameID {
 				FEN := game.Fen
 				var white bool = (game.IsMyTurn && game.Color == "white") || (!game.IsMyTurn && game.Color == "black")
@@ -265,7 +265,7 @@ func (ong *Ongoing) Init() *cv.Grid {
 	})
 	gameList.SetSelectedFunc(func(i int, li *cv.ListItem) {
 		gameID := GameListIDArr[i]
-		for _, game := range api.OngoingGames {
+		for _, game := range Root.User.OngoingGames {
 			if game.FullID == gameID {
 				currentGameID = gameID
 				startNewOnlineGame()
@@ -277,7 +277,7 @@ func (ong *Ongoing) Init() *cv.Grid {
 	options := cv.NewList()
 	optionsList := []string{"Leave", "Quit"}
 	optionsExplain := []string{"Go back Home", "Close chess-cli"}
-	optionsFunc := []ListSelectedFunc{gotoLichess, Root.App.Stop}
+	optionsFunc := []ListSelectedFunc{gotoLichessAfterLogin, Root.App.Stop}
 	for i, opt := range optionsList {
 		item := cv.NewListItem(opt)
 		item.SetSecondaryText(optionsExplain[i])
@@ -331,7 +331,7 @@ func (c *Challenges) Init() *cv.Grid {
 	options := cv.NewList()
 	optionsList := []string{"Back", "Quit"}
 	optionsExplain := []string{"Go back Home", "Close chess-cli"}
-	optionsFunc := []ListSelectedFunc{gotoLichess, Root.App.Stop}
+	optionsFunc := []ListSelectedFunc{gotoLichessAfterLogin, Root.App.Stop}
 	for i, opt := range optionsList {
 		item := cv.NewListItem(opt)
 		item.SetSecondaryText(optionsExplain[i])
@@ -347,7 +347,7 @@ func (c *Challenges) Init() *cv.Grid {
 	incoming.AddItem(cv.NewListItem("placeholder in"))
 	incoming.SetSelectedFunc(func(i int, li *cv.ListItem) {
 		gameID := InChallengeGameID[i]
-		for _, chal := range api.IncomingChallenges {
+		for _, chal := range Root.User.IncomingChallenges {
 			if chal.Id == gameID {
 				currentGameID = gameID
 				err := api.AcceptChallenge(gameID)

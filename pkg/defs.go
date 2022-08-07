@@ -22,6 +22,7 @@ var (
 	OutChallengeGameID []string
 	InChallengeGameID  []string
 	EventStreamArr     []api.StreamEventType
+	Ready              chan struct{}
 )
 
 const (
@@ -42,6 +43,7 @@ type State struct {
 	nav        *cv.Panels
 	Shell      string
 	gameState  *GameState
+	User       *Login
 	lgame      *GameScreen
 	pgame      *PostGameScreen
 	wonline    *WelcomeOnline
@@ -50,6 +52,18 @@ type State struct {
 	ponline    *OnlinePostGame
 	ongoing    *Ongoing
 	challenges *Challenges
+}
+
+type Login struct {
+	Token              string
+	Email              string
+	Online             bool
+	StreamStart        bool
+	Name               string
+	Friends            []string
+	OngoingGames       []api.OngoingGameInfo
+	IncomingChallenges []api.ChallengeInfo
+	OutgoingChallenges []api.ChallengeInfo
 }
 
 type GameState struct {

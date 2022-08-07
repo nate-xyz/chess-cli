@@ -1,8 +1,37 @@
 package api
 
 import (
-	"fmt"
 	"time"
+)
+
+const (
+	HostUrl   string = "https://lichess.org"
+	ClientID  string = "chess-cli"
+	AuthURL   string = HostUrl + "/oauth"
+	TokenURL  string = HostUrl + "/api/token"
+	json_path string = "user_config.json"
+)
+
+var (
+	UserInfo                = UserConfig{ApiToken: "", TokenCreationDate: time.Now(), TokenExpirationDate: time.Now().AddDate(1, 0, 0)}
+	StreamEventStarted bool = false
+	Online             bool = false
+	Scopes                  = []string{
+		"preference:read",
+		"preference:write",
+		"email:read",
+		"challenge:read",
+		"challenge:write",
+		"challenge:bulk",
+		"study:read",
+		"study:write",
+		"puzzle:read",
+		"follow:read",
+		"follow:write",
+		"msg:write",
+		"bot:play",
+		"board:play",
+	}
 )
 
 type BoardEventEnum int
@@ -29,43 +58,6 @@ type StreamEventType struct {
 	GameID    string
 	Source    string
 }
-
-var (
-	HostUrl  string = "https://lichess.org"
-	ClientID string = "chess-cli"
-	Scopes          = []string{
-		"preference:read",
-		"preference:write",
-		"email:read",
-		"challenge:read",
-		"challenge:write",
-		"challenge:bulk",
-		"study:read",
-		"study:write",
-		"puzzle:read",
-		"follow:read",
-		"follow:write",
-		"msg:write",
-		"bot:play",
-		"board:play",
-	}
-
-	UserEmail          string
-	Username           string
-	UserProfile        map[string]interface{}
-	AllFriends         []string
-	UserInfo                  = UserConfig{ApiToken: "", TokenCreationDate: time.Now(), TokenExpirationDate: time.Now().AddDate(1, 0, 0)}
-	AuthURL            string = fmt.Sprintf("%s/oauth", HostUrl)
-	TokenURL           string = fmt.Sprintf("%s/api/token", HostUrl)
-	RedirectURL        string
-	json_path               = "user_config.json"
-	StreamEventStarted bool = false
-	Ready              chan struct{}
-	Online             bool = false
-	OngoingGames       []OngoingGameInfo
-	IncomingChallenges []ChallengeInfo
-	OutgoingChallenges []ChallengeInfo
-)
 
 //type for storing user info into a json
 type UserConfig struct {

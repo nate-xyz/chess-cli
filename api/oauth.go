@@ -20,15 +20,21 @@ import (
 
 //TODO: check if token is expired
 
-func PerformOAuth() error {
+func PerformOAuth() (string, error) {
+	var token string
 	err := checkForJSON() //check JSON exists, if not, make
 	if err != nil {
-		return err
+		return "", err
 	}
 	if UserInfo.ApiToken == "" {
-		AuthUser() //get token
+		token, err = AuthUser() //get token
+		if err != nil {
+			return "", err
+		}
+	} else {
+		token = UserInfo.ApiToken
 	}
-	return nil
+	return token, nil
 }
 
 func TimeCheck() {
@@ -38,28 +44,22 @@ func TimeCheck() {
 	}
 }
 
-func AuthUser() {
-	//get redirect url from http server
+func AuthUser() (string, error) {
+	var token string
 	UserInfo.TokenCreationDate = time.Now()
 	UserInfo.TokenExpirationDate = UserInfo.TokenCreationDate.AddDate(1, 0, 0) //add one year
 	redirectPort, err := findPort()
-
 	if err != nil {
-		//fmt.Printf("can't find port on localhost: %s\n", err)
-		return
-		//os.Exit(1)
+		return "", err
 	}
-	//fmt.Printf("got port %d\n", redirectPort)
-	RedirectURL = fmt.Sprintf("http://127.0.0.1:%d/", redirectPort)
-	//RedirectURL = fmt.Sprintf("http://localhost:%d", redirectPort)
-	//fmt.Printf("RedirectURL %v\n", RedirectURL)
+
+	RedirectURL := fmt.Sprintf("http://127.0.0.1:%d/", redirectPort)
 
 	// initialize the code verifier
 	var CodeVerifier, _ = pkce.CreateCodeVerifier()
 
 	// Create code_challenge with S256 method
 	codeChallenge := CodeVerifier.CodeChallengeS256()
-	//fmt.Printf("challenge:%s\n", codeChallenge)
 
 	params := fmt.Sprintf(
 		"&response_type=code"+
@@ -81,22 +81,13 @@ func AuthUser() {
 		// get the authorization code
 		code := r.URL.Query().Get("code")
 		if code == "" {
-			//fmt.Println("Url Param 'code' is missing")
 			io.WriteString(w, "Error: could not find 'code' URL parameter\n")
-
-			// close the HTTP server and return
-			cleanup(srv)
+			cleanup(srv) // close the HTTP server and return
 			return
 		}
-		//fmt.Printf("code is %v\n", code)
-
 		// trade the authorization code and the code verifier for an access token
-		// codeVerifier := CodeVerifier.String()
-		token, err := getAccessToken(code, CodeVerifier.String(), RedirectURL, ClientID)
+		token, err = getAccessToken(code, CodeVerifier.String(), RedirectURL, ClientID)
 		if err != nil {
-			//fmt.Printf("could not get access token: %v\n", err)
-			// io.WriteString(w, "Error: could not retrieve access token\n")
-
 			io.WriteString(w, `
 			<html>
 				<body>
@@ -104,16 +95,12 @@ func AuthUser() {
 					<h2>could not retrieve access token</h2>
 				</body>
 			</html>`)
-
-			// close the HTTP server and return
-			cleanup(srv)
+			cleanup(srv) // close the HTTP server and return
 			return
 		}
-
 		UserInfo.ApiToken = token
 		b, err := json.Marshal(&UserInfo)
 		if err != nil {
-			//fmt.Println("could not write config file")
 			io.WriteString(w, `
 			<html>
 				<body>
@@ -121,9 +108,7 @@ func AuthUser() {
 					<h2>could not store access token</h2>
 				</body>
 			</html>`)
-
-			// close the HTTP server and return
-			cleanup(srv)
+			cleanup(srv) // close the HTTP server and return
 			return
 		}
 		err = os.WriteFile(json_path, b, 0644)
@@ -136,12 +121,9 @@ func AuthUser() {
 					<h2>could not store access token</h2>
 				</body>
 			</html>`)
-
-			// close the HTTP server and return
-			cleanup(srv)
+			cleanup(srv) // close the HTTP server and return
 			return
 		}
-
 		// return an indication of success to the caller
 		io.WriteString(w, `
 		<html>
@@ -150,23 +132,14 @@ func AuthUser() {
 				<h2>Success, you may close this page.</h2>
 			</body>
 		</html>`)
-
-		// close the HTTP server
-		cleanup(srv)
+		cleanup(srv) // close the HTTP server
 	})
-
-	//fmt.Printf("opening browser\n")
 	err = open.Start(fullUrl)
 	if err != nil {
-		//fmt.Printf("can't open browser to URL %s: %s\n", AuthURL, err)
-		return
-		//os.Exit(1)
+		return "", err
 	}
-	//fmt.Printf("started server\n")
-	//start http server
-	srv.ListenAndServe()
-	//log.Fatal(srv.ListenAndServe())
-	return
+	srv.ListenAndServe() //start http server
+	return token, nil
 }
 
 // getAccessToken trades the authorization code retrieved from the first OAuth2 leg for an access token
@@ -262,21 +235,19 @@ func cleanup(server *http.Server) {
 
 func checkForJSON() error {
 	TimeCheck()
-	if _, err := os.Stat(json_path); err == nil {
-
+	_, err := os.Stat(json_path)
+	if err == nil {
 		jsonFile, err := os.Open(json_path)
-		defer jsonFile.Close()
-		// if we os.Open returns an error then handle it
 		if err != nil {
 			return err
 		}
+		defer jsonFile.Close()
 		byteValue, _ := io.ReadAll(jsonFile)
 		err = json.Unmarshal(byteValue, &UserInfo)
 		if err != nil {
 			return err
 		}
 	} else if errors.Is(err, os.ErrNotExist) {
-		//fmt.Printf("json does not exist\n")
 		// path/to/whatever does *not* exist
 
 		b, err := json.Marshal(&UserInfo)
@@ -290,41 +261,5 @@ func checkForJSON() error {
 	} else {
 		return err // file may or may not exist. See err for details.
 	}
-	//fmt.Printf("json checking done no errors\n")
 	return nil
-}
-
-func GetLichessUserInfo() error {
-	if UserInfo.ApiToken != "" {
-		if UserEmail == "" {
-			err := GetEmail()
-			if err != nil {
-				return err
-			}
-		}
-		if Username == "" {
-			err := GetUsername()
-			if err != nil {
-				return err
-			}
-		}
-		// err := GetChallenges()
-		// if err != nil {
-		// 	return err
-		// }
-		// err = GetOngoingGames()
-		// if err != nil {
-		// 	return err
-		// }
-		err := GetFriends()
-		if err != nil {
-			return err
-		}
-
-		if !StreamEventStarted {
-			Ready <- struct{}{} //start event stream
-		}
-		return nil
-	}
-	return fmt.Errorf("no token")
 }

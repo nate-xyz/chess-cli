@@ -2,6 +2,7 @@ package pkg
 
 import (
 	cv "code.rocketnine.space/tslocum/cview"
+	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"
 )
 
@@ -9,6 +10,28 @@ func (s *State) NewGame() {
 	game := new(GameState)
 	game.Init()
 	s.gameState = game
+}
+
+func (s *State) Login() error {
+	s.User = new(Login)
+	err := s.User.Init()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (user *Login) Init() error {
+	var err error
+	user.Token, err = api.PerformOAuth()
+	if err != nil {
+		return err
+	}
+	err = user.GetLichessUserInfo()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *State) Switch(panel string) {
