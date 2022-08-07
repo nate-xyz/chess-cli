@@ -6,6 +6,8 @@ import (
 	cv "code.rocketnine.space/tslocum/cview"
 	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 var (
@@ -23,6 +25,7 @@ var (
 	InChallengeGameID  []string
 	EventStreamArr     []api.StreamEventType
 	Ready              chan struct{}
+	caser              = cases.Title(language.English)
 )
 
 const (

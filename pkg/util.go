@@ -12,18 +12,8 @@ import (
 
 	cv "code.rocketnine.space/tslocum/cview"
 	tc "github.com/gdamore/tcell/v2"
-	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"
 )
-
-func containedInOngoingGames(a []api.OngoingGameInfo, gameid string) bool {
-	for _, g := range a {
-		if g.GameID == gameid {
-			return true
-		}
-	}
-	return false
-}
 
 func contains(s []string, str string) bool {
 	for _, v := range s {
@@ -299,3 +289,12 @@ func FENtoBoard(table *cv.Table, FEN string, white bool) {
 	}
 	Root.App.QueueUpdateDraw(func() {}, table)
 }
+
+// func containedInOngoingGames(a []api.OngoingGameInfo, gameid string) bool {
+// 	for _, g := range a {
+// 		if g.GameID == gameid {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }

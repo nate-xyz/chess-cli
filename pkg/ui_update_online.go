@@ -85,14 +85,14 @@ func (og *OnlineGame) UpdateStatus() {
 	if og.Full.Speed == "correspondence" {
 		status += fmt.Sprintf("\n%v • %v %v\n",
 			ratestr,
-			strings.Title(og.Full.Speed),
+			caser.String(og.Full.Speed),
 			currentGameID)
 	} else {
 		status += fmt.Sprintf("\n%v+%v • %v • %v %v\n",
 			timeFormat(int64(og.Full.Clock.Initial)),
 			og.Full.Clock.Increment/1000,
 			ratestr,
-			strings.Title(og.Full.Speed),
+			caser.String(og.Full.Speed),
 			currentGameID)
 	}
 
@@ -291,7 +291,7 @@ func (ongoing *Ongoing) UpdateList() {
 		variant := game.Variant.Name
 		opp := game.Opponent.Username
 		oppRating := game.Opponent.Rating
-		perf := strings.Title(game.Perf)
+		perf := caser.String(game.Perf)
 		listString := fmt.Sprintf("%v vs %v", perf, opp)
 		if oppRating > 0 {
 			listString += fmt.Sprintf(" (%v)", oppRating)
@@ -344,7 +344,7 @@ func (c *Challenges) UpdateList() {
 		variant := challenge.Variant.Name
 		opp := challenge.Challenger.Name
 		oppRating := challenge.Challenger.Rating
-		perf := strings.Title(challenge.Perf.Name)
+		perf := caser.String(challenge.Perf.Name)
 		listString := fmt.Sprintf("%v challenge from %v", perf, opp)
 		if oppRating > 0 {
 			listString += fmt.Sprintf(" (%v) ", oppRating)
@@ -370,7 +370,7 @@ func (c *Challenges) UpdateList() {
 		variant := challenge.Variant.Name
 		opp := challenge.DestUser.Name
 		oppRating := challenge.DestUser.Rating
-		perf := strings.Title(challenge.Perf.Name)
+		perf := caser.String(challenge.Perf.Name)
 		listString := fmt.Sprintf("%v challenge to %v", perf, opp)
 		if oppRating > 0 {
 			listString += fmt.Sprintf(" (%v)", oppRating)
