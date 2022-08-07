@@ -82,6 +82,7 @@ type StreamBoardGameFull struct {
 	} `json:"state"`
 }
 
+//https://lichess.org/api#operation/apiStreamEvent
 type StreamEventChallenge struct {
 	Type      string `json:"type"`
 	Challenge struct {
@@ -131,6 +132,7 @@ type StreamEventChallenge struct {
 	} `json:"challenge"`
 }
 
+//https://lichess.org/api#operation/apiStreamEvent
 type StreamEventGame struct {
 	Type string `json:"type"`
 	Game struct {
@@ -162,6 +164,7 @@ type StreamEventGame struct {
 	} `json:"game"`
 }
 
+//https://lichess.org/api#operation/apiAccountPlaying
 type OngoingGameInfo struct {
 	GameID   string `json:"gameId"`
 	FullID   string `json:"fullId"`
@@ -186,118 +189,44 @@ type OngoingGameInfo struct {
 	} `json:"variant"`
 }
 
+//https://lichess.org/api#operation/challengeList
 type ChallengeInfo struct {
-	Id          string `json: "id"`
-	URL         string `json: "url"`
-	Color       string `json: "color"`
-	Direction   string `json: "direction"`
+	ID          string `json:"id"`
+	URL         string `json:"url"`
+	Color       string `json:"color"`
+	Direction   string `json:"direction"`
 	TimeControl struct {
-		Increment int    `json: "increment"`
-		Limit     int    `json: "limit"`
-		Show      string `json: "show"`
-		Type      string `json: "type"`
-	} `json: "timeControl"`
+		Increment int    `json:"increment"`
+		Limit     int    `json:"limit"`
+		Show      string `json:"show"`
+		Type      string `json:"type"`
+	} `json:"timeControl"`
 	Variant struct {
-		Key   string `json: "key"`
-		Name  string `json: "name"`
-		Short string `json: "short"`
-	} `json: "variant"`
+		Key   string `json:"key"`
+		Name  string `json:"name"`
+		Short string `json:"short"`
+	} `json:"variant"`
 	Challenger struct {
-		Id     string `json: "id"`
-		Name   string `json: "name"`
-		Rating int    `json: "rating"`
-		Title  string `json: "title"`
-	} `json: "challenger"`
+		ID          string `json:"id"`
+		Name        string `json:"name"`
+		Online      bool   `json:"online"`
+		Provisional bool   `json:"provisional"`
+		Rating      int    `json:"rating"`
+		Title       string `json:"title"`
+	} `json:"challenger"`
 	DestUser struct {
-		Id     string `json: "id"`
-		Name   string `json: "name"`
-		Rating int    `json: "rating"`
-		Title  string `json: "title"`
-	} `json: "destUser"`
+		ID          string `json:"id"`
+		Name        string `json:"name"`
+		Online      bool   `json:"online"`
+		Provisional bool   `json:"provisional"`
+		Rating      int    `json:"rating"`
+		Title       string `json:"title"`
+	} `json:"destUser"`
 	Perf struct {
-		Icon string `json: "icon"`
-		Name string `json: "name"`
-	} `json: "perf"`
-	Rated  bool   `json: "rated"`
-	Speed  string `json: "speed"`
-	Status string `json: "status"`
-}
-
-type AiChallengeInfo struct {
-	Id         string `json: "id"'`
-	Rated      bool   `json: "rated"`
-	Variant    string `json: "variant"`
-	Speed      string `json: "speed"`
-	Perf       string `json: "perf"`
-	CreatedAt  int    `json: "createdAt"`
-	LastMoveAt int    `json: "lastMoveAt"`
-	Status     string `json: "status"`
-	Players    struct {
-		White struct {
-			User struct {
-				Name   string `json: "name"`
-				Title  string `json: "title"`
-				Patron bool   `json: "patron"`
-				ID     string `json: "id"`
-			}
-			Rating      int    `json: "rating"`
-			RatingDiff  int    `json: "ratingDiff"`
-			Name        string `json: "name"`
-			Provisional bool   `json: "provisional"`
-			AiLevel     int    `json: "aiLevel"`
-			Analysis    struct {
-				Inaccuracy int `json: "inaccuracy"`
-				Mistake    int `json: "mistake"`
-				Blunder    int `json: "blunder"`
-				Acpl       int `json: "acpl"`
-			}
-			Team string `json: "team"`
-		}
-		Black struct {
-			User struct {
-				Name   string `json: "name"`
-				Title  string `json: "title"`
-				Patron bool   `json: "patron"`
-				ID     string `json: "id"`
-			}
-			Rating      int    `json: "rating"`
-			RatingDiff  int    `json: "ratingDiff"`
-			Name        string `json: "name"`
-			Provisional bool   `json: "provisional"`
-			AiLevel     int    `json: "aiLevel"`
-			Analysis    struct {
-				Inaccuracy int `json: "inaccuracy"`
-				Mistake    int `json: "mistake"`
-				Blunder    int `json: "blunder"`
-				Acpl       int `json: "acpl"`
-			}
-			Team string `json: "team"`
-		}
-	}
-	InitialFen string `json: "initialFen"`
-	Winner     string `json: "winner"`
-	Opening    struct {
-		Eco  string `json: "eco"`
-		Name string `json: "name"`
-		Ply  int    `json: "ply"`
-	}
-	Moves       string `json: "moves"`
-	Pgn         string `json: "pgn"`
-	DaysPerTurn int    `json: "daysPerTurn"`
-	Analysis    struct {
-		Eval      int    `json: "eval"`
-		Best      string `json: "best"`
-		Variation string `json: "variation"`
-		Judgement struct {
-			Name    string `json: "name"`
-			Comment string `json: "comment"`
-		}
-	}
-	Tournament string `json: "tournament"`
-	Swiss      string `json: "swiss"`
-	Clock      struct {
-		Initial   int `json: "initial"`
-		Increment int `json: "increment"`
-		TotalTime int `json: "totalTime"`
-	}
+		Icon string `json:"icon"`
+		Name string `json:"name"`
+	} `json:"perf"`
+	Rated  bool   `json:"rated"`
+	Speed  string `json:"speed"`
+	Status string `json:"status"`
 }

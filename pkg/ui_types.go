@@ -22,6 +22,11 @@ type PostGameScreen struct {
 	History *cv.TextView
 }
 
+type SavedGames struct {
+	List    *cv.List
+	Preview *cv.Table
+}
+
 type WelcomeOnline struct {
 	Title *cv.TextView
 }

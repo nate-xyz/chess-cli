@@ -29,8 +29,8 @@ func main() {
 	pkg.Root.App = App
 
 	pkg.StreamChannel = make(chan api.StreamEventType, 1)
-	api.Ready = make(chan struct{})
-	go api.StreamEvent(pkg.StreamChannel, api.Ready)
+	pkg.Ready = make(chan struct{})
+	go api.StreamEvent(pkg.StreamChannel, pkg.Ready)
 	go pkg.StreamConsumer(pkg.StreamChannel)
 
 	pkg.InitUI()

@@ -42,18 +42,18 @@ func EventContainedInEventStream(a []api.StreamEventType, eventtype string) (api
 	return api.StreamEventType{}, false
 }
 
-func getEvents(a []api.StreamEventType, gameid string) ([]api.StreamEventType, bool) {
-	n := make([]api.StreamEventType, 0)
-	for _, e := range a {
-		if e.GameID == gameid {
-			n = append(n, e)
-		}
-	}
-	if len(n) > 0 {
-		return n, true
-	}
-	return n, false
-}
+// func getEvents(a []api.StreamEventType, gameid string) ([]api.StreamEventType, bool) {
+// 	n := make([]api.StreamEventType, 0)
+// 	for _, e := range a {
+// 		if e.GameID == gameid {
+// 			n = append(n, e)
+// 		}
+// 	}
+// 	if len(n) > 0 {
+// 		return n, true
+// 	}
+// 	return n, false
+// }
 
 // func GameOutcome(sequence string) (string, string) {
 // 	sequence_array := strings.Split(sequence, " ")

@@ -117,7 +117,7 @@ func (online *OnlineGame) LichessGame(gameID string) {
 				Root.App.QueueUpdate(online.UpdateAll)
 				Root.App.GetScreen().Beep()
 
-				if (b.State.Bdraw && api.Username == online.Full.White.ID) || (b.State.Wdraw && api.Username == online.Full.Black.ID) {
+				if (b.State.Bdraw && Root.User.Name == online.Full.White.ID) || (b.State.Wdraw && Root.User.Name == online.Full.Black.ID) {
 					// b.State.Bdraw = false //this is to reset globals
 					// b.State.Wdraw = false
 					Root.App.QueueUpdate(func() {
@@ -127,7 +127,7 @@ func (online *OnlineGame) LichessGame(gameID string) {
 					})
 				}
 
-				if (b.State.Btakeback && api.Username == online.Full.White.ID) || (b.State.Wtakeback && api.Username == online.Full.Black.ID) {
+				if (b.State.Btakeback && Root.User.Name == online.Full.White.ID) || (b.State.Wtakeback && Root.User.Name == online.Full.Black.ID) {
 					// api.BoardGameState.Btakeback = false
 					// api.BoardGameState.Wtakeback = false
 					Root.App.QueueUpdate(func() {
@@ -231,7 +231,6 @@ func StreamConsumer(EventChannel <-chan api.StreamEventType) {
 				// time.Sleep(time.Second)
 				Root.wonline.UpdateTitle("")
 			}
-
 			// if n == "ponline" && e.GameID == currentGameID {
 			// 	Root.App.QueueUpdate(func() {
 			// 		modal := NewOptionWindow(

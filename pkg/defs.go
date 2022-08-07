@@ -6,6 +6,8 @@ import (
 	cv "code.rocketnine.space/tslocum/cview"
 	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 var (
@@ -22,6 +24,8 @@ var (
 	OutChallengeGameID []string
 	InChallengeGameID  []string
 	EventStreamArr     []api.StreamEventType
+	Ready              chan struct{}
+	caser              = cases.Title(language.English)
 )
 
 const (
@@ -35,6 +39,7 @@ Play locally with a [yellow]friend[white] or online with [red]Lichess!`
 	gameOnlineRibbonstr string = "CHESS-CLI -> online game | Press 'Ctrl-c' to quit"
 	OngoingRibbonstr    string = "CHESS-CLI -> Ongoing Games | Press 'Ctrl-c' to quit"
 	EmptyChar           string = "博"
+	saved_path          string = "saved_games.json"
 )
 
 type State struct {
@@ -42,7 +47,9 @@ type State struct {
 	nav        *cv.Panels
 	Shell      string
 	gameState  *GameState
+	User       *Login
 	lgame      *GameScreen
+	sgame      *SavedGames
 	pgame      *PostGameScreen
 	wonline    *WelcomeOnline
 	loader     *Loader
@@ -50,6 +57,19 @@ type State struct {
 	ponline    *OnlinePostGame
 	ongoing    *Ongoing
 	challenges *Challenges
+	sglist     *SavedGameList
+}
+
+type Login struct {
+	Token              string
+	Email              string
+	Online             bool
+	StreamStart        bool
+	Name               string
+	Friends            []string
+	OngoingGames       []api.OngoingGameInfo
+	IncomingChallenges []api.ChallengeInfo
+	OutgoingChallenges []api.ChallengeInfo
 }
 
 type GameState struct {

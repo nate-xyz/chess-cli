@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	cv "code.rocketnine.space/tslocum/cview"
 	"github.com/notnil/chess"
 )
 
@@ -108,4 +109,20 @@ func LocalTableHandler(row, col int) {
 func (g *PostGameScreen) UpdateResult() {
 	g.Result.SetText(Root.gameState.Status)
 	Root.gameState.Status = ""
+}
+
+func (sg *SavedGames) UpdateList() {
+	sg.List.Clear()
+	for i, game := range Root.sglist.Games {
+		var text string
+		if game.MoveCount%2 == 0 {
+			text += " White to play"
+		} else {
+			text += "Black to play"
+		}
+		item := cv.NewListItem(text)
+		item.SetSecondaryText(game.FEN)
+		item.SetShortcut(rune('a' + i))
+		sg.List.AddItem(item)
+	}
 }

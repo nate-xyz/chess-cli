@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	cv "code.rocketnine.space/tslocum/cview"
-	"github.com/nate-xyz/chess-cli/api"
 )
 
 func initConstruct() *cv.Grid {
@@ -384,7 +383,7 @@ func initConstruct() *cv.Grid {
 				case 0:
 					eightSubmitOption()
 				case 1:
-					updateTree(api.AllFriends)
+					updateTree(Root.User.Friends)
 					seventhfriendsOptions()
 				case 2:
 					updateTree([]string{"Select AI power level."})
@@ -429,15 +428,15 @@ func initConstruct() *cv.Grid {
 		list.Clear()
 
 		tv.SetText("Select friend to challenge.")
-		for i := 0; i < len(api.AllFriends); i++ {
-			item := cv.NewListItem(api.AllFriends[i])
+		for i := 0; i < len(Root.User.Friends); i++ {
+			item := cv.NewListItem(Root.User.Friends[i])
 			item.SetShortcut(rune('a' + i))
 			item.SetSelectedFunc(func() {
 
-				newChallenge.DestUser = api.AllFriends[list.GetCurrentItemIndex()] //store the choice
-				newChallenge.OpenEnded = false                                     //TODO: open ended
+				newChallenge.DestUser = Root.User.Friends[list.GetCurrentItemIndex()] //store the choice
+				newChallenge.OpenEnded = false                                        //TODO: open ended
 
-				path = append(path, api.AllFriends[list.GetCurrentItemIndex()])
+				path = append(path, Root.User.Friends[list.GetCurrentItemIndex()])
 				updateTree([]string{})
 
 				eightSubmitOption() //add the new list
@@ -555,7 +554,7 @@ func initConstruct() *cv.Grid {
 				updateTree(colorOptions)
 				sixthColorOption()
 			case 1:
-				updateTree(api.AllFriends)
+				updateTree(Root.User.Friends)
 				seventhfriendsOptions()
 			case 2:
 				updateTree([]string{"Select AI power level."})
