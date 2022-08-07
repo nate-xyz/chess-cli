@@ -81,6 +81,9 @@ type GameState struct {
 	MoveCount        int
 	WhiteCaptured    []string
 	BlackCaptured    []string
+	Started          string
+	Hash             string
+	LastPlayed       string
 }
 
 type ListSelectedFunc func() //used to easily add functions to list items in initUI.go
@@ -197,6 +200,8 @@ var (
 		55: "“The most important move in chess, as in life, is the one you just made.” - Unknown",
 		56: "“I like chess.” - H.F. Witte",
 	}
+
+	letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 )
 
 var testChallenge = api.CreateChallengeType{

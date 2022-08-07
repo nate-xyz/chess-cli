@@ -116,10 +116,18 @@ func (sg *SavedGames) UpdateList() {
 	for i, game := range Root.sglist.Games {
 		var text string
 		if game.MoveCount%2 == 0 {
-			text += " White to play"
+			text += "White's Turn. "
 		} else {
-			text += "Black to play"
+			text += "Black's Turn. "
 		}
+
+		if game.LastPlayed == game.Started {
+			text += "Created: [" + game.Started + "]"
+		} else {
+			text += "Played: [" + game.LastPlayed + "] "
+			text += "Created: [" + game.Started + "] "
+		}
+
 		item := cv.NewListItem(text)
 		item.SetSecondaryText(game.FEN)
 		item.SetShortcut(rune('a' + i))
