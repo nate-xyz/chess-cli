@@ -337,10 +337,10 @@ func (c *Challenges) UpdateList() {
 	c.Out.Clear()
 
 	for i, challenge := range Root.User.IncomingChallenges {
-		if contains(InChallengeGameID, challenge.Id) {
+		if contains(InChallengeGameID, challenge.ID) {
 			continue
 		}
-		InChallengeGameID = append(InChallengeGameID, challenge.Id)
+		InChallengeGameID = append(InChallengeGameID, challenge.ID)
 		variant := challenge.Variant.Name
 		opp := challenge.Challenger.Name
 		oppRating := challenge.Challenger.Rating
@@ -363,10 +363,10 @@ func (c *Challenges) UpdateList() {
 		c.In.AddItem(item)
 	}
 	for i, challenge := range Root.User.OutgoingChallenges {
-		if contains(OutChallengeGameID, challenge.Id) {
+		if contains(OutChallengeGameID, challenge.ID) {
 			continue
 		}
-		OutChallengeGameID = append(OutChallengeGameID, challenge.Id)
+		OutChallengeGameID = append(OutChallengeGameID, challenge.ID)
 		variant := challenge.Variant.Name
 		opp := challenge.DestUser.Name
 		oppRating := challenge.DestUser.Rating

@@ -348,7 +348,7 @@ func (c *Challenges) Init() *cv.Grid {
 	incoming.SetSelectedFunc(func(i int, li *cv.ListItem) {
 		gameID := InChallengeGameID[i]
 		for _, chal := range Root.User.IncomingChallenges {
-			if chal.Id == gameID {
+			if chal.ID == gameID {
 				currentGameID = gameID
 				err := api.AcceptChallenge(gameID)
 				if err != nil {
