@@ -26,7 +26,7 @@ func initConstruct() *cv.Grid {
 	list.SetWrapAround(true)
 	list.SetHover(true)
 
-	Ribbon := ribbonPrimitive(challengeRibbonstr)
+	Ribbon := ribbonPrimitive(challengeRibbonstr, list)
 
 	challengeTypeOption := []string{"Random", "Friend", "AI"}
 	challengeTypeOptionExplain := []string{"Seek a random player.", "Challenge a friend.", "Play against lichess bot."}

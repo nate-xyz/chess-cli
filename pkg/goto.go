@@ -66,18 +66,6 @@ func gotoChallengeConstruction() {
 	Root.Switch("challenge")
 }
 
-func TestFriend() {
-	CurrentChallenge = testChallenge //bypass creating a challenge
-	Root.Switch("loader")            //goto loader
-	go WaitForLichessGameResponse()  //thread to update loading screen and wait for board event
-}
-
-func TestAI() {
-	CurrentChallenge = testAiChallenge //bypass creating a challenge
-	Root.Switch("loader")              //goto loader
-	go WaitForLichessGameResponse()    //thread to update loading screen and wait for board event
-}
-
 func gotoLoaderFromChallenge() {
 	CurrentChallenge = newChallenge
 	newChallenge = api.CreateChallengeType{}
