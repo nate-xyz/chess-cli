@@ -2,7 +2,7 @@ package pkg
 
 import (
 	cv "code.rocketnine.space/tslocum/cview"
-	tc "github.com/gdamore/tcell/v2"
+	tc "github.com/gdamore/tcell/v3"
 )
 
 func titlePrimitive(text string, toFocus cv.Primitive) *cv.TextView {

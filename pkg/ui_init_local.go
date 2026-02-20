@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	cv "code.rocketnine.space/tslocum/cview"
-	tc "github.com/gdamore/tcell/v2"
+	tc "github.com/gdamore/tcell/v3"
 )
 
 func WelcomeInit() *cv.Grid {
