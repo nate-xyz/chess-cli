@@ -11,7 +11,7 @@ import (
 	"unicode"
 
 	cv "code.rocketnine.space/tslocum/cview"
-	tc "github.com/gdamore/tcell/v2"
+	tc "github.com/gdamore/tcell/v3"
 	"github.com/notnil/chess"
 )
 

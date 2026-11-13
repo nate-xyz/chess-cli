@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	cv "code.rocketnine.space/tslocum/cview"
-	tc "github.com/gdamore/tcell/v2"
+	tc "github.com/gdamore/tcell/v3"
 	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"
 )
