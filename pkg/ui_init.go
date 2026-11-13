@@ -39,4 +39,5 @@ func InitUI() {
 	Root.sglist = new(SavedGameList)
 	Root.sglist.Init()
 	Root.App.SetRoot(panels, true)
+	Root.App.SetAfterDrawFunc(flushTextSizing)
 }

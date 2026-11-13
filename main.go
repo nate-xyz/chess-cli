@@ -39,6 +39,8 @@ func main() {
 			return
 		}
 	}
+	pkg.SetupTextSizing() // must run before the UI takes over the terminal
+
 	shell := os.Getenv("SHELL")
 	if shell == "" {
 		if runtime.GOOS == "windows" {

@@ -37,6 +37,8 @@ func quoutePrimitive(text string, toFocus cv.Primitive) *cv.TextView {
 	tv.SetTextAlign(cv.AlignCenter)
 	tv.SetVerticalAlign(cv.AlignTop)
 	tv.SetTextColor(tc.ColorLightSlateGray)
+	tv.SetWordWrap(true)
+	tv.SetPadding(1, 1, 10, 10)
 	tv.SetText(text)
 	tv.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
 		Root.App.SetFocus(toFocus)

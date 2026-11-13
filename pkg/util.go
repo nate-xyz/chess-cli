@@ -153,7 +153,7 @@ func FENtoBoard(board *BoardView, FEN string, white bool) {
 	board.SetPosition(chess.NewGame(opt).Position(), white)
 	board.SetLastMove(chess.NoSquare, chess.NoSquare)
 	board.ClearSelection()
-	Root.App.QueueUpdateDraw(func() {}, board)
+	Root.App.QueueUpdateDraw(func() {}) // full draw, so big pieces are flushed too
 }
 
 // func containedInOngoingGames(a []api.OngoingGameInfo, gameid string) bool {
@@ -165,11 +165,47 @@ func FENtoBoard(board *BoardView, FEN string, white bool) {
 // 	return false
 // }
 
+// parseMoveInput turns a typed move into UCI. It accepts UCI ("e2e4",
+// "e7e8q"), UCI with a promotion marker ("e7e8=N", "e7e8N"), standard
+// algebraic notation ("Nf3", "exd5", "e8=Q", "O-O", "0-0") and long algebraic
+// ("Ng1f3"). Only legal moves are returned.
+func parseMoveInput(g *chess.Game, in string) (string, error) {
+	in = strings.TrimSpace(in)
+	if in == "" {
+		return "", fmt.Errorf("empty move")
+	}
+	pos := g.Position()
+	legal := map[string]bool{}
+	for _, m := range g.ValidMoves() {
+		legal[chess.UCINotation{}.Encode(pos, m)] = true
+	}
+	try := func(n chess.Notation, s string) (string, bool) {
+		m, err := n.Decode(pos, s)
+		if err != nil {
+			return "", false
+		}
+		uci := chess.UCINotation{}.Encode(pos, m)
+		return uci, legal[uci]
+	}
+	uciForm := strings.ToLower(strings.NewReplacer("=", "", "-", "", "+", "", "#", "", " ", "").Replace(in))
+	if uci, ok := try(chess.UCINotation{}, uciForm); ok {
+		return uci, nil
+	}
+	san := strings.NewReplacer("0-0-0", "O-O-O", "0-0", "O-O").Replace(in)
+	for _, n := range []chess.Notation{chess.AlgebraicNotation{}, chess.LongAlgebraicNotation{}} {
+		if uci, ok := try(n, san); ok {
+			return uci, nil
+		}
+	}
+	return "", fmt.Errorf("not a legal move: %s", in)
+}
+
 // invalidMoveHint explains why a typed move was rejected, with a nudge for the
 // common case of a promotion typed without its piece.
 func invalidMoveHint(move string) string {
-	if len(move) == 4 && contains(Root.gameState.LegalMoves, move+"q") {
-		return fmt.Sprintf("[yellow]%s is a promotion: add the piece, e.g. %sq (q, r, b or n).[white]\n", move, move)
+	m := strings.ToLower(strings.TrimSpace(move))
+	if len(m) == 4 && contains(Root.gameState.LegalMoves, m+"q") {
+		return fmt.Sprintf("[yellow]%s is a promotion: add the piece, e.g. %s=Q (Q, R, B or N).[white]\n", move, move)
 	}
-	return "Last input [red]invalid.[white]\n"
+	return fmt.Sprintf("[red]%q isn't a legal move.[white] Try e2e4, Nf3 or e8=Q.\n", move)
 }

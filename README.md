@@ -38,12 +38,27 @@ go run .            # or: go build -o chess-cli . && ./chess-cli
 A terminal with true colour and a font with the Unicode chess symbols gives the
 best result. The board scales with your terminal, so make it big.
 
+### Big pieces
+
+In terminals that support kitty's
+[text sizing protocol](https://sw.kovidgoyal.net/kitty/text-sizing-protocol/)
+the pieces scale up with the board, drawn by the terminal in your own font.
+
+| Terminal | Pieces |
+|---|---|
+| [kitty](https://sw.kovidgoyal.net/kitty/) 0.40 or newer | big |
+| everything else (and inside tmux/screen) | normal size |
+
+Support is detected when chess-cli starts, so other terminals get big pieces
+as soon as they implement the protocol. To override the detection, set
+`CHESS_CLI_BIG_PIECES=0` (off) or `=1` (force on).
+
 # Playing
 
 | | |
 |---|---|
 | **Mouse** | Click a piece, then click where it should go. Legal moves are dotted, captures tinted. |
-| **Typing** | Enter moves in UCI (`e2e4`) in the move box. Promotions need the piece: `e7e8q`. |
+| **Typing** | Type moves in the move box as UCI (`e2e4`) or standard notation (`Nf3`, `exd5`, `O-O`). Promotions need the piece: `e7e8=Q`, `e8=Q` or `e7e8q`. |
 | **Keyboard on the board** | `Tab` moves focus to the board; arrows or `hjkl` move the cursor, `Enter`/`Space` selects, `Esc` cancels. |
 | **Promotion** | A picker opens over the promotion square: click a piece, or press `q` `r` `b` `n`. |
 | **Online chat** | `Tab` cycles move box → board → chat. |
@@ -103,7 +118,8 @@ git tag v0.2.0 && git push origin v0.2.0
 
 #### general
 
-- Choose the input notation (SAN like `Nf3` as well as UCI)
+- Image-based board (kitty graphics protocol / sixel) for terminals that
+  support images, e.g. with the Lichess piece set
 
 #### local client
 

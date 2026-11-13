@@ -93,11 +93,10 @@ func (g *OnlineGame) Init() *cv.Grid {
 		inputBox.SetText("")
 
 		if key == tc.KeyEnter {
-			if contains(Root.gameState.LegalMoves, Root.gameState.NextMove) {
-				err := g.DoMove(Root.gameState.NextMove)
-				if err != nil {
+			if uci, err := parseMoveInput(Root.gameState.Game, Root.gameState.NextMove); err == nil {
+				if err := g.DoMove(uci); err != nil {
 					Root.gameState.Status += fmt.Sprintf("%v", err)
-					Root.lgame.UpdateStatus()
+					g.UpdateStatus()
 				}
 			} else {
 				Root.gameState.Status += invalidMoveHint(Root.gameState.NextMove)

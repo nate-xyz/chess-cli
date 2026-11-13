@@ -10,8 +10,8 @@ import (
 )
 
 // BoardView is a chess board primitive that scales to fill whatever space the
-// layout gives it. Squares grow with the terminal; once there is room, pieces
-// are drawn as half-block pixel art instead of single glyphs.
+// layout gives it. Squares grow with the terminal; in terminals with kitty's
+// text sizing protocol the pieces grow with them (see textsize.go).
 //
 // Mouse: click a piece, then click a destination. Keyboard (when focused):
 // arrows / hjkl move a cursor, Enter or Space selects, Esc clears, Tab leaves.
@@ -152,10 +152,20 @@ const (
 )
 
 // boardGeometry picks the largest square size that fits w x h cells. Terminal
-// cells are roughly twice as tall as wide, so squares are ~2x wider than tall.
-func boardGeometry(w, h int) (sqW, sqH int) {
+// cells are about twice as tall as wide, so squares are ~2x wider than tall.
+// With big pieces, squares are exactly 2s x s cells so a piece scaled by s
+// (the protocol allows 1-7) fills one square.
+func boardGeometry(w, h int, sized bool) (sqW, sqH int) {
 	w -= labelW
 	h -= labelH
+	if sized {
+		for s := min(7, h/8); s >= 1; s-- {
+			if 8*2*s <= w {
+				return 2 * s, s
+			}
+		}
+		return 0, 0
+	}
 	for s := h / 8; s >= 2; s-- {
 		if 8*(2*s+2) <= w {
 			return 2*s + 2, s
@@ -171,9 +181,7 @@ var (
 	colLight     = tc.NewRGBColor(145, 130, 109)
 	colDark      = tc.NewRGBColor(108, 81, 59)
 	colWhiteBody = tc.NewRGBColor(255, 248, 220)
-	colWhiteLine = tc.NewRGBColor(60, 48, 36)
 	colBlackBody = tc.NewRGBColor(18, 18, 18)
-	colBlackLine = tc.NewRGBColor(120, 110, 95)
 	colLabel     = tc.NewRGBColor(170, 160, 140)
 
 	tintSelected = tc.NewRGBColor(110, 150, 70)
@@ -184,6 +192,18 @@ var (
 	colPromo     = tc.NewRGBColor(200, 195, 185)
 	colPromoDark = tc.NewRGBColor(95, 90, 85)
 )
+
+// Big pieces are drawn at this fraction of the square, centred, leaving a
+// little margin.
+const pieceScaleN, pieceScaleD = 9, 10
+
+// bigGlyphs are the pieces drawn with text sizing. The filled glyphs are used
+// for both colours (coloured by fg); the pawn gets U+FE0E so it renders as
+// text, not emoji.
+var bigGlyphs = map[chess.PieceType]string{
+	chess.King: "♚", chess.Queen: "♛", chess.Rook: "♜",
+	chess.Bishop: "♝", chess.Knight: "♞", chess.Pawn: "♟\uFE0E",
+}
 
 func blend(a, b tc.Color, t float64) tc.Color {
 	ar, ag, ab := a.RGB()
@@ -202,8 +222,9 @@ func (b *BoardView) Draw(screen tc.Screen) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
+	sized := TextSizingMode()
 	x, y, w, h := b.GetInnerRect()
-	sqW, sqH := boardGeometry(w, h)
+	sqW, sqH := boardGeometry(w, h, sized)
 	b.sqW, b.sqH = sqW, sqH
 	if sqW == 0 {
 		msg := "Enlarge the terminal to see the board"
@@ -221,11 +242,30 @@ func (b *BoardView) Draw(screen tc.Screen) {
 	b.oy = y + (h-totalH)/2
 
 	focused := b.HasFocus()
+	var cells []sizedCell
 	for row := 0; row < 8; row++ {
 		for col := 0; col < 8; col++ {
 			sq := squareAt(row, col, b.white)
-			b.drawSquare(screen, sq, b.ox+col*sqW, b.oy+row*sqH, focused && sq == b.cursor)
+			sx, sy := b.ox+col*sqW, b.oy+row*sqH
+			look := b.lookOf(sq, focused && sq == b.cursor)
+			for cy := 0; cy < sqH; cy++ {
+				for cx := 0; cx < sqW; cx++ {
+					screen.SetContent(sx+cx, sy+cy, ' ', nil, tc.StyleDefault.Background(look.bg))
+				}
+			}
+			switch {
+			case sized:
+				cells = append(cells, look.sized(sx, sy, sqW, sqH))
+			case look.piece != chess.NoPiece:
+				glyph := []rune(PiecesMap[rune(look.piece.Type().String()[0])])[0]
+				screen.SetContent(sx+sqW/2, sy+sqH/2, glyph, nil, tc.StyleDefault.Foreground(look.fg).Background(look.bg))
+			case look.dot:
+				screen.SetContent(sx+sqW/2, sy+sqH/2, '•', nil, tc.StyleDefault.Foreground(colDot).Background(look.bg))
+			}
 		}
+	}
+	if sized {
+		queueSized(screen, rect{b.ox, b.oy, 8 * sqW, 8 * sqH}, cells)
 	}
 
 	labelStyle := tc.StyleDefault.Foreground(colLabel).Background(b.GetBackgroundColor())
@@ -237,130 +277,61 @@ func (b *BoardView) Draw(screen tc.Screen) {
 	}
 }
 
-func (b *BoardView) drawSquare(screen tc.Screen, sq chess.Square, x, y int, cursor bool) {
-	bg := colDark
-	if (int(sq.File())+int(sq.Rank()))%2 == 1 {
-		bg = colLight
+// squareLook is what one square shows.
+type squareLook struct {
+	bg, fg tc.Color
+	piece  chess.Piece
+	dot    bool // empty square the selected piece can move to
+}
+
+// sized turns a look into a multicell character filling the square.
+func (l squareLook) sized(x, y, sqW, sqH int) sizedCell {
+	c := sizedCell{x: x, y: y, s: sqH, w: sqW / sqH, fg: l.fg, bg: l.bg, text: " "}
+	switch {
+	case l.piece != chess.NoPiece:
+		c.text, c.n, c.d = bigGlyphs[l.piece.Type()], pieceScaleN, pieceScaleD
+	case l.dot:
+		c.text, c.fg, c.n, c.d = "●", colDot, 1, 3
 	}
-	piece := b.pos.Board().Piece(sq)
+	return c
+}
+
+// lookOf works out a square's colours and contents: base colour, then
+// promotion picker, selection, capture targets, last move and cursor.
+func (b *BoardView) lookOf(sq chess.Square, cursor bool) squareLook {
+	l := squareLook{bg: colDark, piece: b.pos.Board().Piece(sq)}
+	if (int(sq.File())+int(sq.Rank()))%2 == 1 {
+		l.bg = colLight
+	}
 	if b.promo != nil {
 		if pt, ok := b.promo.squares[sq]; ok {
-			piece = makePiece(pt, b.promo.color)
-			bg = colPromo
-			if piece.Color() == chess.White {
-				bg = colPromoDark
+			l.piece = makePiece(pt, b.promo.color)
+			l.bg = colPromo
+			if b.promo.color == chess.White {
+				l.bg = colPromoDark
 			}
-			if cursor {
-				bg = blend(bg, tintCursor, 0.5)
-			}
-			b.paintSquare(screen, x, y, bg, piece, false)
-			return
+		} else {
+			l.bg = blend(l.bg, tc.ColorBlack, 0.55)
 		}
-		bg = blend(bg, tc.ColorBlack, 0.55)
-	}
-	switch {
-	case sq == b.selected:
-		bg = blend(bg, tintSelected, 0.6)
-	case b.targets[sq] && piece != chess.NoPiece:
-		bg = blend(bg, tintCapture, 0.5)
-	case sq == b.lastFrom || sq == b.lastTo:
-		bg = blend(bg, tintLastMove, 0.4)
+	} else {
+		switch {
+		case sq == b.selected:
+			l.bg = blend(l.bg, tintSelected, 0.6)
+		case b.targets[sq] && l.piece != chess.NoPiece:
+			l.bg = blend(l.bg, tintCapture, 0.5)
+		case sq == b.lastFrom || sq == b.lastTo:
+			l.bg = blend(l.bg, tintLastMove, 0.4)
+		}
+		l.dot = b.targets[sq] && l.piece == chess.NoPiece
 	}
 	if cursor {
-		bg = blend(bg, tintCursor, 0.5)
+		l.bg = blend(l.bg, tintCursor, 0.5)
 	}
-	b.paintSquare(screen, x, y, bg, piece, b.targets[sq])
-}
-
-// paintSquare draws one square with the given background and piece (or a
-// move-target dot if dot is set and the square is empty).
-func (b *BoardView) paintSquare(screen tc.Screen, x, y int, bg tc.Color, piece chess.Piece, dot bool) {
-	// pixel buffer: 1 column x 2 half-rows per cell
-	pw, ph := b.sqW, b.sqH*2
-	px := make([]tc.Color, pw*ph)
-	for i := range px {
-		px[i] = bg
+	l.fg = colBlackBody
+	if l.piece != chess.NoPiece && l.piece.Color() == chess.White {
+		l.fg = colWhiteBody
 	}
-
-	glyph := rune(0)
-	var glyphFg tc.Color
-	if piece != chess.NoPiece {
-		body, line := colBlackBody, colBlackLine
-		if piece.Color() == chess.White {
-			body, line = colWhiteBody, colWhiteLine
-		}
-		if art, k, ok := pickArt(piece.Type(), pw, ph); ok {
-			aw, ah := len(art[0])*k, len(art)*k
-			margin := 0
-			if ph-ah >= 2 {
-				margin = 1
-			}
-			offX := (pw - aw) / 2
-			offY := ph - ah - margin // bottom-aligned so pieces share a baseline
-			for ay := 0; ay < ah; ay++ {
-				for ax := 0; ax < aw; ax++ {
-					switch art[ay/k][ax/k] {
-					case '#':
-						px[(offY+ay)*pw+offX+ax] = body
-					case 'o':
-						px[(offY+ay)*pw+offX+ax] = line
-					}
-				}
-			}
-		} else {
-			glyph = []rune(PiecesMap[rune(piece.Type().String()[0])])[0]
-			glyphFg = body
-		}
-	} else if dot {
-		if b.sqH >= 3 {
-			// a round-ish dot in the middle, ~1/4 of the square
-			dw, dh := max(2, pw/4), max(2, ph/4)
-			for dy := 0; dy < dh; dy++ {
-				for dx := 0; dx < dw; dx++ {
-					if (dx == 0 || dx == dw-1) && (dy == 0 || dy == dh-1) && dw > 2 && dh > 2 {
-						continue
-					}
-					px[(ph/2-dh/2+dy)*pw+pw/2-dw/2+dx] = colDot
-				}
-			}
-		} else {
-			glyph, glyphFg = '•', colDot
-		}
-	}
-
-	for cy := 0; cy < b.sqH; cy++ {
-		for cx := 0; cx < pw; cx++ {
-			top, bot := px[(2*cy)*pw+cx], px[(2*cy+1)*pw+cx]
-			if top == bot {
-				screen.SetContent(x+cx, y+cy, ' ', nil, tc.StyleDefault.Background(top))
-			} else {
-				screen.SetContent(x+cx, y+cy, '▀', nil, tc.StyleDefault.Foreground(top).Background(bot))
-			}
-		}
-	}
-	if glyph != 0 {
-		screen.SetContent(x+pw/2, y+b.sqH/2, glyph, nil, tc.StyleDefault.Foreground(glyphFg).Background(bg))
-	}
-}
-
-// pickArt returns the largest piece bitmap (with an integer scale factor) that
-// fits in pw x ph pixels. Integer scaling keeps the pixel art crisp.
-func pickArt(t chess.PieceType, pw, ph int) ([]string, int, bool) {
-	if ph < 6 {
-		return nil, 0, false
-	}
-	availW, availH := pw, ph
-	if ph >= 8 {
-		availW, availH = pw-2, ph-2
-	}
-	for _, set := range []map[chess.PieceType][]string{artLarge, artSmall} {
-		art := set[t]
-		k := min(availW/len(art[0]), availH/len(art))
-		if k >= 1 {
-			return art, k, true
-		}
-	}
-	return nil, 0, false
+	return l
 }
 
 // InputHandler handles keyboard navigation on the board.
@@ -542,164 +513,4 @@ func (b *BoardView) openPromotion(from, to chess.Square, color chess.Color, doMo
 	b.promo = &promoPick{from: from, to: to, color: color, squares: squares, done: doMove}
 	b.targets = nil
 	b.cursor = to
-}
-
-// Piece bitmaps. '#' = body, 'o' = detail line, '.' = transparent.
-var artSmall = map[chess.PieceType][]string{
-	chess.Pawn: {
-		"...#...",
-		"..###..",
-		"...#...",
-		"..###..",
-		".#####.",
-	},
-	chess.Knight: {
-		"..##...",
-		".####..",
-		"#####..",
-		"#..##..",
-		"..###..",
-		".#####.",
-	},
-	chess.Bishop: {
-		"...#...",
-		"..#o#..",
-		"..###..",
-		"...#...",
-		"..###..",
-		".#####.",
-	},
-	chess.Rook: {
-		"#.#.#.#",
-		"#######",
-		".#####.",
-		"..###..",
-		".#####.",
-		"#######",
-	},
-	chess.Queen: {
-		"#..#..#",
-		"##.#.##",
-		".#####.",
-		"..###..",
-		".#####.",
-		"#######",
-	},
-	chess.King: {
-		"...#...",
-		"..###..",
-		"#..#..#",
-		"#######",
-		".#####.",
-		"#######",
-	},
-}
-
-var artLarge = map[chess.PieceType][]string{
-	chess.Pawn: {
-		"......##......",
-		".....####.....",
-		"....######....",
-		"....######....",
-		".....####.....",
-		"......##......",
-		".....####.....",
-		"....oooooo....",
-		".....####.....",
-		".....####.....",
-		"....######....",
-		"...########...",
-		"..##########..",
-		"..##########..",
-	},
-	chess.Knight: {
-		".......#......",
-		".....#####....",
-		"....#######...",
-		"...###o#####..",
-		"..##########..",
-		".###########..",
-		".####..######.",
-		"..##...######.",
-		"......######..",
-		".....######...",
-		"....#######...",
-		"....#######...",
-		"...oooooooo...",
-		"..##########..",
-		".############.",
-		".############.",
-	},
-	chess.Bishop: {
-		"......##......",
-		".....####.....",
-		"....####o#....",
-		"...####o###...",
-		"...###o####...",
-		"...########...",
-		"....######....",
-		".....####.....",
-		"...oooooooo...",
-		"....######....",
-		".....####.....",
-		".....####.....",
-		"...########...",
-		"..##########..",
-		".############.",
-		".############.",
-	},
-	chess.Rook: {
-		"..##.####.##..",
-		"..##.####.##..",
-		"..##########..",
-		"..##########..",
-		"...########...",
-		"...oooooooo...",
-		"....######....",
-		"....######....",
-		"....######....",
-		"....######....",
-		"....######....",
-		"...oooooooo...",
-		"...########...",
-		"..##########..",
-		".############.",
-		".############.",
-	},
-	chess.Queen: {
-		".#....##....#.",
-		".#....##....#.",
-		".##..####..##.",
-		".###.####.###.",
-		".############.",
-		"..##########..",
-		"...########...",
-		"....######....",
-		"...oooooooo...",
-		"....######....",
-		"....######....",
-		"...########...",
-		"...oooooooo...",
-		"..##########..",
-		".############.",
-		".############.",
-	},
-	chess.King: {
-		"......##......",
-		"....######....",
-		"......##......",
-		"..###.##.###..",
-		".#####..#####.",
-		".############.",
-		".############.",
-		"..##########..",
-		"...oooooooo...",
-		"....######....",
-		"...########...",
-		"....######....",
-		"...########...",
-		"..oooooooooo..",
-		".############.",
-		".############.",
-	},
 }

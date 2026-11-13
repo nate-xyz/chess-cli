@@ -44,5 +44,5 @@ func DrawBoard(board *BoardView, white bool) {
 		from, to = last.S1(), last.S2()
 	}
 	board.SetLastMove(from, to)
-	Root.App.QueueUpdateDraw(func() {}, board)
+	Root.App.QueueUpdateDraw(func() {}) // full draw, so big pieces are flushed too
 }

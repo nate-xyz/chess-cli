@@ -1,9 +1,6 @@
 package pkg
 
 import (
-	"fmt"
-	"os"
-	"strings"
 	"testing"
 
 	tc "github.com/gdamore/tcell/v3"
@@ -15,7 +12,7 @@ func TestBoardGeometryFitsAndGrows(t *testing.T) {
 	prev := 0
 	for _, sz := range [][2]int{{30, 10}, {60, 20}, {80, 26}, {120, 40}, {200, 60}, {300, 90}} {
 		w, h := sz[0], sz[1]
-		sqW, sqH := boardGeometry(w, h)
+		sqW, sqH := boardGeometry(w, h, false)
 		if sqW == 0 {
 			t.Fatalf("%dx%d: no board", w, h)
 		}
@@ -27,7 +24,7 @@ func TestBoardGeometryFitsAndGrows(t *testing.T) {
 		}
 		prev = sqH
 	}
-	if w, _ := boardGeometry(10, 5); w != 0 {
+	if w, _ := boardGeometry(10, 5, false); w != 0 {
 		t.Errorf("tiny area should report no board")
 	}
 }
@@ -118,41 +115,6 @@ func TestPromotionPicker(t *testing.T) {
 	}
 }
 
-// TestRenderDump writes ASCII-ish renders of the board at several sizes to
-// $BOARD_DUMP (if set), for eyeballing the art without running the TUI.
-func TestRenderDump(t *testing.T) {
-	out := os.Getenv("BOARD_DUMP")
-	if out == "" {
-		t.Skip("set BOARD_DUMP=path to write renders")
-	}
-	var sb strings.Builder
-	g := chess.NewGame()
-	for _, m := range []string{"e4", "e5", "Nf3", "Nc6", "Bc4"} {
-		_ = g.MoveStr(m)
-	}
-	for _, sz := range [][2]int{{40, 12}, {80, 30}, {150, 45}, {190, 75}} {
-		s := newTestScreen(t, sz[0], sz[1])
-		b := NewBoardView(nil)
-		b.SetRect(0, 0, sz[0], sz[1])
-		b.SetPosition(g.Position(), true)
-		b.SetLastMove(chess.F1, chess.C4)
-		b.HandleSquare(g, chess.G8, true, func(string) {})
-		b.Draw(s)
-		w, h := s.Size()
-		sqW, sqH := boardGeometry(w, h)
-		fmt.Fprintf(&sb, "=== size %dx%d, square %dx%d\n", w, h, sqW, sqH)
-		for y := 0; y < h; y++ {
-			for x := 0; x < w; x++ {
-				sb.WriteRune(shadeAt(s, x, y))
-			}
-			sb.WriteByte('\n')
-		}
-	}
-	if err := os.WriteFile(out, []byte(sb.String()), 0o644); err != nil {
-		t.Fatal(err)
-	}
-}
-
 // newTestScreen is a real terminfo screen attached to tcell's mock terminal,
 // finalised when the test ends.
 func newTestScreen(t *testing.T, w, h int) tc.Screen {
@@ -175,45 +137,41 @@ func newMockScreen(t *testing.T, w, h int) tc.Screen {
 	return s
 }
 
-// shadeAt renders one screen cell as a plain-text character so renders can be
-// eyeballed: piece pixels as W/B, detail lines as o, target dots as *, squares
-// as . (light) and : (dark), tinted squares as ~.
-func shadeAt(s tc.Screen, x, y int) rune {
-	str, style, _ := s.Get(x, y)
-	r := ' '
-	if str != "" {
-		r = []rune(str)[0]
-	}
-	return shade(r, style.GetForeground(), style.GetBackground())
-}
-
-func shade(r rune, fg, bg tc.Color) rune {
-	cls := func(c tc.Color) rune {
-		switch c {
-		case colWhiteBody:
-			return 'W'
-		case colBlackBody:
-			return 'B'
-		case colWhiteLine, colBlackLine:
-			return 'o'
-		case colDot:
-			return '*'
-		case colLight:
-			return '.'
-		case colDark:
-			return ':'
+func TestParseMoveInput(t *testing.T) {
+	promo, _ := chess.FEN("r3k2r/1P6/8/8/8/8/8/R3K2R w KQkq - 0 1")
+	start := chess.NewGame(chess.UseNotation(chess.UCINotation{}))
+	for _, tc := range []struct {
+		game *chess.Game
+		in   string
+		want string
+	}{
+		{start, "e2e4", "e2e4"},
+		{start, "E2E4", "e2e4"},
+		{start, "e2-e4", "e2e4"},
+		{start, "Nf3", "g1f3"},
+		{start, "e4", "e2e4"},
+		{start, "Ng1f3", "g1f3"},
+		{chess.NewGame(promo), "b7b8=N", "b7b8n"},
+		{chess.NewGame(promo), "b7b8n", "b7b8n"},
+		{chess.NewGame(promo), "b7b8N", "b7b8n"},
+		{chess.NewGame(promo), "b8=R", "b7b8r"},
+		{chess.NewGame(promo), "bxa8=Q", "b7a8q"},
+		{chess.NewGame(promo), "O-O", "e1g1"},
+		{chess.NewGame(promo), "0-0-0", "e1c1"},
+		{chess.NewGame(promo), "b7b8", ""}, // promotion needs a piece
+		{start, "e2e5", ""},
+		{start, "Nf6", ""},
+		{start, "", ""},
+	} {
+		got, err := parseMoveInput(tc.game, tc.in)
+		if tc.want == "" {
+			if err == nil {
+				t.Errorf("%q: expected an error, got %q", tc.in, got)
+			}
+			continue
 		}
-		return '~' // tinted square
-	}
-	switch r {
-	case '▀':
-		top, bot := cls(fg), cls(bg)
-		if top == 'W' || top == 'B' || top == 'o' || top == '*' {
-			return top
+		if err != nil || got != tc.want {
+			t.Errorf("%q: got %q, %v; want %q", tc.in, got, err, tc.want)
 		}
-		return bot
-	case ' ':
-		return cls(bg)
 	}
-	return r
 }

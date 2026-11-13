@@ -8,6 +8,8 @@ require (
 	github.com/jimlambrt/go-oauth-pkce-code-verifier v0.0.0-20201220003123-6363600dffda
 	github.com/notnil/chess v1.7.2
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
+	golang.org/x/sys v0.40.0
+	golang.org/x/term v0.39.0
 	golang.org/x/text v0.33.0
 )
 
@@ -19,6 +21,4 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mattn/go-runewidth v0.0.19 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/term v0.39.0 // indirect
 )
