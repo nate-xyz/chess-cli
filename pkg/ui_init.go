@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	cv "code.rocketnine.space/tslocum/cview"
+	cv "codeberg.org/tslocum/cview"
 )
 
 func InitUI() {

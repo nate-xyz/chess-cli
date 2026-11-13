@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	cv "code.rocketnine.space/tslocum/cview"
+	cv "codeberg.org/tslocum/cview"
 	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"
 )

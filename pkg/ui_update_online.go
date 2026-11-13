@@ -5,7 +5,7 @@ import (
 	"math"
 	"strings"
 
-	cv "code.rocketnine.space/tslocum/cview"
+	cv "codeberg.org/tslocum/cview"
 	tc "github.com/gdamore/tcell/v3"
 	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"

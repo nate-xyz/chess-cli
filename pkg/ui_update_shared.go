@@ -3,7 +3,7 @@ package pkg
 import (
 	"fmt"
 
-	cv "code.rocketnine.space/tslocum/cview"
+	cv "codeberg.org/tslocum/cview"
 	"github.com/notnil/chess"
 )
 

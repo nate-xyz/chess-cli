@@ -1,17 +1,44 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 
-	cv "code.rocketnine.space/tslocum/cview"
-	"github.com/gdamore/tcell/encoding"
+	cv "codeberg.org/tslocum/cview"
+	_ "github.com/gdamore/tcell/v3/encoding" // support non-UTF-8 terminals
 	api "github.com/nate-xyz/chess-cli/api"
 	pkg "github.com/nate-xyz/chess-cli/pkg"
 )
 
+// version is set at release build time (see .goreleaser.yaml).
+var version = "dev"
+
+const usage = `chess-cli: play chess in the terminal, locally or on Lichess.
+
+Usage: chess-cli [--version | --help]
+
+Files are kept in %s
+`
+
 func main() {
-	encoding.Register()
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "-v", "--version", "version":
+			fmt.Println("chess-cli", version)
+			return
+		default:
+			dir, err := api.ConfigDir()
+			if err != nil {
+				dir = "your user config directory"
+			}
+			fmt.Printf(usage, dir)
+			if os.Args[1] != "-h" && os.Args[1] != "--help" && os.Args[1] != "help" {
+				os.Exit(2)
+			}
+			return
+		}
+	}
 	shell := os.Getenv("SHELL")
 	if shell == "" {
 		if runtime.GOOS == "windows" {

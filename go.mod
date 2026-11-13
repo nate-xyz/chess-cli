@@ -3,8 +3,7 @@ module github.com/nate-xyz/chess-cli
 go 1.24.0
 
 require (
-	code.rocketnine.space/tslocum/cview v1.5.7
-	github.com/gdamore/tcell v1.4.0
+	codeberg.org/tslocum/cview v1.6.3
 	github.com/gdamore/tcell/v3 v3.1.2
 	github.com/jimlambrt/go-oauth-pkce-code-verifier v0.0.0-20201220003123-6363600dffda
 	github.com/notnil/chess v1.7.2
@@ -22,9 +21,4 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/term v0.39.0 // indirect
-)
-
-replace (
-	code.rocketnine.space/tslocum/cbind => codeberg.org/tslocum/cbind v0.1.8
-	code.rocketnine.space/tslocum/cview => codeberg.org/tslocum/cview v1.6.3
 )
