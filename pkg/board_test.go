@@ -71,15 +71,50 @@ func TestHandleSquareSelectAndMove(t *testing.T) {
 	}
 }
 
-func TestHandleSquarePromotesToQueen(t *testing.T) {
+func TestPromotionPicker(t *testing.T) {
 	fen, _ := chess.FEN("8/4P3/8/8/8/8/k7/4K3 w - - 0 1")
-	g := chess.NewGame(fen)
-	b := NewBoardView(nil)
-	var played string
-	b.HandleSquare(g, chess.E7, true, func(string) {})
-	b.HandleSquare(g, chess.E8, true, func(u string) { played = u })
-	if played != "e7e8q" {
-		t.Fatalf("promotion played %q, want e7e8q", played)
+	for _, tc := range []struct {
+		name  string
+		pick  func(b *BoardView, g *chess.Game, do func(string))
+		want  string
+		white bool
+	}{
+		{"queen by click", func(b *BoardView, g *chess.Game, do func(string)) { b.HandleSquare(g, chess.E8, true, do) }, "e7e8q", true},
+		{"knight by click", func(b *BoardView, g *chess.Game, do func(string)) { b.HandleSquare(g, chess.E7, true, do) }, "e7e8n", true},
+		{"rook by click", func(b *BoardView, g *chess.Game, do func(string)) { b.HandleSquare(g, chess.E6, true, do) }, "e7e8r", true},
+		{"bishop by click", func(b *BoardView, g *chess.Game, do func(string)) { b.HandleSquare(g, chess.E5, true, do) }, "e7e8b", true},
+		{"knight by key", func(b *BoardView, g *chess.Game, do func(string)) {
+			sq, ok := b.promoSquareFor("N")
+			if !ok {
+				t.Fatal("no picker square for n")
+			}
+			b.HandleSquare(g, sq, true, do)
+		}, "e7e8n", true},
+		// board flipped (black at bottom): e8 is on the bottom row, picker goes up
+		{"flipped rook by click", func(b *BoardView, g *chess.Game, do func(string)) { b.HandleSquare(g, chess.E6, true, do) }, "e7e8r", false},
+		{"cancel by clicking away", func(b *BoardView, g *chess.Game, do func(string)) { b.HandleSquare(g, chess.A1, true, do) }, "", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g := chess.NewGame(fen)
+			b := NewBoardView(nil)
+			b.SetPosition(g.Position(), tc.white)
+			played := ""
+			do := func(u string) { played = u }
+			b.HandleSquare(g, chess.E7, true, do)
+			if b.HandleSquare(g, chess.E8, true, do) || played != "" {
+				t.Fatalf("promotion should wait for a choice, played %q", played)
+			}
+			if !b.PromotionOpen() {
+				t.Fatal("picker not open")
+			}
+			tc.pick(b, g, do)
+			if played != tc.want {
+				t.Fatalf("played %q, want %q", played, tc.want)
+			}
+			if b.PromotionOpen() {
+				t.Fatal("picker still open")
+			}
+		})
 	}
 }
 

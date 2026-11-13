@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"strings"
 	"sync"
 
 	cv "code.rocketnine.space/tslocum/cview"
@@ -14,6 +15,8 @@ import (
 //
 // Mouse: click a piece, then click a destination. Keyboard (when focused):
 // arrows / hjkl move a cursor, Enter or Space selects, Esc clears, Tab leaves.
+// Promotions open a picker over the promotion square (click a piece or press
+// q/r/b/n; Esc or a click elsewhere cancels).
 type BoardView struct {
 	*cv.Box
 
@@ -27,10 +30,34 @@ type BoardView struct {
 	cursor   chess.Square
 	onSquare func(sq chess.Square)
 	onTab    func()
+	promo    *promoPick
 
 	// geometry from the last Draw, used to map mouse clicks to squares
 	ox, oy, sqW, sqH int
 }
+
+// promoPick is an open promotion picker: four squares in a column over the
+// promotion square, each offering one piece.
+type promoPick struct {
+	from, to chess.Square
+	color    chess.Color
+	squares  map[chess.Square]chess.PieceType
+	done     func(uci string)
+}
+
+// makePiece builds a Piece from type and colour (the chess library keeps its
+// own constructor unexported).
+func makePiece(t chess.PieceType, c chess.Color) chess.Piece {
+	for p := chess.WhiteKing; p <= chess.BlackPawn; p++ {
+		if p.Type() == t && p.Color() == c {
+			return p
+		}
+	}
+	return chess.NoPiece
+}
+
+// promoOrder is the order pieces appear in the picker, nearest the edge first.
+var promoOrder = []chess.PieceType{chess.Queen, chess.Knight, chess.Rook, chess.Bishop}
 
 // NewBoardView makes a board. onSquare is called when the user clicks or
 // presses Enter on a square; pass nil for a display-only board.
@@ -48,11 +75,31 @@ func NewBoardView(onSquare func(sq chess.Square)) *BoardView {
 }
 
 // SetPosition sets the position to show and which side sits at the bottom.
+// If the position changed, any selection or open promotion picker is dropped,
+// since it no longer applies (e.g. the opponent just moved).
 func (b *BoardView) SetPosition(pos *chess.Position, white bool) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	if b.pos == nil || pos.String() != b.pos.String() || white != b.white {
+		b.selected, b.targets, b.promo = chess.NoSquare, nil, nil
+	}
 	b.pos = pos
 	b.white = white
+}
+
+// PromotionOpen reports whether the promotion picker is showing.
+func (b *BoardView) PromotionOpen() bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.promo != nil
+}
+
+// CancelPromotion closes the promotion picker without moving.
+func (b *BoardView) CancelPromotion() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.promo = nil
+	b.selected, b.targets = chess.NoSquare, nil
 }
 
 // SetLastMove highlights the from/to squares of the previous move.
@@ -134,6 +181,8 @@ var (
 	tintCapture  = tc.NewRGBColor(200, 70, 60)
 	tintCursor   = tc.NewRGBColor(80, 130, 200)
 	colDot       = tc.NewRGBColor(60, 90, 40)
+	colPromo     = tc.NewRGBColor(200, 195, 185)
+	colPromoDark = tc.NewRGBColor(95, 90, 85)
 )
 
 func blend(a, b tc.Color, t float64) tc.Color {
@@ -194,6 +243,21 @@ func (b *BoardView) drawSquare(screen tc.Screen, sq chess.Square, x, y int, curs
 		bg = colLight
 	}
 	piece := b.pos.Board().Piece(sq)
+	if b.promo != nil {
+		if pt, ok := b.promo.squares[sq]; ok {
+			piece = makePiece(pt, b.promo.color)
+			bg = colPromo
+			if piece.Color() == chess.White {
+				bg = colPromoDark
+			}
+			if cursor {
+				bg = blend(bg, tintCursor, 0.5)
+			}
+			b.paintSquare(screen, x, y, bg, piece, false)
+			return
+		}
+		bg = blend(bg, tc.ColorBlack, 0.55)
+	}
 	switch {
 	case sq == b.selected:
 		bg = blend(bg, tintSelected, 0.6)
@@ -205,7 +269,12 @@ func (b *BoardView) drawSquare(screen tc.Screen, sq chess.Square, x, y int, curs
 	if cursor {
 		bg = blend(bg, tintCursor, 0.5)
 	}
+	b.paintSquare(screen, x, y, bg, piece, b.targets[sq])
+}
 
+// paintSquare draws one square with the given background and piece (or a
+// move-target dot if dot is set and the square is empty).
+func (b *BoardView) paintSquare(screen tc.Screen, x, y int, bg tc.Color, piece chess.Piece, dot bool) {
 	// pixel buffer: 1 column x 2 half-rows per cell
 	pw, ph := b.sqW, b.sqH*2
 	px := make([]tc.Color, pw*ph)
@@ -242,7 +311,7 @@ func (b *BoardView) drawSquare(screen tc.Screen, sq chess.Square, x, y int, curs
 			glyph = []rune(PiecesMap[rune(piece.Type().String()[0])])[0]
 			glyphFg = body
 		}
-	} else if b.targets[sq] {
+	} else if dot {
 		if b.sqH >= 3 {
 			// a round-ish dot in the middle, ~1/4 of the square
 			dw, dh := max(2, pw/4), max(2, ph/4)
@@ -319,12 +388,16 @@ func (b *BoardView) InputHandler() func(event *tc.EventKey, setFocus func(p cv.P
 		case tc.KeyEnter:
 			b.activate(b.cursor)
 		case tc.KeyEscape:
-			b.ClearSelection()
+			b.CancelPromotion()
 		case tc.KeyTab, tc.KeyBacktab:
 			if b.onTab != nil {
 				b.onTab()
 			}
 		case tc.KeyRune:
+			if sq, ok := b.promoSquareFor(event.Str()); ok {
+				b.activate(sq)
+				return
+			}
 			switch event.Str() {
 			case "k":
 				move(-1, 0)
@@ -371,34 +444,70 @@ func (b *BoardView) MouseHandler() func(action cv.MouseAction, event *tc.EventMo
 	})
 }
 
+// promoSquareFor maps q/r/b/n (either case) to the picker square offering that piece.
+func (b *BoardView) promoSquareFor(key string) (chess.Square, bool) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.promo == nil {
+		return chess.NoSquare, false
+	}
+	want, ok := map[string]chess.PieceType{"q": chess.Queen, "r": chess.Rook, "b": chess.Bishop, "n": chess.Knight}[strings.ToLower(key)]
+	if !ok {
+		return chess.NoSquare, false
+	}
+	for sq, pt := range b.promo.squares {
+		if pt == want {
+			return sq, true
+		}
+	}
+	return chess.NoSquare, false
+}
+
 func (b *BoardView) activate(sq chess.Square) {
 	if b.onSquare != nil {
 		b.onSquare(sq)
 	}
 }
 
-// HandleSquare implements click-to-move for a game: select one of mover's
+// HandleSquare implements click-to-move for a game: select one of the mover's
 // pieces, then pick a legal destination. doMove is given a UCI move string.
-// Promotions default to a queen. Returns true if a move was attempted.
+// Moving a pawn to the last rank opens the promotion picker; the move is made
+// once a piece is chosen. Returns true if a move was attempted.
 func (b *BoardView) HandleSquare(game *chess.Game, sq chess.Square, canMove bool, doMove func(uci string)) bool {
+	b.mu.Lock()
+	promo := b.promo
+	b.mu.Unlock()
+	if promo != nil {
+		b.CancelPromotion()
+		if pt, ok := promo.squares[sq]; ok {
+			promo.done(promo.from.String() + promo.to.String() + pt.String())
+			return true
+		}
+		return false // clicked elsewhere: cancel
+	}
+
 	pos := game.Position()
 	selected := b.Selected()
 
 	if selected != chess.NoSquare && selected != sq {
-		var match *chess.Move
+		var matches []*chess.Move
 		for _, m := range game.ValidMoves() {
 			if m.S1() == selected && m.S2() == sq {
-				if match == nil || m.Promo() == chess.Queen {
-					match = m
-				}
+				matches = append(matches, m)
 			}
 		}
-		if match != nil {
+		switch {
+		case len(matches) == 0:
+			// not a legal destination: fall through to (re)selection below
+		case !canMove:
 			b.ClearSelection()
-			if canMove {
-				doMove(chess.UCINotation{}.Encode(pos, match))
-				return true
-			}
+			return false
+		case len(matches) == 1:
+			b.ClearSelection()
+			doMove(chess.UCINotation{}.Encode(pos, matches[0]))
+			return true
+		default: // promotion: let the player choose the piece
+			b.openPromotion(selected, sq, pos.Turn(), doMove)
 			return false
 		}
 	}
@@ -416,6 +525,23 @@ func (b *BoardView) HandleSquare(game *chess.Game, sq chess.Square, canMove bool
 	}
 	b.SetSelection(sq, targets)
 	return false
+}
+
+func (b *BoardView) openPromotion(from, to chess.Square, color chess.Color, doMove func(string)) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	row, col := displayOf(to, b.white)
+	dir := 1 // promotion square at the top edge: picker extends downwards
+	if row == 7 {
+		dir = -1
+	}
+	squares := map[chess.Square]chess.PieceType{}
+	for i, pt := range promoOrder {
+		squares[squareAt(row+i*dir, col, b.white)] = pt
+	}
+	b.promo = &promoPick{from: from, to: to, color: color, squares: squares, done: doMove}
+	b.targets = nil
+	b.cursor = to
 }
 
 // Piece bitmaps. '#' = body, 'o' = detail line, '.' = transparent.
