@@ -10,17 +10,13 @@ import (
 
 var (
 	Root               = new(State)
-	killGame           chan string
-	NewChessGame       *chess.Game             //used in online.go in the LichessGame() function to update the board position from new stream event
 	newChallenge       api.CreateChallengeType //used initUI.go in initConstruct() in order to save settings from a challenge construction
 	CurrentChallenge   api.CreateChallengeType
 	currentGameID      string
-	gameStateChan      chan api.BoardEvent
 	StreamChannel      chan api.StreamEventType
 	GameListIDArr      []string
 	OutChallengeGameID []string
 	InChallengeGameID  []string
-	EventStreamArr     []api.StreamEventType
 	Ready              chan struct{}
 	caser              = cases.Title(language.English)
 )
@@ -35,7 +31,7 @@ Play locally with a [yellow]friend[white] or online with [red]Lichess!`
 	challengeRibbonstr  string = "CHESS-CLI -> create a challenge | Press 'Ctrl-c' to quit"
 	gameOnlineRibbonstr string = "CHESS-CLI -> online game | Press 'Ctrl-c' to quit"
 	OngoingRibbonstr    string = "CHESS-CLI -> Ongoing Games | Press 'Ctrl-c' to quit"
-	saved_path          string = "saved_games.json"
+	saved_path          string = "saved_games.json" // legacy location, see savedGamesPath
 )
 
 type State struct {
@@ -89,11 +85,6 @@ type PiecePosition struct {
 	Alg    string
 	Empty  bool
 	Symbol string
-}
-
-type BothInc struct {
-	wtime int64
-	btime int64
 }
 
 var (

@@ -2,9 +2,7 @@ package pkg
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
-	"os"
 	"strings"
 	"time"
 
@@ -27,23 +25,6 @@ func GetRandomQuote() string {
 	rand_quote_int := rand.Intn(maxrand-minrand+1) + minrand
 	var rand_quote string = RandQuoteMap[rand_quote_int]
 	return rand_quote
-}
-
-//writes to a local text file
-func WriteLocal(title string, payload string) {
-	f, err := os.Create(fmt.Sprintf("%s.txt", title))
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer f.Close()
-
-	_, err2 := f.WriteString(payload)
-
-	if err2 != nil {
-		log.Fatal(err2)
-	}
 }
 
 func timeFormat(time int64) string {
@@ -183,3 +164,12 @@ func FENtoBoard(board *BoardView, FEN string, white bool) {
 // 	}
 // 	return false
 // }
+
+// invalidMoveHint explains why a typed move was rejected, with a nudge for the
+// common case of a promotion typed without its piece.
+func invalidMoveHint(move string) string {
+	if len(move) == 4 && contains(Root.gameState.LegalMoves, move+"q") {
+		return fmt.Sprintf("[yellow]%s is a promotion: add the piece, e.g. %sq (q, r, b or n).[white]\n", move, move)
+	}
+	return "Last input [red]invalid.[white]\n"
+}

@@ -1,6 +1,9 @@
 package pkg
 
 import (
+	"context"
+	"time"
+
 	cv "code.rocketnine.space/tslocum/cview"
 	"github.com/nate-xyz/chess-cli/api"
 )
@@ -47,10 +50,23 @@ type OnlineGame struct {
 	OppInfo   *cv.TextView
 	OppTimer  *cv.TextView
 	PopUp     *cv.Flex
+	Chat      *cv.TextView
+	ChatInput *cv.InputField
 
-	Full   api.StreamBoardGameFull
-	State  api.StreamBoardGameState
-	Resign api.StreamBoardResign
+	Full  api.StreamBoardGameFull
+	State api.StreamBoardGameState
+	Gone  api.StreamOpponentGone
+
+	// per-game state, reset by startNewOnlineGame; UI goroutine only
+	ctx       context.Context
+	cancel    context.CancelFunc
+	ended     bool
+	popupKind string    // which offer the popup is showing, if any
+	goneSince time.Time // when the opponent-gone event arrived
+	canClaim  bool      // opponent gone long enough to claim
+	clockW    int64     // clocks (ms) as of clockAt
+	clockB    int64
+	clockAt   time.Time
 }
 
 type OnlinePostGame struct {

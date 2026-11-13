@@ -20,7 +20,7 @@ func (w *WelcomeOnline) Init() *cv.Grid {
 		"Back to welcome screen",
 		"Press to exit"}
 	shortcuts := []rune{'n', 'o', 'c', 'b', 'q'}
-	selectFunc := []ListSelectedFunc{gotoChallengeConstruction, gotoOngoing, gotoChallenges, gotoWelcome, Root.App.Stop}
+	selectFunc := []ListSelectedFunc{requireLogin(gotoChallengeConstruction), requireLogin(gotoOngoing), requireLogin(gotoChallenges), gotoWelcome, Root.App.Stop}
 	for i := 0; i < len(choices); i++ {
 		item := cv.NewListItem(choices[i])
 		item.SetSecondaryText(explain[i])
@@ -61,7 +61,15 @@ func (l *Loader) Init() *cv.Grid {
 	loaderMsgBox.SetTextAlign(cv.AlignCenter)
 	loaderMsgBox.SetVerticalAlign(cv.AlignMiddle)
 
-	loaderRibbon := ribbonPrimitive("CHESS-CLI -> Loading, please wait...", loaderMsgBox)
+	loaderMsgBox.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
+		if event.Key() == tc.KeyEscape || event.Str() == "q" {
+			cancelLoader()
+			return nil
+		}
+		return event
+	})
+
+	loaderRibbon := ribbonPrimitive("CHESS-CLI -> Waiting for Lichess | Esc to cancel", loaderMsgBox)
 
 	grid := cv.NewGrid()
 	grid.SetColumns(-1)
@@ -92,7 +100,7 @@ func (g *OnlineGame) Init() *cv.Grid {
 					Root.lgame.UpdateStatus()
 				}
 			} else {
-				Root.gameState.Status += "Last input [red]invalid.[white]\n"
+				Root.gameState.Status += invalidMoveHint(Root.gameState.NextMove)
 				g.UpdateStatus()
 			}
 
@@ -110,7 +118,35 @@ func (g *OnlineGame) Init() *cv.Grid {
 	})
 
 	gameBox := NewBoardView(g.OnlineSquareHandler)
-	gameBox.SetTabFunc(func() { Root.App.SetFocus(inputBox) })
+
+	chatView := cv.NewTextView()
+	chatView.SetDynamicColors(true)
+	chatView.SetWordWrap(true)
+	chatView.SetScrollable(true)
+	chatView.SetBorder(true)
+	chatView.SetTitle(" Chat ")
+	chatInput := cv.NewInputField()
+	chatInput.SetLabel("Say: ")
+	chatInput.SetDoneFunc(func(key tc.Key) {
+		if key == tc.KeyEnter {
+			g.sendChat(chatInput.GetText())
+			chatInput.SetText("")
+		}
+	})
+	chatPanel := cv.NewFlex()
+	chatPanel.SetDirection(cv.FlexRow)
+	chatPanel.AddItem(chatView, 0, 1, false)
+	chatPanel.AddItem(chatInput, 1, 0, false)
+
+	// Tab cycles: move input -> board -> chat -> move input
+	gameBox.SetTabFunc(func() { Root.App.SetFocus(chatInput) })
+	chatInput.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
+		if event.Key() == tc.KeyTab {
+			Root.App.SetFocus(inputBox)
+			return nil
+		}
+		return event
+	})
 
 	statusBox := cv.NewTextView()
 	statusBox.SetWordWrap(true)
@@ -199,8 +235,11 @@ func (g *OnlineGame) Init() *cv.Grid {
 	grid.AddItem(userTimerBox, 2, 2, 1, 1, 0, 0, false)
 	grid.AddItem(userInfoBox, 3, 2, 1, 1, 0, 0, false)
 	grid.AddItem(options, 4, 0, 1, 1, 0, 0, false)
+	grid.AddItem(chatPanel, 4, 2, 1, 1, 0, 0, false)
 
 	g.Grid = grid
+	g.Chat = chatView
+	g.ChatInput = chatInput
 	g.Board = gameBox
 	g.Status = statusBox
 	g.History = historyBox
@@ -217,10 +256,10 @@ func (pg *OnlinePostGame) Init() *cv.Grid {
 	postList := cv.NewList() //list construction
 	postList.SetWrapAround(true)
 	postList.SetHover(true)
-	choices := []string{"Home", "New", "Ongoing", "Quit"}
-	explain := []string{"Back to the welcome screen", "Create a new game", "Select from ongoing games", "Press to exit"}
-	shortcuts := []rune{'h', 'n', 'o', 'q'}
-	selectFunc := []ListSelectedFunc{gotoLichessAfterLogin, gotoChallengeConstruction, gotoOngoing, Root.App.Stop}
+	choices := []string{"Rematch", "Home", "New", "Ongoing", "Quit"}
+	explain := []string{"Same opponent and settings, colours swapped", "Back to the Lichess menu", "Create a new game", "Select from ongoing games", "Press to exit"}
+	shortcuts := []rune{'r', 'h', 'n', 'o', 'q'}
+	selectFunc := []ListSelectedFunc{func() { Root.ongame.rematch() }, gotoLichessAfterLogin, gotoChallengeConstruction, gotoOngoing, Root.App.Stop}
 
 	for i := 0; i < len(choices); i++ {
 		item := cv.NewListItem(choices[i])
@@ -348,18 +387,61 @@ func (c *Challenges) Init() *cv.Grid {
 	incoming := cv.NewList()
 	incoming.AddItem(cv.NewListItem("placeholder in"))
 	incoming.SetSelectedFunc(func(i int, li *cv.ListItem) {
-		gameID := InChallengeGameID[i]
-		for _, chal := range Root.User.IncomingChallenges {
-			if chal.ID == gameID {
-				currentGameID = gameID
-				err := api.AcceptChallenge(gameID)
-				if err != nil {
-					gotoLichess()
-				}
-				startNewOnlineGame()
-			}
+		if i >= len(InChallengeGameID) {
+			return
 		}
-
+		id := InChallengeGameID[i]
+		li.SetSecondaryText("[gray]accepting…[-]")
+		go func() {
+			err := api.AcceptChallenge(id)
+			Root.App.QueueUpdateDraw(func() {
+				if err != nil {
+					li.SetSecondaryText(fmt.Sprintf("[red]%v[-]", err))
+					return
+				}
+				currentGameID = id
+				startNewOnlineGame()
+			})
+		}()
+	})
+	// d declines the highlighted incoming challenge
+	incoming.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
+		if event.Str() != "d" {
+			return event
+		}
+		i := incoming.GetCurrentItemIndex()
+		if i < 0 || i >= len(InChallengeGameID) {
+			return nil
+		}
+		id := InChallengeGameID[i]
+		go func() {
+			err := api.DeclineChallenge(id, "")
+			Root.App.QueueUpdateDraw(func() {
+				if err != nil {
+					Root.wonline.UpdateTitle(fmt.Sprintf("\n[red]Decline failed: %v[-]", err))
+				}
+				gotoChallenges()
+			})
+		}()
+		return nil
+	})
+	// selecting an outgoing challenge cancels it
+	outgoing.SetSelectedFunc(func(i int, li *cv.ListItem) {
+		if i >= len(OutChallengeGameID) {
+			return
+		}
+		id := OutChallengeGameID[i]
+		li.SetSecondaryText("[gray]cancelling…[-]")
+		go func() {
+			err := api.CancelChallenge(id)
+			Root.App.QueueUpdateDraw(func() {
+				if err != nil {
+					li.SetSecondaryText(fmt.Sprintf("[red]%v[-]", err))
+					return
+				}
+				gotoChallenges()
+			})
+		}()
 	})
 
 	options := cv.NewList()
@@ -375,8 +457,8 @@ func (c *Challenges) Init() *cv.Grid {
 		options.AddItem(item)
 	}
 
-	outtitle := titlePrimitive("Outgoing Challenges.", outgoing)
-	intitle := titlePrimitive("Incoming Challenges.", incoming)
+	outtitle := titlePrimitive("Outgoing challenges\n[gray]Enter cancels[-]", outgoing)
+	intitle := titlePrimitive("Incoming challenges\n[gray]Enter accepts, d declines[-]", incoming)
 	ribbon := ribbonPrimitive("CHESS-CLI -> Challenges", incoming)
 
 	grid := cv.NewGrid()

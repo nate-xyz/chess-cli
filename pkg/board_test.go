@@ -153,8 +153,16 @@ func TestRenderDump(t *testing.T) {
 	}
 }
 
-// newTestScreen is a real terminfo screen attached to tcell's mock terminal.
+// newTestScreen is a real terminfo screen attached to tcell's mock terminal,
+// finalised when the test ends.
 func newTestScreen(t *testing.T, w, h int) tc.Screen {
+	t.Helper()
+	s := newMockScreen(t, w, h)
+	t.Cleanup(s.Fini)
+	return s
+}
+
+func newMockScreen(t *testing.T, w, h int) tc.Screen {
 	t.Helper()
 	mt := vt.NewMockTerm(vt.MockOptSize{X: vt.Col(w), Y: vt.Row(h)}, vt.MockOptColors(1<<24))
 	s, err := tc.NewTerminfoScreenFromTty(mt)
@@ -164,7 +172,6 @@ func newTestScreen(t *testing.T, w, h int) tc.Screen {
 	if err := s.Init(); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(s.Fini)
 	return s
 }
 

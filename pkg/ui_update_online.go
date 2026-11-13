@@ -14,11 +14,10 @@ import (
 func (og *OnlineGame) UpdateAll() {
 	Root.gameState.UpdateLegalMoves()
 	DrawMoveHistory(og.History)
-	DrawBoard(og.Board, og.Full.White.Name == Root.User.Name)
+	DrawBoard(og.Board, og.IsWhite())
 	og.UpdateStatus()
 	og.UpdateUserInfo()
 	og.UpdateList()
-	Root.RefreshAll()
 }
 
 func (og *OnlineGame) UpdateList() {
@@ -34,14 +33,21 @@ func (og *OnlineGame) UpdateList() {
 		list.AddItem(item)
 	}
 
-	optionsList = []string{"Takeback", "Abort", "Offer Draw", "Resign"}
-	optionsExplain = []string{"Propose a takeback", "Abort the current game", "Offer a draw to your opponent", "Resign from the current game"}
-	optionsFunc = []ListSelectedFunc{og.doProposeTakeBack, og.doAbort, og.doOfferDraw, og.doResign}
+	optionsList = []string{"Takeback", "Abort", "Offer Draw", "Resign", "Claim Draw", "Claim Victory"}
+	optionsExplain = []string{"Propose a takeback", "Abort the current game", "Offer a draw to your opponent", "Resign from the current game",
+		"Opponent left: end the game as a draw", "Opponent left: claim the win"}
+	optionsFunc = []ListSelectedFunc{og.doProposeTakeBack, og.doAbort, og.doOfferDraw, og.doResign, og.doClaimDraw, og.doClaimVictory}
 	for i, opt := range optionsList {
 		if opt == "Takeback" && Root.gameState.MoveCount == 0 {
 			continue
 		}
+		if opt == "Abort" && Root.gameState.MoveCount >= 2 {
+			continue // Lichess only allows aborting before both sides have moved
+		}
 		if (opt == "Offer Draw" || opt == "Resign") && Root.gameState.MoveCount < 2 {
+			continue
+		}
+		if (opt == "Claim Draw" || opt == "Claim Victory") && !(og.Gone.Gone && og.canClaim) {
 			continue
 		}
 		item := cv.NewListItem(opt)
@@ -54,13 +60,16 @@ func (og *OnlineGame) UpdateList() {
 
 func (w *WelcomeOnline) UpdateTitle(msg string) {
 	var titlestr string = LichessTitle
-	if api.Online {
+	if api.IsOnline() {
 		titlestr += " 🟢"
 	} else {
 		titlestr += " ⚪"
 	}
-	if api.UserInfo.ApiToken == "" {
-		titlestr += "[red]\nNot logged into lichess.[blue]\nPlease login through your browser.[white]\nLink should open automatically."
+	if Root.User == nil || Root.User.Name == "" {
+		titlestr += "[red]\nNot logged in to Lichess.[white]"
+		if loginURL != "" {
+			titlestr += "\n[blue]Log in through your browser; it should open by itself.[white]\nIf it didn't, open this link:\n" + cv.Escape(loginURL)
+		}
 	} else {
 		titlestr += fmt.Sprintf("\n[green]Logged in[white] as: [blue]%s[white]\n", Root.User.Name)
 	}
@@ -68,7 +77,6 @@ func (w *WelcomeOnline) UpdateTitle(msg string) {
 		titlestr += msg
 	}
 	w.Title.SetText(titlestr)
-	Root.App.QueueUpdateDraw(func() {}, w.Title)
 }
 
 func (og *OnlineGame) UpdateStatus() {
@@ -101,54 +109,46 @@ func (og *OnlineGame) UpdateStatus() {
 	} else {
 		status += "Black's turn. \n\n"
 	}
+	if og.Gone.Gone {
+		if og.canClaim {
+			status += "[yellow]Your opponent left. You can claim victory or a draw from the menu.[-]\n"
+		} else {
+			status += fmt.Sprintf("[yellow]Your opponent left. You can claim the game in %ds if they don't return.[-]\n", og.Gone.ClaimWinInSeconds)
+		}
+	}
 	og.Status.SetText(status)
 }
 
 func (og *OnlineGame) UpdateUserInfo() {
-	var (
-		OppName      string = "%s"
-		You          string = "%s"
-		UserString   string = "\n[blue]%v[white]"
-		OppString    string = "\n[red]%v[white]"
-		BlackCapture string = strings.Join(Root.gameState.BlackCaptured, "") + " \t"
-		WhiteCapture string = strings.Join(Root.gameState.WhiteCaptured, "") + " \t"
-	)
-
-	if og.Full.White.Name == Root.User.Name {
-		if og.Full.Rated {
-			OppName = fmt.Sprintf("%s (%d)", og.Full.Black.Name, og.Full.Black.Rating)
-			You = fmt.Sprintf("%s (%d)", Root.User.Name, og.Full.White.Rating)
-		} else {
-			OppName = og.Full.Black.Name
-			You = Root.User.Name
+	describe := func(p api.GamePlayer) string {
+		if p.AiLevel > 0 {
+			return fmt.Sprintf("🤖 Stockfish level %d", p.AiLevel)
 		}
-		UserString = UserString + " (white)\n"
-		UserString += WhiteCapture
-		OppString = OppString + " (black)\n"
-		OppString = BlackCapture + OppString
-	} else {
-		if og.Full.Rated {
-			OppName = fmt.Sprintf("%s (%d)", og.Full.White.Name, og.Full.White.Rating)
-			You = fmt.Sprintf("%s (%d)", Root.User.Name, og.Full.Black.Rating)
-		} else {
-			OppName = og.Full.White.Name
-			You = Root.User.Name
+		name := p.Name
+		if p.Title != "" {
+			name = p.Title + " " + name
 		}
-		OppString = OppString + " (white)\n"
-		OppString = WhiteCapture + OppString
-		UserString = UserString + " (black)\n"
-		UserString += BlackCapture
+		name = cv.Escape(name)
+		if og.Full.Rated && p.Rating > 0 {
+			name += fmt.Sprintf(" (%d", p.Rating)
+			if p.Provisional {
+				name += "?"
+			}
+			name += ")"
+		}
+		return name
 	}
-
-	if CurrentChallenge.Type == 2 {
-		OppName = "🤖"
+	whiteCaptured := strings.Join(Root.gameState.WhiteCaptured, "") + " \t"
+	blackCaptured := strings.Join(Root.gameState.BlackCaptured, "") + " \t"
+	white := og.IsWhite()
+	me, opp := og.Full.White, og.Full.Black
+	myColor, oppColor, myCaptured, oppCaptured := "white", "black", whiteCaptured, blackCaptured
+	if !white {
+		me, opp = opp, me
+		myColor, oppColor, myCaptured, oppCaptured = oppColor, myColor, oppCaptured, myCaptured
 	}
-
-	UserString = fmt.Sprintf(UserString, You)
-	OppString = fmt.Sprintf(OppString, OppName)
-
-	og.UserInfo.SetText(UserString)
-	og.OppInfo.SetText(OppString)
+	og.UserInfo.SetText(fmt.Sprintf("\n[blue]%s[white] (%s)\n%s", describe(me), myColor, myCaptured))
+	og.OppInfo.SetText(fmt.Sprintf("%s\n[red]%s[white] (%s)\n", oppCaptured, describe(opp), oppColor))
 }
 
 func (l *Loader) DrawIcon(i int) int {
@@ -161,42 +161,36 @@ func (l *Loader) DrawIcon(i int) int {
 	if i > 7 {
 		i = 0
 	}
-	Root.RefreshAll()
 	return i
 }
 
-func (l *Loader) DrawMessage(msg string) {
-	l.Message.SetText(msg)
-	Root.RefreshAll()
-}
-
+// DoMove plays a move: it's shown straight away, then sent to Lichess in the
+// background. If Lichess rejects it, the board goes back to the last position
+// Lichess confirmed. UI goroutine only.
 func (og *OnlineGame) DoMove(move string) error {
-	go func() {
-		err := Root.gameState.Game.MoveStr(move)
-		if err == nil {
-			DrawBoard(og.Board, og.Full.White.Name == Root.User.Name)
-			Root.App.QueueUpdateDraw(func() {}, og.Board)
-		}
-	}()
-
-	err := api.MakeMove(currentGameID, move) //do the move
-	if err != nil {
+	if err := Root.gameState.Game.MoveStr(move); err != nil {
 		return err
 	}
+	Root.gameState.NextMove = ""
+	DrawBoard(og.Board, og.IsWhite())
+	og.UpdateStatus()
 	Root.App.GetScreen().Beep()
 
-	DrawBoard(og.Board, og.Full.White.Name == Root.User.Name)
-
-	Root.gameState.NextMove = "" //clear the next move
-	og.UpdateStatus()
-
+	gameID := currentGameID
+	go func() {
+		err := api.MakeMove(gameID, move)
+		if err == nil {
+			return
+		}
+		Root.App.QueueUpdateDraw(func() {
+			if og.ended || currentGameID != gameID {
+				return
+			}
+			Root.gameState.Status += fmt.Sprintf("[red]Move %s rejected: %v[-]\n", move, err)
+			og.applyState(og.State) // back to the last confirmed position
+		})
+	}()
 	return nil
-}
-
-func (og *OnlineGame) InitTimeView() {
-	b := int64(og.Full.State.Btime)
-	w := int64(og.Full.State.Wtime)
-	og.LiveUpdateTime(b, w)
 }
 
 func (og *OnlineGame) LiveUpdateTime(b int64, w int64) { //MoveCount
@@ -204,7 +198,7 @@ func (og *OnlineGame) LiveUpdateTime(b int64, w int64) { //MoveCount
 		return
 	}
 
-	var White bool = og.Full.White.Name == Root.User.Name
+	var White bool = og.IsWhite()
 	var UserStr string
 	var OppoStr string
 
@@ -259,7 +253,7 @@ func (og *OnlineGame) LiveUpdateTime(b int64, w int64) { //MoveCount
 // OnlineSquareHandler handles a click (or Enter) on a board square in an online game.
 // Only your own pieces can be selected, and only on your turn.
 func (online *OnlineGame) OnlineSquareHandler(sq chess.Square) {
-	white := online.Full.White.Name == Root.User.Name
+	white := online.IsWhite()
 	myTurn := (Root.gameState.Game.Position().Turn() == chess.White) == white
 	if !myTurn {
 		online.Board.ClearSelection()
@@ -329,6 +323,8 @@ func (ongoing *Ongoing) UpdateList() {
 func (c *Challenges) UpdateList() {
 	c.In.Clear()
 	c.Out.Clear()
+	InChallengeGameID = nil
+	OutChallengeGameID = nil
 
 	for i, challenge := range Root.User.IncomingChallenges {
 		if contains(InChallengeGameID, challenge.ID) {

@@ -77,7 +77,7 @@ func WelcomeInit() *cv.Grid {
 	return grid
 }
 
-//local game grid
+// local game grid
 func (g *GameScreen) Init() *cv.Grid {
 	Input := cv.NewInputField()
 	Input.SetDoneFunc(func(key tc.Key) {
@@ -91,7 +91,7 @@ func (g *GameScreen) Init() *cv.Grid {
 					Root.lgame.UpdateStatus()
 				}
 			} else {
-				Root.gameState.Status += "Last input [red]invalid.[white]\n"
+				Root.gameState.Status += invalidMoveHint(Root.gameState.NextMove)
 				Root.lgame.UpdateStatus()
 			}
 		} else {

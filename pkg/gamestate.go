@@ -1,6 +1,10 @@
 package pkg
 
 import (
+	"context"
+	"errors"
+	"net/http"
+
 	cv "code.rocketnine.space/tslocum/cview"
 	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"
@@ -12,26 +16,27 @@ func (s *State) NewGame() {
 	s.gameState = game
 }
 
-func (s *State) Login() error {
-	s.User = new(Login)
-	err := s.User.Init()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (user *Login) Init() error {
+// Init logs in (reusing a saved token if it's still valid) and loads the
+// account details. showURL is called with the browser login URL, if needed.
+func (user *Login) Init(ctx context.Context, showURL func(string)) error {
 	var err error
-	user.Token, err = api.PerformOAuth()
+	user.Token, err = api.PerformOAuth(ctx, showURL)
 	if err != nil {
 		return err
 	}
 	err = user.GetLichessUserInfo()
-	if err != nil {
-		return err
+	var apiErr *api.APIError
+	if errors.As(err, &apiErr) && apiErr.Status == http.StatusUnauthorized {
+		// the saved token was revoked: log in again
+		if err := api.ClearToken(); err != nil {
+			return err
+		}
+		if user.Token, err = api.AuthUser(ctx, showURL); err != nil {
+			return err
+		}
+		err = user.GetLichessUserInfo()
 	}
-	return nil
+	return err
 }
 
 func (s *State) Switch(panel string) {

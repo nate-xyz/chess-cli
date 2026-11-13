@@ -4,19 +4,20 @@ import (
 	"time"
 )
 
+// HostUrl is the Lichess server (a variable so tests can point it at a fake).
+var HostUrl = "https://lichess.org"
+
 const (
-	HostUrl   string = "https://lichess.org"
-	ClientID  string = "chess-cli"
-	AuthURL   string = HostUrl + "/oauth"
-	TokenURL  string = HostUrl + "/api/token"
-	json_path string = "user_config.json"
+	ClientID string = "chess-cli"
+
+	// legacyConfigFile is where older versions kept the token (in the working
+	// directory). LoadConfig migrates it to ConfigDir.
+	legacyConfigFile string = "user_config.json"
 )
 
 var (
-	UserInfo                = UserConfig{ApiToken: "", TokenCreationDate: time.Now(), TokenExpirationDate: time.Now().AddDate(1, 0, 0)}
-	StreamEventStarted bool = false
-	Online             bool = false
-	Scopes                  = []string{
+	UserInfo UserConfig
+	Scopes   = []string{
 		"preference:read",
 		"preference:write",
 		"challenge:read",
@@ -36,20 +37,19 @@ var (
 type BoardEventEnum int
 
 const (
-	GameFull BoardEventEnum = iota
-	GameState
-	ChatLine
-	ChatLineSpectator
-	GameStateResign
-	EOF
+	GameFull     BoardEventEnum = iota // full game info, sent first and on reconnect
+	GameState                          // moves/clocks/offers changed
+	ChatLine                           // a chat message
+	OpponentGone                       // the opponent left (or came back)
+	EOF                                // the game stream ended normally
 )
 
 type BoardEvent struct {
-	Type   BoardEventEnum
-	Full   StreamBoardGameFull
-	State  StreamBoardGameState
-	Chat   StreamBoardChat
-	Resign StreamBoardResign
+	Type  BoardEventEnum
+	Full  StreamBoardGameFull
+	State StreamBoardGameState
+	Chat  StreamBoardChat
+	Gone  StreamOpponentGone
 }
 
 type StreamEventType struct {
@@ -58,7 +58,7 @@ type StreamEventType struct {
 	Source    string
 }
 
-//type for storing user info into a json
+// type for storing user info into a json
 type UserConfig struct {
 	ApiToken            string
 	TokenCreationDate   time.Time
@@ -81,4 +81,5 @@ type CreateChallengeType struct {
 	MinTurn        float64
 	OpenEnded      bool
 	Level          string
+	Fen            string // starting position, for "fromPosition" games
 }
