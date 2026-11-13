@@ -6,7 +6,7 @@ import (
 )
 
 type GameScreen struct {
-	Board     *cv.Table
+	Board     *BoardView
 	Status    *cv.TextView
 	History   *cv.TextView
 	UserInfo  *cv.TextView
@@ -17,14 +17,14 @@ type GameScreen struct {
 }
 
 type PostGameScreen struct {
-	Board   *cv.Table
+	Board   *BoardView
 	Result  *cv.TextView
 	History *cv.TextView
 }
 
 type SavedGames struct {
 	List    *cv.List
-	Preview *cv.Table
+	Preview *BoardView
 }
 
 type WelcomeOnline struct {
@@ -38,7 +38,7 @@ type Loader struct {
 
 type OnlineGame struct {
 	Grid      *cv.Grid
-	Board     *cv.Table
+	Board     *BoardView
 	Status    *cv.TextView
 	History   *cv.TextView
 	List      *cv.List
@@ -56,7 +56,7 @@ type OnlineGame struct {
 type OnlinePostGame struct {
 	Grid *cv.Grid
 
-	Board   *cv.Table
+	Board   *BoardView
 	Result  *cv.TextView
 	History *cv.TextView
 	PopUp   *cv.Flex
@@ -64,7 +64,7 @@ type OnlinePostGame struct {
 
 type Ongoing struct {
 	List    *cv.List
-	Preview *cv.Table
+	Preview *BoardView
 }
 
 type Challenges struct {

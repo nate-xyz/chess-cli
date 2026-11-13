@@ -24,8 +24,8 @@ func startNewLocalGame() {
 func gotoPostLocal() {
 	Root.gameState.Status += Root.gameState.Game.Outcome().String()
 	Root.pgame.UpdateResult()
-	DrawMoveHistory(Root.ponline.History)
-	DrawBoard(Root.ponline.Board, true)
+	DrawMoveHistory(Root.pgame.History)
+	DrawBoard(Root.pgame.Board, true)
 	Root.Switch("postlocal")
 }
 

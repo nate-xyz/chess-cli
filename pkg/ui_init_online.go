@@ -101,8 +101,16 @@ func (g *OnlineGame) Init() *cv.Grid {
 		}
 	})
 	inputBox.SetLabel("Enter your move: ")
+	inputBox.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
+		if event.Key() == tc.KeyTab {
+			Root.App.SetFocus(g.Board)
+			return nil
+		}
+		return event
+	})
 
-	gameBox := boardPrimitive(g.OnlineTableHandler)
+	gameBox := NewBoardView(g.OnlineSquareHandler)
+	gameBox.SetTabFunc(func() { Root.App.SetFocus(inputBox) })
 
 	statusBox := cv.NewTextView()
 	statusBox.SetWordWrap(true)
@@ -175,13 +183,13 @@ func (g *OnlineGame) Init() *cv.Grid {
 	Ribbon := ribbonPrimitive(gameOnlineRibbonstr, inputBox)
 
 	grid := cv.NewGrid()
-	grid.SetColumns(-1, -2, -1)
+	grid.SetColumns(-1, -3, -1)
 	grid.SetRows(-1, 1, 1, -1, 12, 1)
 	grid.SetBorders(false)
 
 	//row, col, rowSpan, colSpain
 	grid.AddItem(inputBox, 4, 1, 1, 1, 0, 0, true)
-	grid.AddItem(Center(30, 10, gameBox, inputBox), 0, 1, 4, 1, 0, 0, false)
+	grid.AddItem(gameBox, 0, 1, 4, 1, 0, 0, false)
 	grid.AddItem(statusBox, 0, 0, 2, 1, 0, 0, false)
 	grid.AddItem(historyBox, 2, 0, 2, 1, 0, 0, false)
 	grid.AddItem(Ribbon, 5, 0, 1, 3, 0, 0, false)
@@ -222,10 +230,7 @@ func (pg *OnlinePostGame) Init() *cv.Grid {
 		postList.AddItem(item)
 	}
 
-	gameBox := cv.NewTable()
-	gameBox.SetSelectable(false, false)
-	gameBox.SetSortClicked(false)
-	gameBox.SetFixed(10, 10)
+	gameBox := NewBoardView(nil)
 	gameBox.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
 		Root.App.SetFocus(postList)
 		return nil
@@ -259,7 +264,7 @@ func (pg *OnlinePostGame) Init() *cv.Grid {
 	//row col rowSpan colSpan
 	grid.AddItem(postList, 1, 2, 1, 1, 0, 0, true)
 	grid.AddItem(resultBox, 0, 0, 1, 3, 0, 0, false)
-	grid.AddItem(Center(30, 10, gameBox, postList), 1, 1, 1, 1, 0, 0, false)
+	grid.AddItem(gameBox, 1, 1, 1, 1, 0, 0, false)
 	grid.AddItem(Ribbon, 3, 0, 1, 3, 0, 0, false)
 	grid.AddItem(historyBox, 1, 0, 2, 1, 0, 0, false)
 
@@ -313,7 +318,7 @@ func (ong *Ongoing) Init() *cv.Grid {
 
 	title := titlePrimitive("Select an ongoing game.", gameList)
 
-	preview := boardPrimitive(func(row, col int) {})
+	preview := NewBoardView(nil)
 	preview.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
 		Root.App.SetFocus(gameList)
 		return nil
@@ -327,7 +332,7 @@ func (ong *Ongoing) Init() *cv.Grid {
 	//row col rowSpan colSpan
 	grid.AddItem(gameList, 1, 2, 2, 1, 0, 0, true)
 	grid.AddItem(title, 0, 0, 1, 3, 0, 0, false)
-	grid.AddItem(Center(30, 10, preview, gameList), 1, 0, 1, 2, 0, 0, false)
+	grid.AddItem(preview, 1, 0, 1, 2, 0, 0, false)
 	grid.AddItem(ribbon, 3, 0, 1, 3, 0, 0, false)
 	grid.AddItem(options, 2, 1, 1, 1, 0, 0, false)
 

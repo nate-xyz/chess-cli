@@ -17,7 +17,6 @@ var (
 	currentGameID      string
 	gameStateChan      chan api.BoardEvent
 	StreamChannel      chan api.StreamEventType
-	LastSelectedCell   PiecePosition
 	GameListIDArr      []string
 	OutChallengeGameID []string
 	InChallengeGameID  []string
@@ -36,7 +35,6 @@ Play locally with a [yellow]friend[white] or online with [red]Lichess!`
 	challengeRibbonstr  string = "CHESS-CLI -> create a challenge | Press 'Ctrl-c' to quit"
 	gameOnlineRibbonstr string = "CHESS-CLI -> online game | Press 'Ctrl-c' to quit"
 	OngoingRibbonstr    string = "CHESS-CLI -> Ongoing Games | Press 'Ctrl-c' to quit"
-	EmptyChar           string = "博"
 	saved_path          string = "saved_games.json"
 )
 
@@ -60,7 +58,6 @@ type State struct {
 
 type Login struct {
 	Token              string
-	Email              string
 	Online             bool
 	StreamStart        bool
 	Name               string

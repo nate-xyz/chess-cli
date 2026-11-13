@@ -62,7 +62,7 @@ func (w *WelcomeOnline) UpdateTitle(msg string) {
 	if api.UserInfo.ApiToken == "" {
 		titlestr += "[red]\nNot logged into lichess.[blue]\nPlease login through your browser.[white]\nLink should open automatically."
 	} else {
-		titlestr += fmt.Sprintf("\n[green]Logged in[white] as: [blue]%s, %s[white]\n", Root.User.Name, Root.User.Email)
+		titlestr += fmt.Sprintf("\n[green]Logged in[white] as: [blue]%s[white]\n", Root.User.Name)
 	}
 	if msg != "" {
 		titlestr += msg
@@ -256,28 +256,22 @@ func (og *OnlineGame) LiveUpdateTime(b int64, w int64) { //MoveCount
 	og.OppTimer.SetText(OppoStr)
 }
 
-func (online *OnlineGame) OnlineTableHandler(row, col int) {
-	selectedCell := translateSelectedCell(row, col, online.Full.White.Name == Root.User.Name)
-
-	if LastSelectedCell.Alg == selectedCell { //toggle selected status of this cell
-
-		online.Board.Select(100, 100)
-		LastSelectedCell = PiecePosition{-1, -1, "", true, ""}
-	} else { //try to do move
-
-		todoMove := LastSelectedCell.Alg + selectedCell
-		if contains(Root.gameState.LegalMoves, todoMove) {
-			err := online.DoMove(todoMove)
-			if err != nil {
+// OnlineSquareHandler handles a click (or Enter) on a board square in an online game.
+// Only your own pieces can be selected, and only on your turn.
+func (online *OnlineGame) OnlineSquareHandler(sq chess.Square) {
+	white := online.Full.White.Name == Root.User.Name
+	myTurn := (Root.gameState.Game.Position().Turn() == chess.White) == white
+	if !myTurn {
+		online.Board.ClearSelection()
+	} else {
+		online.Board.HandleSquare(Root.gameState.Game, sq, true, func(uci string) {
+			if err := online.DoMove(uci); err != nil {
 				Root.gameState.Status += fmt.Sprintf("%v", err)
 				online.UpdateStatus()
 			}
-		}
-		//check if select is empty for updateBoard
-		symbol := online.Board.GetCell(row, col).GetText()
-		LastSelectedCell = PiecePosition{row, col, selectedCell, (symbol == EmptyChar), symbol}
+		})
 	}
-	DrawBoard(online.Board, online.Full.White.Name == Root.User.Name)
+	DrawBoard(online.Board, white)
 }
 
 func (ongoing *Ongoing) UpdateList() {

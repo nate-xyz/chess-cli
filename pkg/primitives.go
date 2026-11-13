@@ -45,15 +45,6 @@ func quoutePrimitive(text string, toFocus cv.Primitive) *cv.TextView {
 	return tv
 }
 
-func boardPrimitive(handler func(row, col int)) *cv.Table {
-	table := cv.NewTable()
-	table.SetSelectable(true, true)
-	table.SetSelectionChangedFunc(handler)
-	table.SetSortClicked(false)
-	table.SetFixed(11, 11)
-	return table
-}
-
 func NewOptionWindow(msg, op1, op2 string, handler1, handler2 func()) *cv.Flex {
 	subFlex := cv.NewFlex()
 	button1 := cv.NewButton(op1)

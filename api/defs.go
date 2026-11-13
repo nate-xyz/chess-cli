@@ -19,7 +19,6 @@ var (
 	Scopes                  = []string{
 		"preference:read",
 		"preference:write",
-		"email:read",
 		"challenge:read",
 		"challenge:write",
 		"challenge:bulk",

@@ -9,12 +9,6 @@ import (
 func (user *Login) GetLichessUserInfo() error {
 	var err error
 	if user.Token != "" {
-		if user.Email == "" {
-			user.Email, err = api.GetEmail()
-			if err != nil {
-				return err
-			}
-		}
 		if user.Name == "" {
 			user.Name, err = api.GetUsername()
 			if err != nil {

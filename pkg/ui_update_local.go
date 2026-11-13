@@ -83,27 +83,16 @@ func (g *GameScreen) UpdateUserInfo() {
 	g.OppInfo.SetText(OppString)
 }
 
-func LocalTableHandler(row, col int) {
-	selectedCell := translateSelectedCell(row, col, Root.gameState.Game.Position().Turn() == chess.White)
-	if LastSelectedCell.Alg == selectedCell {
-		//toggle selected status of this cell
-		Root.lgame.Board.Select(100, 100)
-		LastSelectedCell = PiecePosition{-1, -1, "", true, ""}
-	} else {
-		//try to do move
-		todoMove := LastSelectedCell.Alg + selectedCell
-		if contains(Root.gameState.LegalMoves, todoMove) {
-			err := Root.lgame.DoMove(todoMove)
-			if err != nil {
-				Root.gameState.Status += fmt.Sprintf("%v", err)
-				Root.lgame.UpdateStatus()
-			}
+// LocalSquareHandler handles a click (or Enter) on a board square in a local game.
+func LocalSquareHandler(sq chess.Square) {
+	g := Root.lgame
+	g.Board.HandleSquare(Root.gameState.Game, sq, true, func(uci string) {
+		if err := g.DoMove(uci); err != nil {
+			Root.gameState.Status += fmt.Sprintf("%v", err)
+			g.UpdateStatus()
 		}
-		//check if select is empty for updateBoard
-		symbol := Root.lgame.Board.GetCell(row, col).GetText()
-		LastSelectedCell = PiecePosition{row, col, selectedCell, (symbol == EmptyChar), symbol}
-	}
-	DrawBoard(Root.lgame.Board, Root.gameState.Game.Position().Turn() == chess.White)
+	})
+	DrawBoard(g.Board, Root.gameState.Game.Position().Turn() == chess.White)
 }
 
 func (g *PostGameScreen) UpdateResult() {
