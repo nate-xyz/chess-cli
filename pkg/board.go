@@ -285,13 +285,19 @@ type squareLook struct {
 }
 
 // sized turns a look into a multicell character filling the square.
+//
+// Each glyph is followed by a space: kitty centres text by its width in the
+// main (monospace) font, which usually has no chess symbols and measures them
+// as zero wide, leaving the piece's left edge at the centre. The trailing
+// space gives it a width close to the piece's, so the piece lands centred.
 func (l squareLook) sized(x, y, sqW, sqH int) sizedCell {
 	c := sizedCell{x: x, y: y, s: sqH, w: sqW / sqH, fg: l.fg, bg: l.bg, text: " "}
 	switch {
 	case l.piece != chess.NoPiece:
-		c.text, c.n, c.d = bigGlyphs[l.piece.Type()], pieceScaleN, pieceScaleD
+		c.text, c.n, c.d = bigGlyphs[l.piece.Type()]+" ", pieceScaleN, pieceScaleD
 	case l.dot:
-		c.text, c.fg, c.n, c.d = "●", colDot, 1, 3
+		// ⬤, not ●: kitty draws ● itself and tiles it across the block
+		c.text, c.fg, c.n, c.d = "⬤ ", colDot, 2, 5
 	}
 	return c
 }

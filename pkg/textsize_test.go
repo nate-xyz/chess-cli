@@ -104,8 +104,9 @@ func TestTextSizingFlush(t *testing.T) {
 	if n := strings.Count(out, "\x1b]66;"); n != 64 {
 		t.Fatalf("first frame sent %d multicells, want 64", n)
 	}
-	if !strings.Contains(out, "♚") || !strings.Contains(out, "♟︎") {
-		t.Errorf("pieces missing from %q", out[:200])
+	// pieces carry a trailing space so kitty centres them (see squareLook.sized)
+	if !strings.Contains(out, ";♚ \a") || !strings.Contains(out, ";♟\uFE0E \a") {
+		t.Errorf("pieces missing or unpadded in %q", out[:200])
 	}
 	if out := draw(); out != "" {
 		t.Errorf("unchanged board was re-sent: %q", out)
