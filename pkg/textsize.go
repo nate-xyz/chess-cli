@@ -31,14 +31,32 @@ type rect struct{ x, y, w, h int }
 var textSizing struct {
 	sync.Mutex
 	enabled bool
+	screens map[tc.Screen]*sizedScreen // each screen's multicells (one in the app; tests draw several)
+}
 
+// sizedScreen is one screen's multicells: this frame's, and what's on the
+// terminal now.
+type sizedScreen struct {
 	frame   []sizedCell // collected by board Draw calls this frame
 	regions []rect
 
-	prevCells   []sizedCell // what's on the terminal now
+	prevCells   []sizedCell
 	prevRegions []rect
 	prevW       int
 	prevH       int
+}
+
+// sizedFor is a screen's state. Locked by caller.
+func sizedFor(screen tc.Screen) *sizedScreen {
+	if textSizing.screens == nil {
+		textSizing.screens = map[tc.Screen]*sizedScreen{}
+	}
+	st := textSizing.screens[screen]
+	if st == nil {
+		st = &sizedScreen{}
+		textSizing.screens[screen] = st
+	}
+	return st
 }
 
 // TextSizingMode reports whether big pieces are on.
@@ -53,8 +71,9 @@ func TextSizingMode() bool {
 func queueSized(screen tc.Screen, r rect, cells []sizedCell) {
 	screen.LockRegion(r.x, r.y, r.w, r.h, true)
 	textSizing.Lock()
-	textSizing.regions = append(textSizing.regions, r)
-	textSizing.frame = append(textSizing.frame, cells...)
+	st := sizedFor(screen)
+	st.regions = append(st.regions, r)
+	st.frame = append(st.frame, cells...)
 	textSizing.Unlock()
 }
 
@@ -70,13 +89,13 @@ func afterDraw(screen tc.Screen) {
 // erases multicells from boards that are gone or moved, lets tcell repaint
 // those cells, and (re)sends the board's multicells if anything changed.
 func flushTextSizing(screen tc.Screen) {
-	ts := &textSizing
-	ts.Lock()
-	defer ts.Unlock()
-	if !ts.enabled {
+	textSizing.Lock()
+	defer textSizing.Unlock()
+	if !textSizing.enabled {
 		screen.Show()
 		return
 	}
+	ts := sizedFor(screen)
 	frame, regions := ts.frame, ts.regions
 	ts.frame, ts.regions = nil, nil
 	tty, ok := screen.Tty()

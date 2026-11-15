@@ -50,12 +50,12 @@ func withTextSizing(t *testing.T) {
 	textSizing.Lock()
 	old := textSizing.enabled
 	textSizing.enabled = true
-	textSizing.prevCells, textSizing.prevRegions, textSizing.prevW, textSizing.prevH = nil, nil, 0, 0
+	textSizing.screens = nil // each test's screen starts with nothing on it
 	textSizing.Unlock()
 	t.Cleanup(func() {
 		textSizing.Lock()
 		textSizing.enabled = old
-		textSizing.frame, textSizing.regions, textSizing.prevCells, textSizing.prevRegions = nil, nil, nil, nil
+		textSizing.screens = nil
 		textSizing.Unlock()
 	})
 }
@@ -123,5 +123,26 @@ func TestTextSizingFlush(t *testing.T) {
 	out = s.tty.take()
 	if strings.Contains(out, "\x1b]66;") || strings.Count(out, "\x1b[0m ") != 64 {
 		t.Errorf("hiding the board should erase its 64 multicells, got %q", out)
+	}
+}
+
+// Two screens keep separate multicell state: drawing a board on one must not
+// make the other erase or resend anything (in tests the background app
+// redraws its own screen while a test draws on another).
+func TestTextSizingPerScreen(t *testing.T) {
+	withTextSizing(t)
+	a, other := newCaptureScreen(t, 120, 40), newCaptureScreen(t, 160, 50)
+	ba, bo := NewBoardView(nil), NewBoardView(nil)
+	ba.SetRect(0, 0, 120, 40)
+	bo.SetRect(0, 0, 160, 50)
+	ba.Draw(a)
+	flushTextSizing(a)
+	a.tty.take()
+	bo.Draw(other) // another screen draws in between
+	flushTextSizing(other)
+	ba.Draw(a)
+	flushTextSizing(a)
+	if out := a.tty.take(); out != "" {
+		t.Errorf("the other screen's board leaked into this one: %q", out[:min(len(out), 120)])
 	}
 }
