@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -268,7 +269,7 @@ func TestOAuthLoginSavesTokenPrivately(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm() != 0o600 {
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 { // Windows has no Unix permissions
 		t.Errorf("config perms %v, want 0600", info.Mode().Perm())
 	}
 	if time.Until(UserInfo.TokenExpirationDate) < 364*24*time.Hour {

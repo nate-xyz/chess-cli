@@ -296,7 +296,6 @@ func (b *BoardView) Draw(screen tc.Screen) {
 	}
 	b.Box.Draw(screen)
 
-	checkLimited(screen)
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.notifyShown()

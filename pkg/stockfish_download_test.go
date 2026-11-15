@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -40,7 +41,7 @@ func TestUnpackStockfishTar(t *testing.T) {
 	if b, _ := os.ReadFile(path); string(b) != "ENGINE" {
 		t.Errorf("engine = %q", b)
 	}
-	if st, _ := os.Stat(path); st.Mode().Perm()&0o100 == 0 {
+	if st, _ := os.Stat(path); runtime.GOOS != "windows" && st.Mode().Perm()&0o100 == 0 { // no executable bit on Windows
 		t.Error("engine isn't executable")
 	}
 	if _, err := os.Stat(filepath.Join(dir, "Copying.txt")); err != nil {

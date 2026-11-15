@@ -362,8 +362,8 @@ func boxed(b *cv.Box, title string) func(string) {
 // The UI is "limited" with basic rendering, or on a terminal with fewer than
 // 256 colours: then only the standard colours are used, with no dark tints
 // (they'd all be black) and plain underlines (old terminals can misread the
-// styled ones). screenColors is the terminal's colour count, kept by
-// BoardView.Draw.
+// styled ones). screenColors is the terminal's colour count, kept after each
+// frame (afterDraw), from the app's own screen only.
 var (
 	screenColors atomic.Int32
 	wasLimited   atomic.Bool
@@ -412,7 +412,7 @@ func applyUIColours() {
 }
 
 // checkLimited re-applies the colours when the rendering mode or terminal
-// changes between full and limited. Called while drawing.
+// changes between full and limited. Called after each frame.
 func checkLimited(screen tc.Screen) {
 	screenColors.Store(int32(screen.Colors()))
 	if lim := uiLimited(); wasLimited.Swap(lim) != lim && Root.App != nil {

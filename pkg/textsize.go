@@ -61,6 +61,7 @@ func queueSized(screen tc.Screen, r rect, cells []sizedCell) {
 // afterDraw runs after every full frame (cview's after-draw hook): tcell's
 // drawing is flushed, then big pieces and piece images go on top.
 func afterDraw(screen tc.Screen) {
+	checkLimited(screen) // the app's own screen: its colours decide limited mode
 	flushTextSizing(screen)
 	flushImages(screen)
 }
