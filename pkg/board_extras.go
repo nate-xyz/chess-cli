@@ -400,3 +400,72 @@ func drawClockBar(screen tc.Screen, x, y, width int, bar clockBar, basic bool, b
 		screen.SetContent(x+i, y, r, nil, tc.StyleDefault.Foreground(fg).Background(bg))
 	}
 }
+
+// A king in check glows red, as on Lichess: a radial gradient behind it with
+// image rendering, a red square otherwise.
+
+var colCheck = tc.NewRGBColor(0xe7, 0, 0)
+
+// shownMove is the move that led to the position shown, or nil (the start,
+// or a board without its history). Locked by caller.
+func (b *BoardView) shownMove() *chess.Move {
+	if len(b.history) == 0 || len(b.historyMoves) != len(b.history)-1 {
+		return nil
+	}
+	i := len(b.history) - 1 - b.back // index of the position shown
+	if i < 1 {
+		return nil
+	}
+	return b.historyMoves[i-1]
+}
+
+// checkSquare is the square of the king in check in the position shown
+// (checkmate too), or chess.NoSquare. Locked by caller.
+func (b *BoardView) checkSquare() chess.Square {
+	m := b.shownMove()
+	if m == nil || !m.HasTag(chess.Check) {
+		return chess.NoSquare
+	}
+	pos, _, _ := b.shown()
+	if pos == nil {
+		return chess.NoSquare
+	}
+	king := chess.WhiteKing
+	if pos.Turn() == chess.Black {
+		king = chess.BlackKing
+	}
+	for sq, p := range pos.Board().SquareMap() {
+		if p == king {
+			return sq
+		}
+	}
+	return chess.NoSquare
+}
+
+// checkGlowImage is the glow, size pixels square: Lichess's gradient, red at
+// the centre fading out by the edge of the square (radial-gradient(ellipse
+// at center, red 0%, #e70000 25%, rgba(169,0,0,0) 89%)).
+func checkGlowImage(size int) *image.RGBA {
+	img := image.NewRGBA(image.Rect(0, 0, size, size))
+	c := float64(size) / 2
+	r := c * math.Sqrt2 // to the corners, as CSS's default
+	type stop struct{ at, r, g, b, a float64 }
+	stops := []stop{{0, 255, 0, 0, 1}, {0.25, 231, 0, 0, 1}, {0.89, 169, 0, 0, 0}, {1, 158, 0, 0, 0}}
+	for y := 0; y < size; y++ {
+		for x := 0; x < size; x++ {
+			d := math.Hypot(float64(x)+0.5-c, float64(y)+0.5-c) / r
+			s0, s1 := stops[len(stops)-2], stops[len(stops)-1]
+			for i := 1; i < len(stops); i++ {
+				if d <= stops[i].at {
+					s0, s1 = stops[i-1], stops[i]
+					break
+				}
+			}
+			t := math.Max(0, math.Min(1, (d-s0.at)/(s1.at-s0.at)))
+			a := s0.a + (s1.a-s0.a)*t
+			lerp := func(u, v float64) uint8 { return uint8((u + (v-u)*t) * a) } // premultiplied
+			img.SetRGBA(x, y, color.RGBA{lerp(s0.r, s1.r), lerp(s0.g, s1.g), lerp(s0.b, s1.b), uint8(255 * a)})
+		}
+	}
+	return img
+}

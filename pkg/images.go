@@ -80,7 +80,8 @@ const (
 	imgOverlay = imgBase + 15 // drawn circles and arrows
 	imgBadges  = imgBase + 16 // result badges: +0 win, +1 mate, +2 loss, +3 draw
 	imgGlyphs  = imgBase + 20 // annotation symbols, in boardGlyphs order
-	imgCount   = 20 + 24 - 1
+	imgCheck   = imgBase + 44 // the red glow behind a king in check
+	imgCount   = 44
 
 	zMarker = 1 // z-indexes: above the cell text, pieces over markers,
 	zPiece  = 2 // shapes over pieces
@@ -259,6 +260,7 @@ func (il *imageLayer) uploadImages(b *strings.Builder, size int, set string) {
 	for _, g := range boardGlyphs {
 		transmit(b, imgGlyph(g), glyphImage(g, badgeSizeFor(size)))
 	}
+	transmit(b, imgCheck, checkGlowImage(size))
 }
 
 // loadPieceSet decodes a piece set's embedded images.

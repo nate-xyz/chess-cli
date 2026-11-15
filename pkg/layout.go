@@ -415,7 +415,7 @@ func applyUIColours() {
 // changes between full and limited. Called while drawing.
 func checkLimited(screen tc.Screen) {
 	screenColors.Store(int32(screen.Colors()))
-	if lim := uiLimited(); wasLimited.Swap(lim) != lim {
+	if lim := uiLimited(); wasLimited.Swap(lim) != lim && Root.App != nil {
 		go Root.App.QueueUpdateDraw(applyUIColours)
 	}
 }

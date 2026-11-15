@@ -347,6 +347,7 @@ func (b *BoardView) Draw(screen tc.Screen) {
 	var images []imgPlacement
 	// images: the largest square that fits the square's pixels, centred
 	pieceSize := min(sqW*cellW, sqH*cellH)
+	checkSq := b.checkSquare()
 	place := func(sx, sy, img, z int) {
 		dx, dy := (sqW*cellW-pieceSize)/2, (sqH*cellH-pieceSize)/2
 		images = append(images, imgPlacement{x: sx + dx/cellW, y: sy + dy/cellH, px: dx % cellW, py: dy % cellH, img: img, z: z})
@@ -360,6 +361,16 @@ func (b *BoardView) Draw(screen tc.Screen) {
 				look = b.basicLookOf(sq, focused && sq == b.cursor)
 			} else {
 				look = b.lookOf(sq, focused && sq == b.cursor, style == styleImage)
+			}
+			if sq == checkSq { // a king in check glows red, as on Lichess
+				switch style {
+				case styleImage:
+					place(sx, sy, imgCheck, zMarker)
+				case styleBasic:
+					look.bg = tc.ColorMaroon
+				default:
+					look.bg = blend(look.bg, colCheck, 0.7)
+				}
 			}
 			kb := badgeNone
 			if look.piece.Type() == chess.King && b.promo == nil {
