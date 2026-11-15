@@ -62,7 +62,7 @@ func withTextSizing(t *testing.T) {
 
 func TestSizedGeometry(t *testing.T) {
 	for _, sz := range [][2]int{{40, 12}, {80, 26}, {160, 50}, {300, 120}} {
-		sqW, sqH := boardGeometry(sz[0], sz[1], true)
+		sqW, sqH := boardGeometry(sz[0], sz[1], styleSized, 2)
 		if sqH < 1 || sqH > 7 || sqW != 2*sqH {
 			t.Errorf("%v: square %dx%d, want 2s x s with 1 <= s <= 7", sz, sqW, sqH)
 		}
@@ -70,7 +70,7 @@ func TestSizedGeometry(t *testing.T) {
 			t.Errorf("%v: board overflows", sz)
 		}
 	}
-	if w, _ := boardGeometry(300, 120, true); w != 14 {
+	if w, _ := boardGeometry(300, 120, styleSized, 2); w != 14 {
 		t.Errorf("scale should cap at 7 (square 14 wide), got %d", w)
 	}
 }

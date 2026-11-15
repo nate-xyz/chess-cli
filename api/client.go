@@ -44,8 +44,8 @@ func newRequest(ctx context.Context, method, path string, form url.Values) (*htt
 	if err != nil {
 		return nil, err
 	}
-	if UserInfo.ApiToken != "" {
-		req.Header.Set("Authorization", "Bearer "+UserInfo.ApiToken)
+	if tok := token(); tok != "" {
+		req.Header.Set("Authorization", "Bearer "+tok)
 	}
 	if form != nil {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -72,7 +72,7 @@ func call(method, path string, form url.Values, out any) error {
 		_, _ = io.Copy(io.Discard, res.Body)
 		return nil
 	}
-	return json.NewDecoder(res.Body).Decode(out)
+	return decode(json.NewDecoder(res.Body), out)
 }
 
 // openStream starts a streaming (ndjson) request. The caller must close the
@@ -102,13 +102,13 @@ func responseError(res *http.Response) error {
 	var parsed struct {
 		Error json.RawMessage `json:"error"`
 	}
-	if json.Unmarshal(body, &parsed) == nil && len(parsed.Error) > 0 {
+	if unmarshal(body, &parsed) == nil && len(parsed.Error) > 0 {
 		var msg string
 		var fields map[string][]string
 		switch {
-		case json.Unmarshal(parsed.Error, &msg) == nil:
+		case unmarshal(parsed.Error, &msg) == nil:
 			e.Message = msg
-		case json.Unmarshal(parsed.Error, &fields) == nil:
+		case unmarshal(parsed.Error, &fields) == nil:
 			var parts []string
 			for field, msgs := range fields {
 				parts = append(parts, field+": "+strings.Join(msgs, ", "))

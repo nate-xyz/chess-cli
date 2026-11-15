@@ -1,6 +1,9 @@
 package pkg
 
 import (
+	"fmt"
+	"image"
+	"math"
 	"strings"
 	"sync"
 
@@ -31,6 +34,22 @@ type BoardView struct {
 	onSquare func(sq chess.Square)
 	onTab    func()
 	promo    *promoPick
+	right    bool // draw against the right edge instead of centred
+
+	history      []*chess.Position // the game so far, for stepping back (see board_extras.go)
+	historyMoves []*chess.Move
+	back         int // how many moves back the board is showing (0 = now)
+	shapes       []boardShape
+	dragFrom     chess.Square // right-button drag start, for arrows
+	result       boardResult  // set when the game shown is over (see result.go)
+	topBar       clockBar     // clock bars beside the players (see board_extras.go)
+	bottomBar    clockBar
+	onShown      func(ply int) // tells a linked move list the move shown (linkMoveList)
+	shownPly     int
+	browse       bool      // browsing a line (studies): no "return to now" label or click
+	sounds       bool      // a game board: a new move plays its sound
+	glyph        moveGlyph // a move symbol (!, ??...) on glyphSq, see glyphs.go
+	glyphSq      chess.Square
 
 	// geometry from the last Draw, used to map mouse clicks to squares
 	ox, oy, sqW, sqH int
@@ -63,14 +82,17 @@ var promoOrder = []chess.PieceType{chess.Queen, chess.Knight, chess.Rook, chess.
 // presses Enter on a square; pass nil for a display-only board.
 func NewBoardView(onSquare func(sq chess.Square)) *BoardView {
 	return &BoardView{
-		Box:      cv.NewBox(),
-		pos:      chess.StartingPosition(),
-		white:    true,
-		selected: chess.NoSquare,
-		lastFrom: chess.NoSquare,
-		lastTo:   chess.NoSquare,
-		cursor:   chess.E2,
-		onSquare: onSquare,
+		Box:       cv.NewBox(),
+		pos:       chess.StartingPosition(),
+		white:     true,
+		selected:  chess.NoSquare,
+		lastFrom:  chess.NoSquare,
+		lastTo:    chess.NoSquare,
+		cursor:    chess.E2,
+		dragFrom:  chess.NoSquare,
+		topBar:    clockBar{frac: -1},
+		bottomBar: clockBar{frac: -1},
+		onSquare:  onSquare,
 	}
 }
 
@@ -82,6 +104,8 @@ func (b *BoardView) SetPosition(pos *chess.Position, white bool) {
 	defer b.mu.Unlock()
 	if b.pos == nil || pos.String() != b.pos.String() || white != b.white {
 		b.selected, b.targets, b.promo = chess.NoSquare, nil, nil
+		b.shapes = nil
+		b.result = boardResult{}
 	}
 	b.pos = pos
 	b.white = white
@@ -151,17 +175,37 @@ const (
 	labelH = 1 // rows reserved below the board for file labels
 )
 
+// How a board is drawn this frame.
+type boardStyle int
+
+const (
+	styleGlyph boardStyle = iota // one Unicode symbol per square
+	styleSized                   // symbols scaled up with kitty text sizing
+	styleImage                   // piece images with kitty graphics
+	styleBasic                   // symbols in the 8 standard colours, for any terminal
+)
+
 // boardGeometry picks the largest square size that fits w x h cells. Terminal
 // cells are about twice as tall as wide, so squares are ~2x wider than tall.
 // With big pieces, squares are exactly 2s x s cells so a piece scaled by s
-// (the protocol allows 1-7) fills one square.
-func boardGeometry(w, h int, sized bool) (sqW, sqH int) {
+// (the protocol allows 1-7) fills one square. With images, aspect is the
+// cell's height/width in pixels, so squares come out as square as possible.
+func boardGeometry(w, h int, style boardStyle, aspect float64) (sqW, sqH int) {
 	w -= labelW
 	h -= labelH
-	if sized {
+	switch style {
+	case styleSized:
 		for s := min(7, h/8); s >= 1; s-- {
 			if 8*2*s <= w {
 				return 2 * s, s
+			}
+		}
+		return 0, 0
+	case styleImage:
+		for s := h / 8; s >= 1; s-- {
+			sw := max(1, int(math.Round(float64(s)*aspect)))
+			if 8*sw <= w {
+				return sw, s
 			}
 		}
 		return 0, 0
@@ -175,6 +219,34 @@ func boardGeometry(w, h int, sized bool) (sqW, sqH int) {
 		return min(4, w/8), 1
 	}
 	return 0, 0
+}
+
+// styleFor decides how to draw on this screen: images need the cell size in
+// pixels, which some terminals don't report.
+func styleFor(screen tc.Screen) (style boardStyle, cellW, cellH int) {
+	if PiecesSetting() == PiecesBasic {
+		return styleBasic, 0, 0
+	}
+	if useImages() {
+		if cw, ch, ok := cellPixels(screen); ok {
+			return styleImage, cw, ch
+		}
+	}
+	if TextSizingMode() {
+		return styleSized, 0, 0
+	}
+	return styleGlyph, 0, 0
+}
+
+// WidthFor is how many columns the board needs when given w x h cells.
+func (b *BoardView) WidthFor(screen tc.Screen, w, h int) int {
+	style, cw, ch := styleFor(screen)
+	aspect := 2.0
+	if cw > 0 {
+		aspect = float64(ch) / float64(cw)
+	}
+	sqW, _ := boardGeometry(w, h, style, aspect)
+	return 8*sqW + labelW
 }
 
 var (
@@ -191,6 +263,11 @@ var (
 	colDot       = tc.NewRGBColor(60, 90, 40)
 	colPromo     = tc.NewRGBColor(200, 195, 185)
 	colPromoDark = tc.NewRGBColor(95, 90, 85)
+
+	// Lichess's default ("brown") board
+	lichessLastMove = tc.NewRGBColor(155, 199, 0)
+	lichessSelected = tc.NewRGBColor(20, 85, 30)
+	lichessPromo    = tc.NewRGBColor(0xb0, 0xb0, 0xb0)
 )
 
 // Big pieces are drawn at this fraction of the square, centred, leaving a
@@ -219,12 +296,26 @@ func (b *BoardView) Draw(screen tc.Screen) {
 	}
 	b.Box.Draw(screen)
 
+	checkLimited(screen)
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	b.notifyShown()
 
-	sized := TextSizingMode()
+	style, cellW, cellH := styleFor(screen)
+	aspect := 2.0
+	if style == styleImage {
+		aspect = float64(cellH) / float64(cellW)
+	}
 	x, y, w, h := b.GetInnerRect()
-	sqW, sqH := boardGeometry(w, h, sized)
+	if b.right {
+		w -= boardMargin
+	}
+	bars := b.hasClockBars()
+	if bars {
+		y++ // a row for each bar
+		h -= 2
+	}
+	sqW, sqH := boardGeometry(w, h, style, aspect)
 	b.sqW, b.sqH = sqW, sqH
 	if sqW == 0 {
 		msg := "Enlarge the terminal to see the board"
@@ -236,38 +327,143 @@ func (b *BoardView) Draw(screen tc.Screen) {
 		return
 	}
 
+	// stepping back through history: draw the earlier position instead
+	if b.back > 0 {
+		savedPos, savedFrom, savedTo := b.pos, b.lastFrom, b.lastTo
+		b.pos, b.lastFrom, b.lastTo = b.shown()
+		defer func() { b.pos, b.lastFrom, b.lastTo = savedPos, savedFrom, savedTo }()
+	}
+
 	totalW := 8*sqW + labelW
 	totalH := 8*sqH + labelH
 	b.ox = x + (w-totalW)/2 + labelW
+	if b.right {
+		b.ox = x + w - totalW + labelW
+	}
 	b.oy = y + (h-totalH)/2
 
 	focused := b.HasFocus()
 	var cells []sizedCell
+	var images []imgPlacement
+	// images: the largest square that fits the square's pixels, centred
+	pieceSize := min(sqW*cellW, sqH*cellH)
+	place := func(sx, sy, img, z int) {
+		dx, dy := (sqW*cellW-pieceSize)/2, (sqH*cellH-pieceSize)/2
+		images = append(images, imgPlacement{x: sx + dx/cellW, y: sy + dy/cellH, px: dx % cellW, py: dy % cellH, img: img, z: z})
+	}
 	for row := 0; row < 8; row++ {
 		for col := 0; col < 8; col++ {
 			sq := squareAt(row, col, b.white)
 			sx, sy := b.ox+col*sqW, b.oy+row*sqH
-			look := b.lookOf(sq, focused && sq == b.cursor)
+			var look squareLook
+			if style == styleBasic {
+				look = b.basicLookOf(sq, focused && sq == b.cursor)
+			} else {
+				look = b.lookOf(sq, focused && sq == b.cursor, style == styleImage)
+			}
+			kb := badgeNone
+			if look.piece.Type() == chess.King && b.promo == nil {
+				kb = b.badgeFor(look.piece.Color())
+			}
+			if kb != badgeNone && style != styleImage {
+				if style == styleBasic {
+					look.bg = badgeBasic(kb)
+				} else {
+					look.bg = blend(look.bg, badgeTc(kb), 0.55)
+				}
+			}
 			for cy := 0; cy < sqH; cy++ {
 				for cx := 0; cx < sqW; cx++ {
 					screen.SetContent(sx+cx, sy+cy, ' ', nil, tc.StyleDefault.Background(look.bg))
 				}
 			}
 			switch {
-			case sized:
+			case style == styleImage:
+				if look.dot {
+					place(sx, sy, imgDot, zMarker)
+				}
+				if look.capture {
+					place(sx, sy, imgRing, zMarker)
+				}
+				if look.piece != chess.NoPiece {
+					place(sx, sy, pieceImageID(look.piece), zPiece)
+				}
+			case style == styleSized:
 				cells = append(cells, look.sized(sx, sy, sqW, sqH))
 			case look.piece != chess.NoPiece:
-				glyph := []rune(PiecesMap[rune(look.piece.Type().String()[0])])[0]
-				screen.SetContent(sx+sqW/2, sy+sqH/2, glyph, nil, tc.StyleDefault.Foreground(look.fg).Background(look.bg))
+				name := look.piece.Type().String()
+				if style == styleBasic && look.piece.Color() == chess.White {
+					name = strings.ToUpper(name) // outline symbols for white
+				}
+				glyph := []rune(PiecesMap[rune(name[0])])[0]
+				screen.SetContent(sx+sqW/2, sy+sqH/2, glyph, nil, tc.StyleDefault.Foreground(look.fg).Background(look.bg).Bold(style == styleBasic))
 			case look.dot:
-				screen.SetContent(sx+sqW/2, sy+sqH/2, '•', nil, tc.StyleDefault.Foreground(colDot).Background(look.bg))
+				fg := colDot
+				if style == styleBasic {
+					fg = look.fg
+				}
+				screen.SetContent(sx+sqW/2, sy+sqH/2, '•', nil, tc.StyleDefault.Foreground(fg).Background(look.bg))
+			}
+			if b.glyph != 0 && sq == b.glyphSq && b.promo == nil && style != styleSized { // big pieces fill the square
+				g := b.glyph
+				switch style {
+				case styleImage:
+					bs := badgeSizeFor(pieceSize)
+					dx := sqW*cellW - bs
+					images = append(images, imgPlacement{x: sx + dx/cellW, y: sy, px: dx % cellW, img: imgGlyph(g), z: zBadge})
+				default:
+					bg, fg := g.tc(), tc.ColorWhite
+					if style == styleBasic {
+						bg, fg = g.basic(), tc.ColorWhite
+					}
+					text := []rune(g.text())
+					for i, r := range text {
+						screen.SetContent(sx+sqW-len(text)+i, sy, r, nil, tc.StyleDefault.Foreground(fg).Background(bg).Bold(true))
+					}
+				}
+			}
+			if kb != badgeNone {
+				switch style {
+				case styleImage: // badge in the square's top-right corner
+					bs := badgeSizeFor(pieceSize)
+					dx := sqW*cellW - bs
+					images = append(images, imgPlacement{x: sx + dx/cellW, y: sy, px: dx % cellW, img: imgBadge(kb), z: zBadge})
+				case styleGlyph, styleBasic:
+					fg := tc.ColorWhite
+					screen.SetContent(sx+sqW-1, sy, badgeText[kb], nil, tc.StyleDefault.Foreground(fg).Background(look.bg).Bold(true))
+				}
 			}
 		}
 	}
-	if sized {
+	switch style {
+	case styleSized:
 		queueSized(screen, rect{b.ox, b.oy, 8 * sqW, 8 * sqH}, cells)
+	case styleImage:
+		var overlay *image.RGBA
+		key := ""
+		if len(b.shapes) > 0 {
+			key = fmt.Sprint(b.shapes, b.white, sqW*cellW, sqH*cellH)
+			overlay = shapesImage(b.shapes, b.white, sqW*cellW, sqH*cellH)
+			images = append(images, imgPlacement{x: b.ox, y: b.oy, img: imgOverlay, z: zShapes})
+		}
+		queueImages(pieceSize, currentPieceSet(), images)
+		queueOverlay(overlay, key)
+	}
+	if b.back > 0 && !b.browse && b.oy > y {
+		label := b.historyLabel()
+		lx := b.ox + 8*sqW - len([]rune(label))
+		for i, r := range label {
+			screen.SetContent(lx+i, b.oy-1, r, nil, tc.StyleDefault.Foreground(tc.ColorBlack).Background(tintLastMove))
+		}
 	}
 
+	if bars {
+		bg := b.GetBackgroundColor()
+		if b.back == 0 || b.browse { // the history banner uses this row (not in studies)
+			drawClockBar(screen, b.ox, b.oy-1, 8*sqW, b.topBar, style == styleBasic, bg)
+		}
+		drawClockBar(screen, b.ox, b.oy+8*sqH+labelH, 8*sqW, b.bottomBar, style == styleBasic, bg)
+	}
 	labelStyle := tc.StyleDefault.Foreground(colLabel).Background(b.GetBackgroundColor())
 	for i := 0; i < 8; i++ {
 		rank := squareAt(i, 0, b.white).Rank().String()
@@ -279,9 +475,10 @@ func (b *BoardView) Draw(screen tc.Screen) {
 
 // squareLook is what one square shows.
 type squareLook struct {
-	bg, fg tc.Color
-	piece  chess.Piece
-	dot    bool // empty square the selected piece can move to
+	bg, fg  tc.Color
+	piece   chess.Piece
+	dot     bool // empty square the selected piece can move to
+	capture bool // occupied square the selected piece can capture on
 }
 
 // sized turns a look into a multicell character filling the square.
@@ -304,31 +501,50 @@ func (l squareLook) sized(x, y, sqW, sqH int) sizedCell {
 
 // lookOf works out a square's colours and contents: base colour, then
 // promotion picker, selection, capture targets, last move and cursor.
-func (b *BoardView) lookOf(sq chess.Square, cursor bool) squareLook {
-	l := squareLook{bg: colDark, piece: b.pos.Board().Piece(sq)}
+// lichess picks the Lichess board colours (used with piece images).
+func (b *BoardView) lookOf(sq chess.Square, cursor, lichess bool) squareLook {
+	light, dark := colLight, colDark
+	if lichess {
+		t := currentBoard()
+		light, dark = t.light, t.dark
+	}
+	l := squareLook{bg: dark, piece: b.pos.Board().Piece(sq)}
 	if (int(sq.File())+int(sq.Rank()))%2 == 1 {
-		l.bg = colLight
+		l.bg = light
 	}
 	if b.promo != nil {
 		if pt, ok := b.promo.squares[sq]; ok {
 			l.piece = makePiece(pt, b.promo.color)
-			l.bg = colPromo
-			if b.promo.color == chess.White {
+			switch {
+			case lichess:
+				l.bg = lichessPromo
+			case b.promo.color == chess.White:
 				l.bg = colPromoDark
+			default:
+				l.bg = colPromo
 			}
 		} else {
 			l.bg = blend(l.bg, tc.ColorBlack, 0.55)
 		}
 	} else {
+		target := b.targets[sq]
 		switch {
+		case sq == b.selected && lichess:
+			l.bg = blend(l.bg, lichessSelected, 0.5)
 		case sq == b.selected:
 			l.bg = blend(l.bg, tintSelected, 0.6)
-		case b.targets[sq] && l.piece != chess.NoPiece:
+		case target && l.piece != chess.NoPiece && !lichess:
 			l.bg = blend(l.bg, tintCapture, 0.5)
+		case (sq == b.lastFrom || sq == b.lastTo) && lichess:
+			l.bg = blend(l.bg, lichessLastMove, 0.41)
 		case sq == b.lastFrom || sq == b.lastTo:
 			l.bg = blend(l.bg, tintLastMove, 0.4)
 		}
-		l.dot = b.targets[sq] && l.piece == chess.NoPiece
+		l.dot = target && l.piece == chess.NoPiece
+		l.capture = target && l.piece != chess.NoPiece
+	}
+	if tint, ok := b.shapeTint(sq); ok && !lichess {
+		l.bg = blend(l.bg, tint, 0.6)
 	}
 	if cursor {
 		l.bg = blend(l.bg, tintCursor, 0.5)
@@ -336,6 +552,43 @@ func (b *BoardView) lookOf(sq chess.Square, cursor bool) squareLook {
 	l.fg = colBlackBody
 	if l.piece != chess.NoPiece && l.piece.Color() == chess.White {
 		l.fg = colWhiteBody
+	}
+	return l
+}
+
+// basicLookOf is lookOf for basic rendering: only the 8 standard colours
+// (which every colour terminal has, and which follow its colour scheme), and
+// both sides in black, white as outline symbols, like a printed diagram.
+func (b *BoardView) basicLookOf(sq chess.Square, cursor bool) squareLook {
+	l := squareLook{bg: tc.ColorOlive, fg: tc.ColorBlack, piece: b.pos.Board().Piece(sq)}
+	if (int(sq.File())+int(sq.Rank()))%2 == 1 {
+		l.bg = tc.ColorSilver
+	}
+	if b.promo != nil {
+		if pt, ok := b.promo.squares[sq]; ok {
+			l.piece = makePiece(pt, b.promo.color)
+			l.bg = tc.ColorSilver
+		} else {
+			l.bg = tc.ColorBlack
+			l.fg = tc.ColorSilver
+		}
+	} else {
+		target := b.targets[sq]
+		switch {
+		case sq == b.selected:
+			l.bg = tc.ColorGreen
+		case target && l.piece != chess.NoPiece:
+			l.bg = tc.ColorMaroon
+		case sq == b.lastFrom || sq == b.lastTo:
+			l.bg = tc.ColorTeal
+		}
+		l.dot = target && l.piece == chess.NoPiece
+	}
+	if _, ok := b.shapeTint(sq); ok {
+		l.bg = tc.ColorGreen
+	}
+	if cursor {
+		l.bg, l.fg = tc.ColorNavy, tc.ColorSilver
 	}
 	return l
 }
@@ -366,6 +619,14 @@ func (b *BoardView) InputHandler() func(event *tc.EventKey, setFocus func(p cv.P
 			b.activate(b.cursor)
 		case tc.KeyEscape:
 			b.CancelPromotion()
+		case tc.KeyHome, tc.KeyEnd:
+			b.mu.Lock()
+			if event.Key() == tc.KeyHome {
+				b.step(len(b.history))
+			} else {
+				b.back = 0
+			}
+			b.mu.Unlock()
 		case tc.KeyTab, tc.KeyBacktab:
 			if b.onTab != nil {
 				b.onTab()
@@ -376,6 +637,14 @@ func (b *BoardView) InputHandler() func(event *tc.EventKey, setFocus func(p cv.P
 				return
 			}
 			switch event.Str() {
+			case "[", "]":
+				b.mu.Lock()
+				if event.Str() == "[" {
+					b.step(1)
+				} else {
+					b.step(-1)
+				}
+				b.mu.Unlock()
 			case "k":
 				move(-1, 0)
 			case "j":
@@ -399,21 +668,39 @@ func (b *BoardView) MouseHandler() func(action cv.MouseAction, event *tc.EventMo
 		if !b.InRect(mx, my) {
 			return false, nil
 		}
-		if action != cv.MouseLeftDown {
-			return true, nil
-		}
 		b.mu.Lock()
 		ox, oy, sqW, sqH, white := b.ox, b.oy, b.sqW, b.sqH, b.white
-		b.mu.Unlock()
-		if sqW == 0 || mx < ox || my < oy {
+		sq := chess.NoSquare
+		if sqW > 0 && mx >= ox && my >= oy && (mx-ox)/sqW <= 7 && (my-oy)/sqH <= 7 {
+			sq = squareAt((my-oy)/sqH, (mx-ox)/sqW, white)
+		}
+		switch action {
+		case cv.MouseScrollUp:
+			b.step(1)
+		case cv.MouseScrollDown:
+			b.step(-1)
+		case cv.MouseRightDown:
+			b.dragFrom = sq
+		case cv.MouseRightUp:
+			if b.dragFrom != chess.NoSquare && sq != chess.NoSquare {
+				b.toggleShape(boardShape{from: b.dragFrom, to: sq, color: shapeColorFor(event.Modifiers())})
+			}
+			b.dragFrom = chess.NoSquare
+		}
+		if action != cv.MouseLeftDown {
+			b.mu.Unlock()
 			return true, nil
 		}
-		col, row := (mx-ox)/sqW, (my-oy)/sqH
-		if col > 7 || row > 7 {
+		b.shapes = nil
+		if b.back > 0 && !b.browse { // viewing history: a click comes back to the present
+			b.back = 0
+			b.mu.Unlock()
 			return true, nil
 		}
-		sq := squareAt(row, col, white)
-		b.mu.Lock()
+		if sq == chess.NoSquare {
+			b.mu.Unlock()
+			return true, nil
+		}
 		b.cursor = sq
 		b.mu.Unlock()
 		b.activate(sq)

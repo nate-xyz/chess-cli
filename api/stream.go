@@ -7,31 +7,55 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sync"
 	"sync/atomic"
 	"time"
 )
 
 var (
 	online        atomic.Bool
-	streamStarted atomic.Bool
+	streamRunning atomic.Bool
 )
 
 // IsOnline reports whether the account event stream is currently connected.
 func IsOnline() bool { return online.Load() }
 
-// EventStreamStarted reports whether StreamEvent has been told to start.
-func EventStreamStarted() bool { return streamStarted.Load() }
+// StartEventStream makes sure the account's event stream (game starts and
+// finishes, challenges) is running, sending events to events. Call it after
+// logging in; it does nothing if the stream is already running. The stream
+// reconnects with backoff if the connection drops, and stops if the token is
+// rejected (a later login starts it again).
+func StartEventStream(events chan<- StreamEventType) {
+	if streamRunning.CompareAndSwap(false, true) {
+		ctx, cancel := context.WithCancel(context.Background())
+		streamMu.Lock()
+		streamStop = cancel
+		streamMu.Unlock()
+		go streamEvents(ctx, events)
+	}
+}
 
-// StreamEvent streams the account's events (game starts/finishes, challenges)
-// once ready fires, and keeps reconnecting with backoff if the connection
-// drops. It only gives up if the token is rejected.
-func StreamEvent(events chan<- StreamEventType, ready <-chan struct{}) {
-	<-ready
-	streamStarted.Store(true)
+// StopEventStream stops the account event stream (e.g. when logging out).
+func StopEventStream() {
+	streamMu.Lock()
+	defer streamMu.Unlock()
+	if streamStop != nil {
+		streamStop()
+		streamStop = nil
+	}
+}
+
+var (
+	streamMu   sync.Mutex
+	streamStop context.CancelFunc
+)
+
+func streamEvents(ctx context.Context, events chan<- StreamEventType) {
+	defer streamRunning.Store(false)
 	backoff := time.Second
-	for {
+	for ctx.Err() == nil {
 		start := time.Now()
-		err := streamEventsOnce(events)
+		err := streamEventsOnce(ctx, events)
 		online.Store(false)
 		var apiErr *APIError
 		if errors.As(err, &apiErr) && apiErr.Status == http.StatusUnauthorized {
@@ -40,13 +64,17 @@ func StreamEvent(events chan<- StreamEventType, ready <-chan struct{}) {
 		if time.Since(start) > time.Minute {
 			backoff = time.Second // it was a healthy connection; retry quickly
 		}
-		time.Sleep(backoff)
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(backoff):
+		}
 		backoff = min(backoff*2, time.Minute)
 	}
 }
 
-func streamEventsOnce(events chan<- StreamEventType) error {
-	body, err := openStream(context.Background(), "GET", "/api/stream/event", nil)
+func streamEventsOnce(ctx context.Context, events chan<- StreamEventType) error {
+	body, err := openStream(ctx, "GET", "/api/stream/event", nil)
 	if err != nil {
 		return err
 	}
@@ -65,7 +93,7 @@ func streamEventsOnce(events chan<- StreamEventType) error {
 				ID string `json:"id"`
 			} `json:"challenge"`
 		}
-		if err := d.Decode(&ev); err != nil {
+		if err := decode(d, &ev); err != nil {
 			if err == io.EOF {
 				return io.ErrUnexpectedEOF
 			}
@@ -80,7 +108,11 @@ func streamEventsOnce(events chan<- StreamEventType) error {
 		default:
 			continue // unknown event types are ignored, not fatal
 		}
-		events <- out
+		select {
+		case events <- out:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 }
 
@@ -114,7 +146,7 @@ func StreamBoardState(ctx context.Context, events chan<- BoardEvent, errs chan<-
 	d := json.NewDecoder(body)
 	for {
 		var raw json.RawMessage
-		if err := d.Decode(&raw); err != nil {
+		if err := decode(d, &raw); err != nil {
 			if ctx.Err() != nil {
 				return
 			}
@@ -128,7 +160,7 @@ func StreamBoardState(ctx context.Context, events chan<- BoardEvent, errs chan<-
 		var head struct {
 			Type string `json:"type"`
 		}
-		if err := json.Unmarshal(raw, &head); err != nil {
+		if err := unmarshal(raw, &head); err != nil {
 			fail(err)
 			return
 		}
@@ -136,16 +168,16 @@ func StreamBoardState(ctx context.Context, events chan<- BoardEvent, errs chan<-
 		switch head.Type {
 		case "gameFull":
 			ev.Type = GameFull
-			err = json.Unmarshal(raw, &ev.Full)
+			err = unmarshal(raw, &ev.Full)
 		case "gameState":
 			ev.Type = GameState
-			err = json.Unmarshal(raw, &ev.State)
+			err = unmarshal(raw, &ev.State)
 		case "chatLine":
 			ev.Type = ChatLine
-			err = json.Unmarshal(raw, &ev.Chat)
+			err = unmarshal(raw, &ev.Chat)
 		case "opponentGone":
 			ev.Type = OpponentGone
-			err = json.Unmarshal(raw, &ev.Gone)
+			err = unmarshal(raw, &ev.Gone)
 		default:
 			continue
 		}

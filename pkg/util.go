@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
-	"time"
 
 	"github.com/notnil/chess"
 )
@@ -18,13 +17,9 @@ func contains(s []string, str string) bool {
 	return false
 }
 
+// GetRandomQuote picks one of the quotes (keys 0..n-1) at random.
 func GetRandomQuote() string {
-	rand.Seed(time.Now().UnixNano())
-	minrand := 0
-	maxrand := 56
-	rand_quote_int := rand.Intn(maxrand-minrand+1) + minrand
-	var rand_quote string = RandQuoteMap[rand_quote_int]
-	return rand_quote
+	return RandQuoteMap[rand.Intn(len(RandQuoteMap))]
 }
 
 func timeFormat(time int64) string {
@@ -202,7 +197,9 @@ func parseMoveInput(g *chess.Game, in string) (string, error) {
 
 // invalidMoveHint explains why a typed move was rejected, with a nudge for the
 // common case of a promotion typed without its piece.
+// It also plays the error sound, since it's shown for every rejected move.
 func invalidMoveHint(move string) string {
+	playSound(soundError)
 	m := strings.ToLower(strings.TrimSpace(move))
 	if len(m) == 4 && contains(Root.gameState.LegalMoves, m+"q") {
 		return fmt.Sprintf("[yellow]%s is a promotion: add the piece, e.g. %s=Q (Q, R, B or N).[white]\n", move, move)

@@ -2,7 +2,6 @@ package pkg
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"sync"
 
@@ -49,23 +48,6 @@ func TextSizingMode() bool {
 	return textSizing.enabled
 }
 
-// SetupTextSizing decides whether to use big pieces. Call it before the UI
-// takes over the terminal. CHESS_CLI_BIG_PIECES=0 turns them off, =1 forces
-// them on; otherwise the terminal is asked whether it supports the protocol.
-func SetupTextSizing() {
-	on := false
-	switch strings.ToLower(os.Getenv("CHESS_CLI_BIG_PIECES")) {
-	case "0", "off", "false", "no":
-	case "1", "on", "true", "yes":
-		on = true
-	default:
-		on = detectTextSizing()
-	}
-	textSizing.Lock()
-	textSizing.enabled = on
-	textSizing.Unlock()
-}
-
 // queueSized records a board region and its multicell characters for this
 // frame and locks the region so tcell leaves it alone. Called from Draw.
 func queueSized(screen tc.Screen, r rect, cells []sizedCell) {
@@ -76,7 +58,14 @@ func queueSized(screen tc.Screen, r rect, cells []sizedCell) {
 	textSizing.Unlock()
 }
 
-// flushTextSizing runs after every full frame (cview's after-draw hook). It
+// afterDraw runs after every full frame (cview's after-draw hook): tcell's
+// drawing is flushed, then big pieces and piece images go on top.
+func afterDraw(screen tc.Screen) {
+	flushTextSizing(screen)
+	flushImages(screen)
+}
+
+// flushTextSizing runs after every full frame. It
 // erases multicells from boards that are gone or moved, lets tcell repaint
 // those cells, and (re)sends the board's multicells if anything changed.
 func flushTextSizing(screen tc.Screen) {
@@ -84,12 +73,14 @@ func flushTextSizing(screen tc.Screen) {
 	ts.Lock()
 	defer ts.Unlock()
 	if !ts.enabled {
+		screen.Show()
 		return
 	}
 	frame, regions := ts.frame, ts.regions
 	ts.frame, ts.regions = nil, nil
 	tty, ok := screen.Tty()
 	if !ok {
+		screen.Show()
 		return
 	}
 

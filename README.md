@@ -38,33 +38,68 @@ go run .            # or: go build -o chess-cli . && ./chess-cli
 A terminal with true colour and a font with the Unicode chess symbols gives the
 best result. The board scales with your terminal, so make it big.
 
-### Big pieces
+### How the board looks
 
-In terminals that support kitty's
-[text sizing protocol](https://sw.kovidgoyal.net/kitty/text-sizing-protocol/)
-the pieces scale up with the board, drawn by the terminal in your own font.
+Choose under **Options** on the home screen:
 
-| Terminal | Pieces |
-|---|---|
-| [kitty](https://sw.kovidgoyal.net/kitty/) 0.40 or newer | big |
-| everything else (and inside tmux/screen) | normal size |
+| Rendering | What you get | Where |
+|---|---|---|
+| **Image** | Lichess boards and piece sets as real images, scaled to the board. 12 piece sets and 6 boards, previewed as you pick | terminals with the [kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/): kitty, Ghostty, WezTerm |
+| **Advanced** | Unicode chess symbols, drawn big with kitty's [text sizing protocol](https://sw.kovidgoyal.net/kitty/text-sizing-protocol/) where available | everywhere; big in kitty 0.40+ |
+| **Basic** | Plain symbols in the terminal's 8 standard colours, like the original chess-cli | any terminal, including old ones |
 
-Support is detected when chess-cli starts, so other terminals get big pieces
-as soon as they implement the protocol. To override the detection, set
-`CHESS_CLI_BIG_PIECES=0` (off) or `=1` (force on).
+Support is detected at startup (image rendering falls back to advanced where
+images aren't supported, e.g. inside tmux). `CHESS_CLI_IMAGES=0/1` and
+`CHESS_CLI_BIG_PIECES=0/1` override the detection.
+
+Options also has:
+
+- **Move box**: typed-move box always shown, or only on `Ctrl-K`
+- **Clock bar**: clocks as a bar beside the board, or plain text in the sidebar
+- **Zen mode**: hides names, ratings, chat and game info during games, like
+  Lichess's zen mode
+- **Sound**: Retro (chiptune) or Wood, or off. chess-cli's own sounds,
+  played with your system's player (`pw-play`, `paplay` or `aplay` on Linux,
+  `afplay` on macOS, built in on Windows)
 
 # Playing
 
 | | |
 |---|---|
-| **Mouse** | Click a piece, then click where it should go. Legal moves are dotted, captures tinted. |
-| **Typing** | Type moves in the move box as UCI (`e2e4`) or standard notation (`Nf3`, `exd5`, `O-O`). Promotions need the piece: `e7e8=Q`, `e8=Q` or `e7e8q`. |
-| **Keyboard on the board** | `Tab` moves focus to the board; arrows or `hjkl` move the cursor, `Enter`/`Space` selects, `Esc` cancels. |
+| **Mouse** | Click a piece, then click where it should go. Legal moves are dotted, captures marked. |
+| **Typing** | `Ctrl-K` opens the move box: UCI (`e2e4`) or standard notation (`Nf3`, `exd5`, `O-O`). Promotions need the piece: `e7e8=Q`, `e8=Q` or `e7e8q`. |
+| **Keyboard on the board** | Arrows or `hjkl` move the cursor, `Enter`/`Space` selects, `Esc` cancels, `Tab` goes to the menu. |
+| **Going back** | Click a move in the move list, scroll the mouse wheel on the board, or `[` `]` (`Home`/`End` for the start/now). Click the board to return. Works on the game-over screen too. |
+| **Drawing** | Right-click a square for a circle, right-drag for an arrow; `Shift` red, `Alt` blue, both yellow. Left-click clears. |
 | **Promotion** | A picker opens over the promotion square: click a piece, or press `q` `r` `b` `n`. |
-| **Online chat** | `Tab` cycles move box → board → chat. |
+| **Online chat** | `Tab` cycles board → chat → menu. |
 
 Local games are two players on one keyboard; the board flips each move. Games
 can be saved and resumed.
+
+# Puzzles
+
+*Puzzles* on the home screen: the **daily puzzle**, or **puzzle training**
+(new puzzles one after another, five difficulty levels relative to your
+rating). **Rated** puzzles update your Lichess puzzle rating and need a login;
+**casual** ones work without. Hints, solutions and themes as on Lichess.
+
+# Watching, studies and news
+
+Once you've logged in to Lichess, the home screen also has:
+
+- **Watch**: Lichess TV channels (top rated, bullet, blitz, rapid, classical,
+  Chess960, bots, computer), a player's current game, or any game by link or
+  ID. Live clocks and moves; scroll back through the game as usual.
+- **Studies**: your Lichess studies (private ones too) or any study by link.
+  Chapters, variations, comments and the study's arrows and circles. `←` `→`
+  step through the moves, `↑` `↓` jump to the start/end, click any move
+  (in a variation too) to go there.
+- **Chess news**: elite events Lichess is broadcasting (live, coming up, just
+  finished, with leaders and winners) and the latest Lichess blog posts.
+
+Without a login chess-cli doesn't contact Lichess at all (casual puzzles
+aside, which you choose explicitly).
 
 # Lichess
 
@@ -83,6 +118,9 @@ doesn't open, the link is shown in the app). chess-cli uses the
 **Time controls:** Lichess only allows Rapid, Classical and Correspondence
 through the Board API, plus Blitz for direct challenges and games against the AI.
 Bullet isn't available to third-party clients.
+
+Only one chess-cli runs at a time; a second copy tells you one is already
+running.
 
 Your Lichess token and saved games are kept in `~/.config/chess-cli`
 (`chess-cli --help` prints the exact folder on your system).
@@ -105,6 +143,12 @@ binaries with [GoReleaser](https://goreleaser.com):
 git tag v0.2.0 && git push origin v0.2.0
 ```
 
+### Credits
+
+Piece sets come from [Lichess](https://github.com/lichess-org/lila); each
+keeps its own licence (GPL, MIT, Apache, CC0, CC BY, CC BY-SA). See
+[pkg/assets/pieces](pkg/assets/pieces/README.md).
+
 ### Dependency documentation
 
 - [Lichess API](https://lichess.org/api)
@@ -118,21 +162,19 @@ git tag v0.2.0 && git push origin v0.2.0
 
 #### general
 
-- Image-based board (kitty graphics protocol / sixel) for terminals that
-  support images, e.g. with the Lichess piece set
+- Sixel support for image rendering (foot, Konsole, xterm, Windows Terminal)
 
 #### local client
 
-- Time controls
-- Play a local engine (Stockfish, if installed)
+- Save clock times with saved games
+- Stockfish analysis of a finished game
 
 #### online
 
 - Challenge construction
   - Set default positions for sliders
   - Custom starting position
-- Watch games (Lichess TV, follow a player)
-- Puzzles, opening explorer, game history/PGN export
+- Puzzle themes, opening explorer, game history/PGN export
 - Variants: the board follows standard chess rules only. Games in variants
   like crazyhouse or atomic can be created but the app can't follow them yet;
   Chess960 is untested.

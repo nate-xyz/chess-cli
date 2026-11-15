@@ -86,6 +86,10 @@ func RestoreGame(info SavedInfo) error {
 		return err
 	}
 	Root.gameState.Game = chess.NewGame(fen)
+	Root.lgame.stopEngine()
+	Root.lgame.clock = localClock{} // saved games have no clock
+	clockActive.Store(false)
+	Root.lgame.tickClock()
 	DrawBoard(Root.lgame.Board, Root.gameState.Game.Position().Turn() == chess.White)
 	DrawMoveHistory(Root.lgame.History)
 	Root.lgame.UpdateStatus()

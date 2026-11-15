@@ -17,7 +17,6 @@ var (
 	GameListIDArr      []string
 	OutChallengeGameID []string
 	InChallengeGameID  []string
-	Ready              chan struct{}
 	caser              = cases.Title(language.English)
 )
 
@@ -27,9 +26,10 @@ Play locally with a [yellow]friend[white] or online with [red]Lichess!`
 	LichessTitle        string = "[blue]chess-cli[white]: [red]lichess[white] client"
 	LichessRibbon       string = "CHESS-CLI | LICHESS CLIENT | Press 'Ctrl-c' to quit"
 	welcomeRibbonstr    string = "WELCOME TO CHESS-CLI ! | Press 'Ctrl-c' to quit"
-	gameRibbonstr       string = "CHESS-CLI -> local game | Press 'Ctrl-c' to quit"
+	gameRibbonstr       string = " chess-cli · local game │ Ctrl-K type a move │ click or arrows/hjkl + Enter to move │ Tab menu │ Ctrl-C quit"
 	challengeRibbonstr  string = "CHESS-CLI -> create a challenge | Press 'Ctrl-c' to quit"
-	gameOnlineRibbonstr string = "CHESS-CLI -> online game | Press 'Ctrl-c' to quit"
+	gameOnlineRibbonstr string = " chess-cli · Lichess game │ Ctrl-K type a move │ click or arrows/hjkl + Enter to move │ Tab chat/menu │ Ctrl-C quit"
+	postRibbonstr       string = " chess-cli · game over │ click a move, scroll or [ ] to look back │ Tab board ⇄ menu │ Ctrl-C quit"
 	OngoingRibbonstr    string = "CHESS-CLI -> Ongoing Games | Press 'Ctrl-c' to quit"
 	saved_path          string = "saved_games.json" // legacy location, see savedGamesPath
 )
@@ -49,6 +49,9 @@ type State struct {
 	ponline    *OnlinePostGame
 	ongoing    *Ongoing
 	challenges *Challenges
+	puzzle     *PuzzleScreen
+	watch      *WatchScreen
+	study      *StudyScreen
 	sglist     *SavedGameList
 }
 

@@ -86,37 +86,9 @@ func (l *Loader) Init() *cv.Grid {
 	return grid
 }
 
-func (g *OnlineGame) Init() *cv.Grid {
-	inputBox := cv.NewInputField()
-	inputBox.SetDoneFunc(func(key tc.Key) {
-		Root.gameState.NextMove = inputBox.GetText()
-		inputBox.SetText("")
-
-		if key == tc.KeyEnter {
-			if uci, err := parseMoveInput(Root.gameState.Game, Root.gameState.NextMove); err == nil {
-				if err := g.DoMove(uci); err != nil {
-					Root.gameState.Status += fmt.Sprintf("%v", err)
-					g.UpdateStatus()
-				}
-			} else {
-				Root.gameState.Status += invalidMoveHint(Root.gameState.NextMove)
-				g.UpdateStatus()
-			}
-
-		} else {
-			Root.gameState.NextMove = ""
-		}
-	})
-	inputBox.SetLabel("Enter your move: ")
-	inputBox.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		if event.Key() == tc.KeyTab {
-			Root.App.SetFocus(g.Board)
-			return nil
-		}
-		return event
-	})
-
+func (g *OnlineGame) Init() cv.Primitive {
 	gameBox := NewBoardView(g.OnlineSquareHandler)
+	gameBox.EnableSounds()
 
 	chatView := cv.NewTextView()
 	chatView.SetDynamicColors(true)
@@ -132,186 +104,90 @@ func (g *OnlineGame) Init() *cv.Grid {
 			chatInput.SetText("")
 		}
 	})
-	chatPanel := cv.NewFlex()
-	chatPanel.SetDirection(cv.FlexRow)
-	chatPanel.AddItem(chatView, 0, 1, false)
-	chatPanel.AddItem(chatInput, 1, 0, false)
 
-	// Tab cycles: move input -> board -> chat -> move input
+	options := menuList() // filled by UpdateList
+
+	// Tab cycles: board -> chat -> menu -> board
 	gameBox.SetTabFunc(func() { Root.App.SetFocus(chatInput) })
 	chatInput.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		if event.Key() == tc.KeyTab {
-			Root.App.SetFocus(inputBox)
+		switch event.Key() {
+		case tc.KeyTab:
+			Root.App.SetFocus(options)
+			return nil
+		case tc.KeyEscape:
+			Root.App.SetFocus(gameBox)
+			return nil
+		}
+		return event
+	})
+	options.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
+		if event.Key() == tc.KeyTab || event.Key() == tc.KeyEscape {
+			Root.App.SetFocus(gameBox)
 			return nil
 		}
 		return event
 	})
 
-	statusBox := cv.NewTextView()
-	statusBox.SetWordWrap(true)
-	statusBox.SetDynamicColors(true)
-	statusBox.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(inputBox)
-		return nil
+	statusBox := textBox(cv.AlignLeft)
+	historyBox := textBox(cv.AlignLeft)
+	oppInfoBox := textBox(cv.AlignLeft)
+	oppTimerBox := textBox(cv.AlignLeft)
+	userTimerBox := textBox(cv.AlignLeft)
+	userInfoBox := textBox(cv.AlignLeft)
+
+	side := cv.NewFlex()
+	side.SetDirection(cv.FlexRow)
+	g.Move = newMoveBox(side, gameBox, func(text string) {
+		if uci, err := parseMoveInput(Root.gameState.Game, text); err == nil {
+			if err := g.DoMove(uci); err != nil {
+				Root.gameState.Status += fmt.Sprintf("%v", err)
+				g.UpdateStatus()
+			}
+		} else {
+			Root.gameState.Status += invalidMoveHint(text)
+			g.UpdateStatus()
+			g.Move.show() // let them try again
+		}
 	})
+	side.AddItem(oppInfoBox, 2, 0, false)
+	side.AddItem(oppTimerBox, 0, 0, false)
+	side.AddItem(statusBox, 0, 1, false)
+	side.AddItem(historyBox, 0, 1, false)
+	side.AddItem(chatView, 0, 2, false)
+	side.AddItem(chatInput, 1, 0, false)
+	side.AddItem(g.Move.input, 0, 0, false)
+	side.AddItem(options, 2, 0, false)
+	side.AddItem(userTimerBox, 0, 0, false)
+	side.AddItem(userInfoBox, 2, 0, false)
 
-	historyBox := cv.NewTextView()
-	historyBox.SetWordWrap(true)
-	historyBox.SetDynamicColors(true)
-	historyBox.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(inputBox)
-		return nil
-	})
+	screen := newGameLayout(gameBox, side, gameOnlineRibbonstr)
 
-	userInfoBox := cv.NewTextView()
-	userInfoBox.SetTextAlign(cv.AlignLeft)
-	userInfoBox.SetVerticalAlign(cv.AlignTop)
-	userInfoBox.SetDynamicColors(true)
-	userInfoBox.SetText("USER INFO")
-	userInfoBox.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(inputBox)
-		return nil
-	})
-
-	userTimerBox := cv.NewTextView()
-	userTimerBox.SetTextAlign(cv.AlignLeft)
-	userTimerBox.SetDynamicColors(true)
-	userTimerBox.SetText("∞")
-	userTimerBox.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(inputBox)
-		return nil
-	})
-
-	oppTimerBox := cv.NewTextView()
-	oppTimerBox.SetTextAlign(cv.AlignLeft)
-	oppTimerBox.SetDynamicColors(true)
-	oppTimerBox.SetText("∞")
-	oppTimerBox.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(inputBox)
-		return nil
-	})
-
-	oppInfoBox := cv.NewTextView()
-	oppInfoBox.SetTextAlign(cv.AlignLeft)
-	oppInfoBox.SetVerticalAlign(cv.AlignBottom)
-	oppInfoBox.SetDynamicColors(true)
-	oppInfoBox.SetText("OPP INFO")
-	oppInfoBox.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(inputBox)
-		return nil
-	})
-
-	options := cv.NewList()
-	optionsList := []string{"Back", "Quit"}
-	optionsExplain := []string{"Go back Home", "Close chess-cli"}
-	optionsFunc := []ListSelectedFunc{gotoLichessFromGame, Root.App.Stop}
-	for i, opt := range optionsList {
-		item := cv.NewListItem(opt)
-		item.SetSecondaryText(optionsExplain[i])
-		item.SetSelectedFunc(optionsFunc[i])
-		options.AddItem(item)
-	}
-	options.SetSelectedFocusOnly(true)
-	options.SetHover(true)
-	options.SetWrapAround(true)
-
-	Ribbon := ribbonPrimitive(gameOnlineRibbonstr, inputBox)
-
-	grid := cv.NewGrid()
-	grid.SetColumns(-1, -3, -1)
-	grid.SetRows(-1, 1, 1, -1, 12, 1)
-	grid.SetBorders(false)
-
-	//row, col, rowSpan, colSpain
-	grid.AddItem(inputBox, 4, 1, 1, 1, 0, 0, true)
-	grid.AddItem(gameBox, 0, 1, 4, 1, 0, 0, false)
-	grid.AddItem(statusBox, 0, 0, 2, 1, 0, 0, false)
-	grid.AddItem(historyBox, 2, 0, 2, 1, 0, 0, false)
-	grid.AddItem(Ribbon, 5, 0, 1, 3, 0, 0, false)
-
-	grid.AddItem(oppInfoBox, 0, 2, 1, 1, 0, 0, false)
-	grid.AddItem(oppTimerBox, 1, 2, 1, 1, 0, 0, false)
-	grid.AddItem(userTimerBox, 2, 2, 1, 1, 0, 0, false)
-	grid.AddItem(userInfoBox, 3, 2, 1, 1, 0, 0, false)
-	grid.AddItem(options, 4, 0, 1, 1, 0, 0, false)
-	grid.AddItem(chatPanel, 4, 2, 1, 1, 0, 0, false)
-
-	g.Grid = grid
+	g.Side = side
 	g.Chat = chatView
 	g.ChatInput = chatInput
 	g.Board = gameBox
 	g.Status = statusBox
 	g.History = historyBox
+	linkMoveList(historyBox, gameBox)
 	g.OppTimer = oppTimerBox
 	g.OppInfo = oppInfoBox
 	g.UserTimer = userTimerBox
 	g.UserInfo = userInfoBox
 	g.List = options
 
-	return grid
+	return screen
 }
 
-func (pg *OnlinePostGame) Init() *cv.Grid {
-	postList := cv.NewList() //list construction
-	postList.SetWrapAround(true)
-	postList.SetHover(true)
-	choices := []string{"Rematch", "Home", "New", "Ongoing", "Quit"}
-	explain := []string{"Same opponent and settings, colours swapped", "Back to the Lichess menu", "Create a new game", "Select from ongoing games", "Press to exit"}
-	shortcuts := []rune{'r', 'h', 'n', 'o', 'q'}
-	selectFunc := []ListSelectedFunc{func() { Root.ongame.rematch() }, gotoLichessAfterLogin, gotoChallengeConstruction, gotoOngoing, Root.App.Stop}
-
-	for i := 0; i < len(choices); i++ {
-		item := cv.NewListItem(choices[i])
-		item.SetSecondaryText(explain[i])
-		item.SetShortcut(rune(shortcuts[i]))
-		item.SetSelectedFunc(selectFunc[i])
-		postList.AddItem(item)
-	}
-
-	gameBox := NewBoardView(nil)
-	gameBox.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(postList)
-		return nil
-	})
-
-	historyBox := cv.NewTextView()
-	historyBox.SetWordWrap(true)
-	historyBox.SetDynamicColors(true)
-	historyBox.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(postList)
-		return nil
-	})
-
-	resultBox := cv.NewTextView()
-	resultBox.SetWordWrap(true)
-	resultBox.SetDynamicColors(true)
-	resultBox.SetTextAlign(cv.AlignCenter)
-	resultBox.SetVerticalAlign(cv.AlignBottom)
-	resultBox.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(postList)
-		return nil
-	})
-
-	Ribbon := ribbonPrimitive(gameRibbonstr, postList)
-
-	grid := cv.NewGrid()
-	grid.SetColumns(-1, -2, -1)
-	grid.SetRows(-1, -3, -1, 1)
-	grid.SetBorders(false)
-
-	//row col rowSpan colSpan
-	grid.AddItem(postList, 1, 2, 1, 1, 0, 0, true)
-	grid.AddItem(resultBox, 0, 0, 1, 3, 0, 0, false)
-	grid.AddItem(gameBox, 1, 1, 1, 1, 0, 0, false)
-	grid.AddItem(Ribbon, 3, 0, 1, 3, 0, 0, false)
-	grid.AddItem(historyBox, 1, 0, 2, 1, 0, 0, false)
-
-	pg.Grid = grid
-	pg.Board = gameBox
-	pg.Result = resultBox
-	pg.History = historyBox
-
-	return grid
+func (pg *OnlinePostGame) Init() cv.Primitive {
+	p, screen := newPostGame([]*cv.ListItem{
+		menuItem("Rematch", 'r', func() { Root.ongame.rematch() }),
+		menuItem("New game", 'n', gotoChallengeConstruction),
+		menuItem("Ongoing games", 'o', gotoOngoing),
+		menuItem("Lichess menu", 'h', gotoLichessAfterLogin),
+		menuItem("Quit", 'q', Root.App.Stop),
+	}, postRibbonstr)
+	pg.postGame = p
+	return screen
 }
 
 func (ong *Ongoing) Init() *cv.Grid {

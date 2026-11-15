@@ -16,8 +16,8 @@ func (user *Login) GetLichessUserInfo() error {
 			}
 		}
 		user.Friends, _ = api.GetFriends() // only used for suggestions; not worth failing login over
-		if !api.EventStreamStarted() {
-			Ready <- struct{}{} // start the account event stream
+		if StreamChannel != nil {
+			api.StartEventStream(StreamChannel)
 		}
 		return nil
 	}

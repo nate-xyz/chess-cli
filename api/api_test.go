@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -275,6 +276,31 @@ func TestOAuthLoginSavesTokenPrivately(t *testing.T) {
 	}
 }
 
+// Logging in (e.g. again, for rated puzzles) must keep the other settings.
+func TestOAuthLoginKeepsSettings(t *testing.T) {
+	useTempConfig(t)
+	fakeLichess(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"access_token":"new-token","expires_in":3600}`)
+	}))
+	if err := UpdateConfig(func(c *UserConfig) { c.Pieces, c.PieceSet, c.Zen = "image", "merida", true }); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := AuthUser(context.Background(), func(authURL string) {
+		browserLogin(t, authURL, func(state string) url.Values {
+			return url.Values{"code": {"c"}, "state": {state}}
+		})
+	}); err != nil {
+		t.Fatal(err)
+	}
+	UserInfo = UserConfig{}
+	if err := LoadConfig(); err != nil {
+		t.Fatal(err)
+	}
+	if UserInfo.ApiToken != "new-token" || UserInfo.Pieces != "image" || UserInfo.PieceSet != "merida" || !UserInfo.Zen {
+		t.Errorf("settings after login: %+v", UserInfo)
+	}
+}
+
 func TestOAuthLoginCancelled(t *testing.T) {
 	useTempConfig(t)
 	fakeLichess(t, http.NotFoundHandler())
@@ -317,5 +343,42 @@ func TestLegacyConfigMigrated(t *testing.T) {
 	}
 	if _, err := os.Stat(legacyConfigFile); !os.IsNotExist(err) {
 		t.Errorf("world-readable legacy token file should be removed")
+	}
+}
+
+// After Lichess rejects the token the event stream stops; logging in again
+// must be able to start it again.
+func TestEventStreamRestartsAfterRejection(t *testing.T) {
+	useTempConfig(t)
+	var calls atomic.Int32
+	fakeLichess(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/stream/event" {
+			if calls.Add(1) == 1 {
+				http.Error(w, `{"error":"No such token"}`, http.StatusUnauthorized)
+				return
+			}
+			fmt.Fprintln(w, `{"type":"gameStart","game":{"id":"abcd1234"}}`)
+			w.(http.Flusher).Flush()
+			<-r.Context().Done()
+		}
+	}))
+	events := make(chan StreamEventType, 4)
+	StartEventStream(events)
+	deadline := time.Now().Add(3 * time.Second)
+	for streamRunning.Load() && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if streamRunning.Load() {
+		t.Fatal("stream kept running after a 401")
+	}
+	StartEventStream(events) // e.g. after logging in again
+	defer StopEventStream()
+	select {
+	case e := <-events:
+		if e.GameID != "abcd1234" {
+			t.Errorf("event %+v", e)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("stream didn't restart")
 	}
 }

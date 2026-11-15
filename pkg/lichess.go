@@ -177,12 +177,12 @@ func (online *OnlineGame) showPopup(kind string, p *cv.Flex) {
 	online.hidePopup()
 	online.PopUp = p
 	online.popupKind = kind
-	online.Grid.AddItem(p, 4, 2, 1, 1, 0, 0, false)
+	online.Side.AddItemAtIndex(2, p, 7, 0, false) // under the opponent's name and clock
 }
 
 func (online *OnlineGame) hidePopup() {
 	if online.PopUp != nil {
-		online.Grid.RemoveItem(online.PopUp)
+		online.Side.RemoveItem(online.PopUp)
 		online.PopUp = nil
 	}
 	online.popupKind = ""

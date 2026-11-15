@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"sync/atomic"
 
 	cv "codeberg.org/tslocum/cview"
 	"github.com/nate-xyz/chess-cli/api"
@@ -39,8 +40,22 @@ func (user *Login) Init(ctx context.Context, showURL func(string)) error {
 	return err
 }
 
+// frontPanel is the screen showing, readable from any goroutine (background
+// tickers use it to stay idle when their screen isn't open).
+var frontPanel atomic.Value
+
+func showing(panel string) bool {
+	p, _ := frontPanel.Load().(string)
+	return p == panel
+}
+
 func (s *State) Switch(panel string) {
+	frontPanel.Store(panel)
 	s.nav.SetCurrentPanel(panel)
+	if panel == "onlinegame" || panel == "watch" {
+		applyLayoutPrefs()
+	}
+	focusMoveBox(panel)
 }
 
 func (s *State) RefreshAll(p ...cv.Primitive) {

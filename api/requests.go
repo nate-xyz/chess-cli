@@ -66,7 +66,7 @@ func keepAlive(body io.ReadCloser, cancel context.CancelFunc, sc *bufio.Scanner)
 			var msg struct {
 				Done string `json:"done"`
 			}
-			if json.Unmarshal(sc.Bytes(), &msg) == nil && msg.Done != "" {
+			if unmarshal(sc.Bytes(), &msg) == nil && msg.Done != "" {
 				p.done <- msg.Done
 				return
 			}
@@ -79,6 +79,9 @@ func keepAlive(body io.ReadCloser, cancel context.CancelFunc, sc *bufio.Scanner)
 // CreateChallenge challenges a user. The challenge stays open until accepted,
 // declined, or Pending.Cancel is called.
 func CreateChallenge(c CreateChallengeType) (*Pending, error) {
+	if !ValidUsername(c.DestUser) {
+		return nil, ErrBadUsername
+	}
 	f := challengeForm(c)
 	f.Set("rated", c.Rated)
 	f.Set("keepAliveStream", "true")
@@ -101,7 +104,7 @@ func CreateChallenge(c CreateChallengeType) (*Pending, error) {
 		if len(sc.Bytes()) == 0 {
 			continue // keep-alive newline
 		}
-		if err := json.Unmarshal(sc.Bytes(), &first); err != nil {
+		if err := unmarshal(sc.Bytes(), &first); err != nil {
 			body.Close()
 			cancel()
 			return nil, fmt.Errorf("unexpected challenge response: %w", err)
@@ -162,7 +165,7 @@ func CreateSeek(c CreateChallengeType) (*Pending, error) {
 		var seek struct {
 			ID string `json:"id"`
 		}
-		if err := json.NewDecoder(body).Decode(&seek); err != nil {
+		if err := decode(json.NewDecoder(body), &seek); err != nil {
 			return nil, err
 		}
 		done := make(chan string, 1)
@@ -224,7 +227,7 @@ func GetFriends() ([]string, error) {
 		var u struct {
 			Username string `json:"username"`
 		}
-		if err := d.Decode(&u); err == io.EOF {
+		if err := decode(d, &u); err == io.EOF {
 			return friends, nil
 		} else if err != nil {
 			return friends, err

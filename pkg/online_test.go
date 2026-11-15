@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -16,25 +17,36 @@ import (
 	"github.com/notnil/chess"
 )
 
-// startTestApp runs the real UI on tcell's mock terminal.
+// startTestApp runs the real UI on tcell's mock terminal. The tests share
+// one app: it's left running until the test binary exits, because cview
+// 1.6.3 has unsynchronised shutdown (Run clears its screen field without
+// locking, and Stop finalises the screen while a draw may be running), which
+// the race detector flags. That's in cview, not this code.
 func startTestApp(t *testing.T, w, h int) tc.Screen {
 	t.Helper()
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-	t.Chdir(t.TempDir())
-	s := newMockScreen(t, w, h) // not finalised: the app keeps drawing to it (see below)
-	app := cv.NewApplication()
-	app.SetScreen(s)
-	app.EnableMouse(true)
-	Root.App = app
-	InitUI()
-	// The app and screen are left running until the test binary exits: cview
-	// 1.6.3 has unsynchronised shutdown (Run clears its screen field without
-	// locking, and Stop finalises the screen while a draw may be running),
-	// which the race detector flags. That's in cview, not this code.
-	go app.Run()
+	testApp.Do(func() {
+		dir, err := os.MkdirTemp("", "chess-cli-test")
+		if err != nil {
+			t.Fatal(err)
+		}
+		os.Setenv("XDG_CONFIG_HOME", dir) // never touch the real config
+		os.Chdir(dir)
+		testScreen = newMockScreen(t, w, h)
+		app := cv.NewApplication()
+		app.SetScreen(testScreen)
+		app.EnableMouse(true)
+		Root.App = app
+		InitUI()
+		go app.Run()
+	})
 	waitFor(t, "first draw", func() bool { _, _, rw, _ := Root.nav.GetRect(); return rw == w })
-	return s
+	return testScreen
 }
+
+var (
+	testApp    sync.Once
+	testScreen tc.Screen
+)
 
 // onUI runs f on the UI goroutine and waits for it.
 func onUI(f func()) {
@@ -135,6 +147,13 @@ func TestOnlineGameEndToEnd(t *testing.T) {
 	})
 	og := Root.ongame
 	waitFor(t, "game to load", func() bool { return og.Full.ID == "g1" && og.Board.sqW > 0 })
+	// the clocks appear beside the board (moving it down a row): wait for
+	// that before clicking squares
+	waitFor(t, "clocks", func() bool {
+		og.Board.mu.Lock()
+		defer og.Board.mu.Unlock()
+		return og.Board.hasClockBars()
+	})
 
 	// chat history loads, and user text can't inject colour tags
 	waitFor(t, "chat history", func() bool { return strings.Contains(og.Chat.GetText(true), "have fun [red]") })

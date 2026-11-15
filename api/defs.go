@@ -26,6 +26,7 @@ var (
 		"study:read",
 		"study:write",
 		"puzzle:read",
+		"puzzle:write",
 		"follow:read",
 		"follow:write",
 		"msg:write",
@@ -63,6 +64,21 @@ type UserConfig struct {
 	ApiToken            string
 	TokenCreationDate   time.Time
 	TokenExpirationDate time.Time
+	// Pieces is how the board is drawn: "text" or "image" (empty = automatic).
+	Pieces         string `json:",omitempty"`
+	PieceSet       string `json:",omitempty"` // image rendering: piece set and board
+	Board          string `json:",omitempty"`
+	StockfishPath  string `json:",omitempty"` // engine chosen in chess-cli (else found automatically)
+	StockfishLevel int    `json:",omitempty"`
+	MoveBoxAlways  bool   `json:",omitempty"` // typed-move box always shown, not just on Ctrl-K
+	ClockBarOff    bool   `json:",omitempty"` // clocks as plain text in the sidebar, no bar
+	Zen            bool   `json:",omitempty"` // zen mode: hide names, ratings, chat and game info
+	LocalClock     int    `json:",omitempty"` // local games time control (index; 0 = none)
+	Sound          string `json:",omitempty"` // sound theme: "" (retro), "wood" or "off"
+	SoundAsked     bool   `json:",omitempty"` // the first-run screen asked about sound
+	// Puzzle preferences
+	PuzzleCasual     bool   `json:",omitempty"`
+	PuzzleDifficulty string `json:",omitempty"`
 }
 
 type CreateChallengeType struct {

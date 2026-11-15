@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	pkce "github.com/jimlambrt/go-oauth-pkce-code-verifier"
@@ -43,9 +44,51 @@ func configPath() (string, error) {
 	return filepath.Join(dir, "config.json"), nil
 }
 
-// LoadConfig reads the saved token, migrating the old ./user_config.json
-// (which older versions wrote world-readable into the working directory).
+// configMu guards UserInfo against the login (which runs in the background)
+// and saving. Settings are read freely on the UI goroutine; changes go
+// through UpdateConfig/SetConfig so they're locked against a save in
+// progress.
+var configMu sync.Mutex
+
+// UpdateConfig changes settings and saves them.
+func UpdateConfig(change func(c *UserConfig)) error {
+	configMu.Lock()
+	defer configMu.Unlock()
+	change(&UserInfo)
+	return saveLocked()
+}
+
+// SetConfig changes settings without saving (e.g. previewing a choice).
+func SetConfig(change func(c *UserConfig)) {
+	configMu.Lock()
+	defer configMu.Unlock()
+	change(&UserInfo)
+}
+
+// token is the saved Lichess token, if any.
+func token() string {
+	configMu.Lock()
+	defer configMu.Unlock()
+	return UserInfo.ApiToken
+}
+
+// setToken records a new token (keeping all other settings) and saves it.
+func setToken(tok string, expiresIn int64) error {
+	configMu.Lock()
+	defer configMu.Unlock()
+	UserInfo.ApiToken, UserInfo.TokenCreationDate, UserInfo.TokenExpirationDate = tok, time.Now(), time.Time{}
+	if expiresIn > 0 {
+		UserInfo.TokenExpirationDate = time.Now().Add(time.Duration(expiresIn) * time.Second)
+	}
+	return saveLocked()
+}
+
+// LoadConfig reads the saved settings and token, migrating the old
+// ./user_config.json (which older versions wrote world-readable into the
+// working directory).
 func LoadConfig() error {
+	configMu.Lock()
+	defer configMu.Unlock()
 	path, err := configPath()
 	if err != nil {
 		return err
@@ -54,7 +97,7 @@ func LoadConfig() error {
 	if errors.Is(err, os.ErrNotExist) {
 		if old, oldErr := os.ReadFile(legacyConfigFile); oldErr == nil {
 			if json.Unmarshal(old, &UserInfo) == nil && UserInfo.ApiToken != "" {
-				if err := SaveConfig(); err != nil {
+				if err := saveLocked(); err != nil {
 					return err
 				}
 				_ = os.Remove(legacyConfigFile)
@@ -68,8 +111,14 @@ func LoadConfig() error {
 	return json.Unmarshal(b, &UserInfo)
 }
 
-// SaveConfig writes the token, readable only by the current user.
+// SaveConfig writes the settings and token, readable only by the current user.
 func SaveConfig() error {
+	configMu.Lock()
+	defer configMu.Unlock()
+	return saveLocked()
+}
+
+func saveLocked() error {
 	path, err := configPath()
 	if err != nil {
 		return err
@@ -90,12 +139,17 @@ func SaveConfig() error {
 
 // ClearToken forgets the saved token (e.g. after Lichess rejects it).
 func ClearToken() error {
-	UserInfo = UserConfig{}
-	return SaveConfig()
+	configMu.Lock()
+	defer configMu.Unlock()
+	// forget the login, keep the preferences
+	UserInfo.ApiToken, UserInfo.TokenCreationDate, UserInfo.TokenExpirationDate = "", time.Time{}, time.Time{}
+	return saveLocked()
 }
 
 // HasValidToken reports whether a saved token exists and hasn't expired.
 func HasValidToken() bool {
+	configMu.Lock()
+	defer configMu.Unlock()
 	return UserInfo.ApiToken != "" &&
 		(UserInfo.TokenExpirationDate.IsZero() || time.Now().Before(UserInfo.TokenExpirationDate))
 }
@@ -103,12 +157,10 @@ func HasValidToken() bool {
 // PerformOAuth returns a usable token: the saved one if still valid, otherwise
 // it runs the browser login. showURL is called with the login URL so the UI
 // can display it in case the browser doesn't open by itself.
+// The settings were loaded at startup (LoadConfig).
 func PerformOAuth(ctx context.Context, showURL func(string)) (string, error) {
-	if err := LoadConfig(); err != nil {
-		return "", err
-	}
 	if HasValidToken() {
-		return UserInfo.ApiToken, nil
+		return token(), nil
 	}
 	return AuthUser(ctx, showURL)
 }
@@ -186,15 +238,11 @@ func AuthUser(ctx context.Context, showURL func(string)) (string, error) {
 		case q.Get("code") == "":
 			finish(w, result{err: errors.New("no authorization code in callback")})
 		default:
-			token, expiresIn, err := getAccessToken(ctx, q.Get("code"), verifier.String(), redirectURL)
+			tok, expiresIn, err := getAccessToken(ctx, q.Get("code"), verifier.String(), redirectURL)
 			if err == nil {
-				UserInfo = UserConfig{ApiToken: token, TokenCreationDate: time.Now()}
-				if expiresIn > 0 {
-					UserInfo.TokenExpirationDate = time.Now().Add(time.Duration(expiresIn) * time.Second)
-				}
-				err = SaveConfig()
+				err = setToken(tok, expiresIn) // keeps the other settings
 			}
-			finish(w, result{token: token, err: err})
+			finish(w, result{token: tok, err: err})
 		}
 	})
 	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}

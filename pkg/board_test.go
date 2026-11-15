@@ -12,7 +12,7 @@ func TestBoardGeometryFitsAndGrows(t *testing.T) {
 	prev := 0
 	for _, sz := range [][2]int{{30, 10}, {60, 20}, {80, 26}, {120, 40}, {200, 60}, {300, 90}} {
 		w, h := sz[0], sz[1]
-		sqW, sqH := boardGeometry(w, h, false)
+		sqW, sqH := boardGeometry(w, h, styleGlyph, 2)
 		if sqW == 0 {
 			t.Fatalf("%dx%d: no board", w, h)
 		}
@@ -24,7 +24,7 @@ func TestBoardGeometryFitsAndGrows(t *testing.T) {
 		}
 		prev = sqH
 	}
-	if w, _ := boardGeometry(10, 5, false); w != 0 {
+	if w, _ := boardGeometry(10, 5, styleGlyph, 2); w != 0 {
 		t.Errorf("tiny area should report no board")
 	}
 }

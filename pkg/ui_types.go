@@ -6,6 +6,7 @@ import (
 
 	cv "codeberg.org/tslocum/cview"
 	"github.com/nate-xyz/chess-cli/api"
+	"github.com/notnil/chess"
 )
 
 type GameScreen struct {
@@ -17,12 +18,17 @@ type GameScreen struct {
 	OppInfo   *cv.TextView
 	OppTimer  *cv.TextView
 	List      *cv.List
+	Move      *moveBox
+
+	engine      *Engine // set when playing a local Stockfish
+	engineColor chess.Color
+	engineLevel int
+	engineGen   int // bumped when an engine game starts or stops
+	clock       localClock
 }
 
 type PostGameScreen struct {
-	Board   *BoardView
-	Result  *cv.TextView
-	History *cv.TextView
+	*postGame
 }
 
 type SavedGames struct {
@@ -40,7 +46,8 @@ type Loader struct {
 }
 
 type OnlineGame struct {
-	Grid      *cv.Grid
+	Side      *cv.Flex
+	Move      *moveBox
 	Board     *BoardView
 	Status    *cv.TextView
 	History   *cv.TextView
@@ -67,15 +74,11 @@ type OnlineGame struct {
 	clockW    int64     // clocks (ms) as of clockAt
 	clockB    int64
 	clockAt   time.Time
+	lowWarned bool // the low-time sound has played this game
 }
 
 type OnlinePostGame struct {
-	Grid *cv.Grid
-
-	Board   *BoardView
-	Result  *cv.TextView
-	History *cv.TextView
-	PopUp   *cv.Flex
+	*postGame
 }
 
 type Ongoing struct {

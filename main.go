@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -39,7 +40,14 @@ func main() {
 			return
 		}
 	}
-	pkg.SetupTextSizing() // must run before the UI takes over the terminal
+	if dir, err := api.ConfigDir(); err == nil {
+		if err := pkg.LockInstance(dir); errors.Is(err, pkg.ErrAlreadyRunning) {
+			fmt.Fprintf(os.Stderr, "%v.\nSwitch to that window, or quit it first.\n", err)
+			os.Exit(1)
+		}
+	}
+	_ = api.LoadConfig() // for saved preferences; a broken file is reported at login
+	pkg.SetupRendering() // must run before the UI takes over the terminal
 
 	shell := os.Getenv("SHELL")
 	if shell == "" {
@@ -58,8 +66,6 @@ func main() {
 	pkg.Root.App = App
 
 	pkg.StreamChannel = make(chan api.StreamEventType, 1)
-	pkg.Ready = make(chan struct{})
-	go api.StreamEvent(pkg.StreamChannel, pkg.Ready)
 	go pkg.StreamConsumer(pkg.StreamChannel)
 
 	pkg.InitUI()

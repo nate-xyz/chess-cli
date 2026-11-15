@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	cv "codeberg.org/tslocum/cview"
 	"context"
 	"fmt"
 	"time"
@@ -75,7 +76,7 @@ func waitForGame(ctx context.Context, c api.CreateChallengeType, events <-chan a
 		if err == nil {
 			gameID = pending.ID
 			show(fmt.Sprintf("Waiting for [blue]%s[-] to accept the challenge.\n%s/%s\n\n[gray]Esc to cancel[-]",
-				c.DestUser, api.HostUrl, gameID))
+				cv.Escape(c.DestUser), api.HostUrl, gameID))
 		}
 	case 2: // Lichess AI: the game starts immediately
 		gameID, err = api.CreateAiChallenge(c)
@@ -113,7 +114,7 @@ func waitForGame(ctx context.Context, c api.CreateChallengeType, events <-chan a
 				start(e.GameID)
 				return
 			case e.EventType == "challengeDeclined" && e.GameID == gameID:
-				leave(fmt.Sprintf("[red]%s declined the challenge.[-]", c.DestUser))
+				leave(fmt.Sprintf("[red]%s declined the challenge.[-]", cv.Escape(c.DestUser)))
 				return
 			case e.EventType == "challengeCanceled" && e.GameID == gameID:
 				leave("The challenge was cancelled.")
@@ -130,7 +131,7 @@ func waitForGame(ctx context.Context, c api.CreateChallengeType, events <-chan a
 				show("Accepted! Starting the game…")
 				done = nil // gameStart arrives on the event stream
 			case "declined":
-				leave(fmt.Sprintf("[red]%s declined the challenge.[-]", c.DestUser))
+				leave(fmt.Sprintf("[red]%s declined the challenge.[-]", cv.Escape(c.DestUser)))
 				return
 			case "canceled":
 				leave("The challenge was cancelled.")

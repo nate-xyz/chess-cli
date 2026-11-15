@@ -13,12 +13,19 @@ func gotoWelcome() {
 	if loginCancel != nil {
 		loginCancel() // leaving the Lichess screen abandons a login in progress
 	}
+	Root.lgame.stopEngine()
+	resetWelcome()
+	refreshNews()
 	Root.Switch("welcome")
 }
 
 func startNewLocalGame() {
+	Root.lgame.stopEngine()
 	Root.NewGame()
+	Root.lgame.startClock()
+	Root.lgame.tickClock()
 	Root.Switch("localgame")
+	playSound(soundStart)
 
 	DrawBoard(Root.lgame.Board, Root.gameState.Game.Position().Turn() == chess.White)
 
@@ -26,11 +33,24 @@ func startNewLocalGame() {
 }
 
 func gotoPostLocal() {
-	Root.gameState.Status += Root.gameState.Game.Outcome().String()
-	Root.pgame.UpdateResult()
-	DrawMoveHistory(Root.pgame.History)
-	DrawBoard(Root.pgame.Board, true)
-	Root.Switch("postlocal")
+	game := Root.gameState.Game
+	gotoPostLocalResult(winnerOf(game.Outcome()), gameMethod(game))
+}
+
+// gotoPostLocalResult ends a local game with a result (e.g. on time).
+func gotoPostLocalResult(winner chess.Color, method string) {
+	Root.lgame.clock.on = false
+	clockActive.Store(false)
+	Root.gameState.Status = resultText(winner, method) + "\n\n" + Root.gameState.Status
+	g := Root.lgame
+	white := g.whiteAtBottom()
+	me := chess.NoColor // two players: any win is a victory
+	if g.engine != nil {
+		me = g.engineColor.Other()
+	}
+	playSound(resultSound(winner, me))
+	g.stopEngine()
+	Root.pgame.show("postlocal", g.Board, g.OppInfo, g.UserInfo, white, winner, method)
 }
 
 // Login state; UI goroutine only.
@@ -49,28 +69,43 @@ func gotoLichess() {
 		Root.wonline.UpdateTitle("")
 		return
 	}
+	Root.wonline.UpdateTitle("\n[yellow]Logging in…[-]")
+	startLogin(func() { Root.wonline.UpdateTitle("") }, func(err error) {
+		if err != nil {
+			Root.wonline.UpdateTitle(fmt.Sprintf("\n[red]Login failed:[-] %v\nGo back and choose Lichess again to retry.", err))
+			return
+		}
+		Root.wonline.UpdateTitle("")
+	})
+}
+
+// startLogin logs in to Lichess in the background (reusing a saved token if
+// valid). onURL runs when the browser login link is ready (it's in loginURL);
+// done runs when it finishes, unless it was cancelled by leaving the screen.
+// Both run on the UI goroutine.
+func startLogin(onURL func(), done func(err error)) {
+	if loginCancel != nil {
+		return // already in progress
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	loginCancel = cancel
-	Root.wonline.UpdateTitle("\n[yellow]Logging in…[-]")
 	go func() {
 		user := new(Login)
 		err := user.Init(ctx, func(url string) {
 			Root.App.QueueUpdateDraw(func() {
 				loginURL = url
-				Root.wonline.UpdateTitle("")
+				onURL()
 			})
 		})
 		Root.App.QueueUpdateDraw(func() {
 			loginCancel, loginURL = nil, ""
 			cancel()
-			if err != nil {
-				if ctx.Err() == nil || errors.Is(err, api.ErrLoginCancelled) {
-					Root.wonline.UpdateTitle(fmt.Sprintf("\n[red]Login failed:[-] %v\nGo back and choose Lichess again to retry.", err))
-				}
-				return
+			if err == nil {
+				Root.User = user
+			} else if ctx.Err() != nil && !errors.Is(err, api.ErrLoginCancelled) {
+				return // cancelled by leaving the screen
 			}
-			Root.User = user
-			Root.wonline.UpdateTitle("")
+			done(err)
 		})
 	}()
 }
@@ -102,7 +137,7 @@ func startNewOnlineGame() {
 		og.cancel()
 	}
 	og.ctx, og.cancel = context.WithCancel(context.Background())
-	og.ended, og.canClaim = false, false
+	og.ended, og.canClaim, og.lowWarned = false, false, false
 	og.Full, og.State, og.Gone = api.StreamBoardGameFull{}, api.StreamBoardGameState{}, api.StreamOpponentGone{}
 	og.hidePopup()
 	og.Chat.Clear()
@@ -111,14 +146,25 @@ func startNewOnlineGame() {
 	og.OppTimer.SetText("")
 	og.UpdateList()
 	Root.Switch("onlinegame")
+	playSound(soundStart)
 	go og.LichessGame(currentGameID)
 }
 
 func (online *OnlineGame) gotoPostOnline() {
-	Root.ponline.UpdateResult()
-	DrawMoveHistory(Root.ponline.History)
-	DrawBoard(Root.ponline.Board, online.IsWhite())
-	Root.Switch("postonline")
+	winner, method := colorFromName(online.State.Winner), online.State.Status
+	if method != "aborted" && method != "noStart" {
+		Root.gameState.Status = resultText(winner, method) + "\n\n" + Root.gameState.Status
+	}
+	if method == "aborted" || method == "noStart" {
+		method = "" // no result marks on the board
+	} else {
+		me := chess.Black
+		if online.IsWhite() {
+			me = chess.White
+		}
+		playSound(resultSound(winner, me))
+	}
+	Root.ponline.show("postonline", online.Board, online.OppInfo, online.UserInfo, online.IsWhite(), winner, method)
 	Root.RefreshAll()
 }
 
