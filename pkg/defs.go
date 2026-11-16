@@ -103,7 +103,7 @@ var (
 		'r': "♜",
 		'b': "♝",
 		'n': "♞",
-		'p': "🨾",
+		'p': "♟\uFE0E", // U+FE0E: text, not emoji
 	}
 
 	KnightIconMap = map[int]string{

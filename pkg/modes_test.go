@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	tc "github.com/gdamore/tcell/v3"
+	"github.com/notnil/chess"
 )
 
 // Studies in each rendering mode: full terminals get the greys, tints and
@@ -102,4 +103,35 @@ func TestStudyRenderingModes(t *testing.T) {
 			})
 		})
 	}
+}
+
+// Pieces in advanced rendering without big pieces (any terminal but kitty)
+// are upright Unicode chess symbols; black pawns used to be U+1FA3E, the
+// pawn rotated 270 degrees, and showed sideways.
+func TestTextModePawns(t *testing.T) {
+	scr := startTestApp(t, 160, 50)
+	ss := Root.study
+	defer onUI(func() { previewPieces("") })
+	onUI(func() {
+		previewPieces(PiecesText)
+		Root.Switch("study")
+		ss.show(parseStudyPGN(testStudyPGN), "")
+	})
+	onUI(func() { Root.App.Draw() })
+	onUI(func() {
+		ss.goTo(ss.ch.nodes[0])
+		Root.App.Draw()
+	})
+	onUI(func() {
+		b := ss.Board
+		b.mu.Lock()
+		defer b.mu.Unlock()
+		for sq, want := range map[chess.Square]string{chess.E7: "♟︎", chess.E1: "♚"} {
+			row, col := displayOf(sq, b.white)
+			got, _, w := scr.Get(b.ox+col*b.sqW+b.sqW/2, b.oy+row*b.sqH+b.sqH/2)
+			if got != want || w != 1 {
+				t.Errorf("%v shows %q (width %d), want %q (width 1)", sq, got, w, want)
+			}
+		}
+	})
 }

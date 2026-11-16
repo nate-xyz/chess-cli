@@ -405,8 +405,8 @@ func (b *BoardView) Draw(screen tc.Screen) {
 				if style == styleBasic && look.piece.Color() == chess.White {
 					name = strings.ToUpper(name) // outline symbols for white
 				}
-				glyph := []rune(PiecesMap[rune(name[0])])[0]
-				screen.SetContent(sx+sqW/2, sy+sqH/2, glyph, nil, tc.StyleDefault.Foreground(look.fg).Background(look.bg).Bold(style == styleBasic))
+				glyph := []rune(PiecesMap[rune(name[0])])
+				screen.SetContent(sx+sqW/2, sy+sqH/2, glyph[0], glyph[1:], tc.StyleDefault.Foreground(look.fg).Background(look.bg).Bold(style == styleBasic))
 			case look.dot:
 				fg := colDot
 				if style == styleBasic {
