@@ -14,6 +14,7 @@ func gotoWelcome() {
 		loginCancel() // leaving the Lichess screen abandons a login in progress
 	}
 	Root.lgame.stopEngine()
+	previewPieces("") // first-run setup and Options preview styles; home shows the real setting
 	resetWelcome()
 	refreshNews()
 	Root.Switch("welcome")

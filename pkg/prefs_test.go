@@ -145,3 +145,23 @@ func TestOnboardingKeys(t *testing.T) {
 		}
 	})
 }
+
+// Leaving first-run setup leaves no previewed style behind: the home screen
+// and everything after it draw with the real setting. (On a terminal where
+// basic rendering is recommended, the preview used to stick.)
+func TestOnboardingClearsPreview(t *testing.T) {
+	startTestApp(t, 160, 50)
+	onUI(func() {
+		_ = api.UpdateConfig(func(c *api.UserConfig) { c.Pieces, c.SoundAsked, c.KeysAsked, c.StockfishAsked = "", true, true, true })
+		runOnboarding()
+		previewPieces(PiecesBasic) // as if basic were highlighted
+		_ = SetPiecesSetting(PiecesText)
+		gotoWelcome()
+		rendering.Lock()
+		left := rendering.pieces
+		rendering.Unlock()
+		if left != "" || PiecesSetting() != PiecesText {
+			t.Errorf("after setup: preview %q, setting %q; want no preview, text", left, PiecesSetting())
+		}
+	})
+}
