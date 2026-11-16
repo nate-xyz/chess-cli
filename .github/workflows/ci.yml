@@ -16,6 +16,20 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
+      # Stockfish, so the analysis test runs against the real engine (it's
+      # skipped where Stockfish is missing, so a failed install isn't fatal)
+      - name: Install Stockfish (Linux)
+        if: runner.os == 'Linux'
+        continue-on-error: true
+        run: sudo apt-get update && sudo apt-get install -y stockfish
+      - name: Install Stockfish (macOS)
+        if: runner.os == 'macOS'
+        continue-on-error: true
+        run: brew install stockfish
+      - name: Install Stockfish (Windows)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        run: choco install stockfish -y --no-progress
       - run: go vet ./...
       - run: go test -race ./...
         if: runner.os != 'Windows'

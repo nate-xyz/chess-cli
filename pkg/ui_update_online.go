@@ -27,10 +27,12 @@ func (og *OnlineGame) UpdateList() {
 	optionsList := []string{"Leave game", "Quit"}
 	optionsExplain := []string{"Back to the Lichess menu (the game keeps going)", "Close chess-cli"}
 	optionsFunc := []ListSelectedFunc{gotoLichessFromGame, Root.App.Stop}
+	keys := []rune{'x', 'q'}
 	for i, opt := range optionsList {
 		item := cv.NewListItem(opt)
 		item.SetSecondaryText(optionsExplain[i])
 		item.SetSelectedFunc(optionsFunc[i])
+		item.SetShortcut(keys[i])
 		list.AddItem(item)
 	}
 
@@ -38,6 +40,7 @@ func (og *OnlineGame) UpdateList() {
 	optionsExplain = []string{"Propose a takeback", "Abort the current game", "Offer a draw to your opponent", "Resign from the current game",
 		"Opponent left: end the game as a draw", "Opponent left: claim the win"}
 	optionsFunc = []ListSelectedFunc{og.doProposeTakeBack, og.doAbort, og.doOfferDraw, og.doResign, og.doClaimDraw, og.doClaimVictory}
+	keys = []rune{'t', 'a', 'd', 'g', 'c', 'v'} // g: give up (r picks a rook when promoting)
 	for i, opt := range optionsList {
 		if opt == "Takeback" && Root.gameState.MoveCount == 0 {
 			continue
@@ -53,7 +56,12 @@ func (og *OnlineGame) UpdateList() {
 		}
 		item := cv.NewListItem(opt)
 		item.SetSecondaryText(optionsExplain[i])
-		item.SetSelectedFunc(optionsFunc[i])
+		item.SetShortcut(keys[i])
+		if opt == "Abort" || opt == "Resign" { // press twice: a stray key shouldn't end the game
+			confirmItem(item, opt, opt+"? Press again", optionsFunc[i])
+		} else {
+			item.SetSelectedFunc(optionsFunc[i])
+		}
 		list.InsertItem(1, item)
 	}
 	og.Side.ResizeItem(list, list.GetItemCount(), 0)
@@ -367,7 +375,7 @@ func (ongoing *Ongoing) UpdateList() {
 			text += fmt.Sprintf("(%v)", cv.Escape(game.Opponent.ID))
 		}
 		item.SetSecondaryText(text)
-		item.SetShortcut(rune('a' + i))
+		item.SetShortcut(numberKey(i))
 
 		ongoing.List.AddItem(item)
 	}
@@ -402,7 +410,7 @@ func (c *Challenges) UpdateList() {
 		}
 		text += fmt.Sprintf("%v plays %v", cv.Escape(challenge.Challenger.Name), cv.Escape(challenge.Color))
 		item.SetSecondaryText(text)
-		item.SetShortcut(rune('a' + i))
+		item.SetShortcut(numberKey(i))
 		c.In.AddItem(item)
 	}
 	for i, challenge := range Root.User.OutgoingChallenges {
@@ -428,7 +436,7 @@ func (c *Challenges) UpdateList() {
 		}
 		text += fmt.Sprintf("%v plays %v", challenge.Challenger.Name, challenge.Color)
 		item.SetSecondaryText(text)
-		item.SetShortcut(rune('a' + i))
+		item.SetShortcut(numberKey(i))
 		c.Out.AddItem(item)
 	}
 

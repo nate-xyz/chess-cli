@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html"
 	"net"
 	"net/http"
 	"net/url"
@@ -63,6 +62,20 @@ func SetConfig(change func(c *UserConfig)) {
 	configMu.Lock()
 	defer configMu.Unlock()
 	change(&UserInfo)
+}
+
+// ResetPreferences puts every setting back to its default and saves. The
+// Lichess login is kept (log out separately); saved games aren't settings
+// and aren't touched.
+func ResetPreferences() error {
+	configMu.Lock()
+	defer configMu.Unlock()
+	UserInfo = UserConfig{
+		ApiToken:            UserInfo.ApiToken,
+		TokenCreationDate:   UserInfo.TokenCreationDate,
+		TokenExpirationDate: UserInfo.TokenExpirationDate,
+	}
+	return saveLocked()
 }
 
 // token is the saved Lichess token, if any.
@@ -173,6 +186,22 @@ func randomString(n int) (string, error) {
 	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
+// quickUsername is the account's name for the login page, if Lichess
+// answers quickly; the page doesn't wait long for it.
+func quickUsername() string {
+	ch := make(chan string, 1)
+	go func() {
+		name, _ := GetUsername()
+		ch <- name
+	}()
+	select {
+	case name := <-ch:
+		return name
+	case <-time.After(2 * time.Second):
+		return ""
+	}
+}
+
 // AuthUser runs the OAuth2 PKCE flow: it opens the browser at Lichess, waits on
 // a localhost redirect for the authorization code, and trades it for a token.
 func AuthUser(ctx context.Context, showURL func(string)) (string, error) {
@@ -211,12 +240,12 @@ func AuthUser(ctx context.Context, showURL func(string)) (string, error) {
 	}
 	results := make(chan result, 1)
 	finish := func(w http.ResponseWriter, r result) {
-		msg := "Login successful! You can close this tab and return to chess-cli."
-		if r.err != nil {
-			msg = "Login failed: " + r.err.Error()
+		name := ""
+		if r.err == nil {
+			name = quickUsername()
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintf(w, "<html><body style=\"font-family:sans-serif\"><h2>chess-cli</h2><p>%s</p></body></html>", html.EscapeString(msg))
+		_ = writeLoginPage(w, name, r.err)
 		select {
 		case results <- r:
 		default:

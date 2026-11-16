@@ -179,21 +179,20 @@ func WelcomeInit() *cv.Grid {
 
 	grid := cv.NewGrid()
 	grid.SetColumns(-2, -1)
+	fitMenuColumn(grid, List, []int{-2, -1}, 1)
 	grid.SetRows(-1, -2, -1, 1)
 	grid.SetBorders(false)
 
 	newsBox = textBox(cv.AlignLeft)
 	newsBox.SetPadding(0, 0, 4, 2)
-	newsBox.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(List)
-		return nil
-	})
+	forwardKeys(newsBox, List)
 
 	grid.AddItem(List, 1, 1, 1, 1, 0, 0, true)
 	grid.AddItem(titleBox, 0, 0, 1, 1, 0, 0, false)
 	grid.AddItem(newsBox, 1, 0, 1, 1, 0, 0, false)
 	grid.AddItem(quoteBox, 2, 0, 1, 2, 0, 0, false)
 	grid.AddItem(welcomeRibbon, 3, 0, 1, 2, 0, 0, false)
+	registerMenus("welcome", false, List)
 
 	return grid
 }
@@ -206,8 +205,10 @@ func (g *GameScreen) Init() cv.Primitive {
 	List := menuList()
 	optionsList := []string{"Leave game", "Save", "Save as new", "Quit"}
 	optionsFunc := []ListSelectedFunc{gotoWelcome, func() { doSave(false) }, func() { doSave(true) }, Root.App.Stop}
+	keys := []rune{'x', 's', 'a', 'q'}
 	for i, opt := range optionsList {
 		item := cv.NewListItem(opt)
+		item.SetShortcut(keys[i])
 		item.SetSelectedFunc(optionsFunc[i])
 		List.AddItem(item)
 	}
@@ -271,6 +272,7 @@ func (g *GameScreen) Init() cv.Primitive {
 	g.OppInfo = OppInfo
 	g.OppTimer = OppTimer
 	g.List = List
+	registerMenus("localgame", false, List)
 
 	return screen
 }
@@ -283,6 +285,7 @@ func (p *PostGameScreen) Init() cv.Primitive {
 		menuItem("Quit", 'q', Root.App.Stop),
 	}, postRibbonstr)
 	p.postGame = pg
+	registerMenus("postlocal", false, pg.List)
 	return screen
 }
 
@@ -306,12 +309,14 @@ func (sg *SavedGames) Init() *cv.Grid {
 	options.SetSelectedFocusOnly(true)
 	options.SetWrapAround(true)
 	options.SetHover(true)
-	optionsList := []string{"Leave", "Quit"}
+	optionsList := []string{"Back", "Quit"}
 	optionsExplain := []string{"Go back Home", "Close chess-cli"}
 	optionsFunc := []ListSelectedFunc{gotoWelcome, Root.App.Stop}
+	keys := []rune{'b', 'q'}
 	for i, opt := range optionsList {
 		item := cv.NewListItem(opt)
 		item.SetSecondaryText(optionsExplain[i])
+		item.SetShortcut(keys[i])
 		item.SetSelectedFunc(optionsFunc[i])
 		options.AddItem(item)
 	}
@@ -319,12 +324,9 @@ func (sg *SavedGames) Init() *cv.Grid {
 	title := titlePrimitive("Select a saved game.", gameList)
 
 	preview := NewBoardView(nil)
-	preview.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(gameList)
-		return nil
-	})
+	forwardKeys(preview, gameList)
 
-	ribbon := ribbonPrimitive(OngoingRibbonstr, gameList)
+	ribbon := ribbonPrimitive(savedRibbonstr, gameList)
 
 	grid := cv.NewGrid()
 	grid.SetColumns(-1, -2, -4)
@@ -340,6 +342,7 @@ func (sg *SavedGames) Init() *cv.Grid {
 
 	sg.List = gameList
 	sg.Preview = preview
+	registerMenus("saved", true, gameList, options)
 
 	return grid
 }

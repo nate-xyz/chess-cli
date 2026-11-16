@@ -127,7 +127,7 @@ func (sg *SavedGames) UpdateList() {
 
 		item := cv.NewListItem(text)
 		item.SetSecondaryText(game.FEN)
-		item.SetShortcut(rune('a' + i))
+		item.SetShortcut(numberKey(i))
 		sg.List.AddItem(item)
 	}
 }

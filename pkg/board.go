@@ -31,6 +31,7 @@ type BoardView struct {
 	lastFrom chess.Square
 	lastTo   chess.Square
 	cursor   chess.Square
+	keyboard bool // the cursor shows: keys moved it (a click hides it again)
 	onSquare func(sq chess.Square)
 	onTab    func()
 	promo    *promoPick
@@ -46,7 +47,8 @@ type BoardView struct {
 	bottomBar    clockBar
 	onShown      func(ply int) // tells a linked move list the move shown (linkMoveList)
 	shownPly     int
-	browse       bool      // browsing a line (studies): no "return to now" label or click
+	browse       bool      // browsing a line (studies): no "return to now" label or click, no cursor
+	viewOnly     bool      // a game you watch: no moving, so no cursor and no board keys
 	sounds       bool      // a game board: a new move plays its sound
 	glyph        moveGlyph // a move symbol (!, ??...) on glyphSq, see glyphs.go
 	glyphSq      chess.Square
@@ -109,6 +111,12 @@ func (b *BoardView) SetPosition(pos *chess.Position, white bool) {
 	}
 	b.pos = pos
 	b.white = white
+}
+
+// takesKeys reports whether the board is one you play on, which uses
+// hjkl, [ ] and Space itself. Locked by caller, or before Draw.
+func (b *BoardView) takesKeys() bool {
+	return b.onSquare != nil && !b.browse && !b.viewOnly
 }
 
 // PromotionOpen reports whether the promotion picker is showing.
@@ -238,15 +246,30 @@ func styleFor(screen tc.Screen) (style boardStyle, cellW, cellH int) {
 	return styleGlyph, 0, 0
 }
 
-// WidthFor is how many columns the board needs when given w x h cells.
-func (b *BoardView) WidthFor(screen tc.Screen, w, h int) int {
+// fit is the board Draw would make in a w x h area (not counting the right
+// margin): square size in rows, and the columns and rows it takes, with
+// labels and clock bars. sqH is 0 if no board fits.
+func (b *BoardView) fit(screen tc.Screen, w, h int) (sqH, totalW, totalH int) {
 	style, cw, ch := styleFor(screen)
 	aspect := 2.0
-	if cw > 0 {
+	if style == styleImage && cw > 0 {
 		aspect = float64(ch) / float64(cw)
 	}
-	sqW, _ := boardGeometry(w, h, style, aspect)
-	return 8*sqW + labelW
+	b.mu.Lock()
+	bars := b.hasClockBars()
+	b.mu.Unlock()
+	if bars {
+		h -= 2
+	}
+	sqW, sqH := boardGeometry(w, h, style, aspect)
+	if sqW == 0 {
+		return 0, 0, 0
+	}
+	totalW, totalH = 8*sqW+labelW, 8*sqH+labelH
+	if bars {
+		totalH += 2
+	}
+	return sqH, totalW, totalH
 }
 
 var (
@@ -351,15 +374,17 @@ func (b *BoardView) Draw(screen tc.Screen) {
 		dx, dy := (sqW*cellW-pieceSize)/2, (sqH*cellH-pieceSize)/2
 		images = append(images, imgPlacement{x: sx + dx/cellW, y: sy + dy/cellH, px: dx % cellW, py: dy % cellH, img: img, z: z})
 	}
+	// the keyboard cursor: only on a board you can move on, after using keys
+	showCursor := focused && b.keyboard && b.takesKeys()
 	for row := 0; row < 8; row++ {
 		for col := 0; col < 8; col++ {
 			sq := squareAt(row, col, b.white)
 			sx, sy := b.ox+col*sqW, b.oy+row*sqH
 			var look squareLook
 			if style == styleBasic {
-				look = b.basicLookOf(sq, focused && sq == b.cursor)
+				look = b.basicLookOf(sq, showCursor && sq == b.cursor)
 			} else {
-				look = b.lookOf(sq, focused && sq == b.cursor, style == styleImage)
+				look = b.lookOf(sq, showCursor && sq == b.cursor, style == styleImage)
 			}
 			if sq == checkSq { // a king in check glows red, as on Lichess
 				switch style {
@@ -608,8 +633,23 @@ func (b *BoardView) InputHandler() func(event *tc.EventKey, setFocus func(p cv.P
 	return b.WrapInputHandler(func(event *tc.EventKey, setFocus func(p cv.Primitive)) {
 		b.mu.Lock()
 		row, col := displayOf(b.cursor, b.white)
+		takes := b.onSquare != nil && !b.browse && !b.viewOnly
+		shown := b.keyboard && takes
 		b.mu.Unlock()
+		// The first key just shows the cursor where it is.
+		reveal := func() bool {
+			if shown {
+				return false
+			}
+			b.mu.Lock()
+			b.keyboard = takes
+			b.mu.Unlock()
+			return true
+		}
 		move := func(dr, dc int) {
+			if reveal() {
+				return
+			}
 			row = min(7, max(0, row+dr))
 			col = min(7, max(0, col+dc))
 			b.mu.Lock()
@@ -626,7 +666,9 @@ func (b *BoardView) InputHandler() func(event *tc.EventKey, setFocus func(p cv.P
 		case tc.KeyRight:
 			move(0, 1)
 		case tc.KeyEnter:
-			b.activate(b.cursor)
+			if !reveal() {
+				b.activate(b.cursor)
+			}
 		case tc.KeyEscape:
 			b.CancelPromotion()
 		case tc.KeyHome, tc.KeyEnd:
@@ -655,16 +697,15 @@ func (b *BoardView) InputHandler() func(event *tc.EventKey, setFocus func(p cv.P
 					b.step(-1)
 				}
 				b.mu.Unlock()
-			case "k":
-				move(-1, 0)
-			case "j":
-				move(1, 0)
-			case "h":
-				move(0, -1)
-			case "l":
-				move(0, 1)
+			case "k", "j", "h", "l":
+				if vimKeys() {
+					d := map[string][2]int{"k": {-1, 0}, "j": {1, 0}, "h": {0, -1}, "l": {0, 1}}[event.Str()]
+					move(d[0], d[1])
+				}
 			case " ":
-				b.activate(b.cursor)
+				if !reveal() {
+					b.activate(b.cursor)
+				}
 			}
 		}
 	})
@@ -712,6 +753,7 @@ func (b *BoardView) MouseHandler() func(action cv.MouseAction, event *tc.EventMo
 			return true, nil
 		}
 		b.cursor = sq
+		b.keyboard = false // playing with the mouse: no cursor
 		b.mu.Unlock()
 		b.activate(sq)
 		return true, nil

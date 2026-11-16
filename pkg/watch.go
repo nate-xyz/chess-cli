@@ -45,6 +45,7 @@ type WatchScreen struct {
 
 func (ws *WatchScreen) Init() cv.Primitive {
 	ws.Board = NewBoardView(func(chess.Square) {}) // clicks: drawing and history only
+	ws.Board.viewOnly = true
 	ws.Board.EnableSounds()
 	ws.Top = textBox(cv.AlignLeft)
 	ws.TopClock = textBox(cv.AlignLeft)
@@ -55,14 +56,8 @@ func (ws *WatchScreen) Init() cv.Primitive {
 	linkMoveList(ws.History, ws.Board)
 	ws.Bottom = textBox(cv.AlignLeft)
 	ws.List = menuList()
-	for _, it := range []struct {
-		text string
-		f    func()
-	}{{"Flip board", ws.flip}, {"Leave", ws.leave}} {
-		item := cv.NewListItem(it.text)
-		item.SetSelectedFunc(it.f)
-		ws.List.AddItem(item)
-	}
+	ws.List.AddItem(menuItem("Flip board", 'f', ws.flip))
+	ws.List.AddItem(menuItem("Leave", 'x', ws.leave))
 
 	side := cv.NewFlex()
 	side.SetDirection(cv.FlexRow)
@@ -85,6 +80,7 @@ func (ws *WatchScreen) Init() cv.Primitive {
 		return event
 	})
 	go ws.ticker()
+	registerMenus("watch", false, ws.List)
 	return newGameLayout(ws.Board, side, " chess-cli · watching │ scroll or [ ] to step through moves │ right-drag to draw │ f flip │ Tab menu │ Ctrl-C quit")
 }
 

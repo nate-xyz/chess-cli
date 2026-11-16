@@ -383,3 +383,28 @@ func TestEventStreamRestartsAfterRejection(t *testing.T) {
 		t.Fatal("stream didn't restart")
 	}
 }
+
+// The login landing page: success names the account, failures say what
+// went wrong (escaped), and nothing is loaded from elsewhere.
+func TestLoginPage(t *testing.T) {
+	var ok, failed, cancelled strings.Builder
+	if err := writeLoginPage(&ok, "hfwitte", nil); err != nil {
+		t.Fatal(err)
+	}
+	_ = writeLoginPage(&failed, "", errors.New("lichess: <bad> grant"))
+	_ = writeLoginPage(&cancelled, "", ErrLoginCancelled)
+	if !strings.Contains(ok.String(), "re logged in</h1>") || !strings.Contains(ok.String(), "<b>hfwitte</b>") {
+		t.Error("success page missing title or username")
+	}
+	if !strings.Contains(failed.String(), "Login failed") || !strings.Contains(failed.String(), "&lt;bad&gt;") {
+		t.Error("failure page missing title or not escaping the error")
+	}
+	if !strings.Contains(cancelled.String(), "Login cancelled") {
+		t.Error("cancelled page missing title")
+	}
+	for _, page := range []string{ok.String(), failed.String()} {
+		if strings.Contains(page, "src=") || strings.Contains(page, "http") {
+			t.Error("login page loads something from elsewhere")
+		}
+	}
+}

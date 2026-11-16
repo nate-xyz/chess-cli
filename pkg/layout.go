@@ -9,9 +9,9 @@ import (
 	"github.com/notnil/chess"
 )
 
-// Game screen layout: a sidebar on the left (players, clocks, moves, menu)
-// and the board as big as the height allows, against the right edge, with
-// the shortcut ribbon along the bottom.
+// Game screen layout. Normally a sidebar on the left (players, clocks,
+// moves, menu) and the board as big as the height allows on the right, with
+// the shortcut ribbon along the bottom:
 //
 //	┌──────────────┬───────────────────────┐
 //	│ opponent     │                       │
@@ -22,34 +22,155 @@ import (
 //	├──────────────┴───────────────────────┤
 //	│ ribbon: shortcuts                    │
 //	└──────────────────────────────────────┘
+//
+// It adapts to the terminal (layoutFor):
+//   - wide: the sidebar stops growing at maxSidebar and the two are centred
+//     together, so a fullscreen terminal has no gulf in the middle;
+//   - narrow but tall: the board on top, centred, the sidebar below;
+//   - small: just the board, as big as possible (with the clock bars, if
+//     on). Whatever has the keyboard in the sidebar (the move box after
+//     Ctrl-K, the menu after Tab, the chat box) shows in a strip under the
+//     board, so the board is always in view; Esc goes back.
 
 const (
 	minSidebar  = 30 // columns kept for the sidebar
+	maxSidebar  = 60 // the sidebar grows no wider; more room goes to margins
+	minSideRows = 12 // rows kept for the sidebar under a stacked board
 	boardMargin = 2  // columns between the board and the right edge (~ one row's height)
+	goodSquare  = 3  // square rows that are big enough: keep the sidebar beside
 )
 
-// boardLayout puts side and board next to each other, giving the board
-// exactly the width it needs and the sidebar the rest.
+type layoutMode int
+
+const (
+	layoutSide    layoutMode = iota // sidebar beside the board
+	layoutStacked                   // board on top, sidebar below
+	layoutBoard                     // board only (sidebar on demand)
+)
+
+// layoutFor picks the layout giving the biggest board, preferring the
+// sidebar beside it, then below it, on a tie or once squares are big enough.
+// sq reports the square size for a board area w x h.
+func layoutFor(w, h int, sq func(w, h int) int) layoutMode {
+	side := sq(w-minSidebar-boardMargin, h)
+	if side >= goodSquare {
+		return layoutSide
+	}
+	stacked := 0
+	if h > minSideRows {
+		stacked = sq(w, h-minSideRows)
+	}
+	alone := sq(w, h)
+	switch {
+	case side >= stacked && side >= alone:
+		return layoutSide
+	case stacked >= alone:
+		return layoutStacked
+	}
+	return layoutBoard
+}
+
+// boardLayout arranges a sidebar and a board (see above) each time it's
+// drawn.
 type boardLayout struct {
 	*cv.Flex
-	board *BoardView
+	side   *cv.Flex
+	board  *BoardView
+	left   *cv.Box // margins when the terminal is wide
+	right  *cv.Box
+	mode   layoutMode
+	shape  [5]int         // what the items were last set to
+	strip  cv.Primitive   // small layout: the sidebar item with the keyboard, under the board
+	strips []cv.Primitive // strips added to the Flex, to take out again
+}
+
+// stripHeight is how many rows a sidebar item needs in the small layout's
+// strip.
+func stripHeight(p cv.Primitive) int {
+	if l, ok := p.(*cv.List); ok {
+		return max(1, min(8, l.GetItemCount()))
+	}
+	return 1 // the move box, chat input
 }
 
 func (l *boardLayout) Draw(screen tc.Screen) {
 	_, _, w, h := l.GetRect()
-	bw := l.board.WidthFor(screen, w-minSidebar-boardMargin, h) + boardMargin
-	l.ResizeItem(l.board, bw, 0)
+	sq := func(w, h int) int { s, _, _ := l.board.fit(screen, w, h); return s }
+	l.mode = layoutFor(w, h, sq)
+	var shape [5]int
+	shape[0] = int(l.mode)
+	switch l.mode {
+	case layoutSide:
+		_, bw, _ := l.board.fit(screen, w-minSidebar-boardMargin, h)
+		bw += boardMargin
+		sw := min(w-bw, maxSidebar)
+		extra := max(0, w-bw-sw)
+		shape[1], shape[2], shape[3], shape[4] = extra/2, sw, bw, extra-extra/2
+	case layoutStacked:
+		_, _, bh := l.board.fit(screen, w, h-minSideRows)
+		shape[1] = bh
+	case layoutBoard:
+		var strip cv.Primitive
+		if l.side.HasFocus() { // Tab or Ctrl-K: that part of the sidebar under the board
+			strip = Root.App.GetFocus()
+			shape[1] = stripHeight(strip)
+		}
+		if strip != l.strip {
+			l.strip, l.shape = strip, [5]int{-1}
+		}
+	}
+	if shape != l.shape {
+		l.shape = shape
+		l.arrange(shape)
+	}
 	l.Flex.Draw(screen)
 }
+
+// arrange sets the Flex's items for a layout.
+func (l *boardLayout) arrange(shape [5]int) {
+	for _, p := range []cv.Primitive{l.left, l.side, l.board, l.right} {
+		l.RemoveItem(p)
+	}
+	for _, p := range l.strips {
+		l.RemoveItem(p)
+	}
+	l.strips = nil
+	l.board.mu.Lock()
+	l.board.right = layoutMode(shape[0]) == layoutSide
+	l.board.mu.Unlock()
+	switch layoutMode(shape[0]) {
+	case layoutSide:
+		l.SetDirection(cv.FlexColumn)
+		l.AddItem(l.left, shape[1], 0, false)
+		l.AddItem(l.side, shape[2], 0, false)
+		l.AddItem(l.board, shape[3], 0, true)
+		l.AddItem(l.right, shape[4], 0, false)
+	case layoutStacked:
+		l.SetDirection(cv.FlexRow)
+		l.AddItem(l.board, shape[1], 0, true)
+		l.AddItem(l.side, 0, 1, false)
+	case layoutBoard:
+		l.SetDirection(cv.FlexRow)
+		l.AddItem(l.board, 0, 1, true)
+		if shape[1] > 0 && l.strip != nil {
+			l.AddItem(l.strip, shape[1], 0, false)
+			l.strips = append(l.strips, l.strip)
+		}
+	}
+}
+
+// layoutOf finds a game screen's layout from its board.
+var layoutOf = map[*BoardView]*boardLayout{}
 
 // newGameLayout builds a game screen around a board and its sidebar. The
 // board starts with keyboard focus.
 func newGameLayout(board *BoardView, side *cv.Flex, ribbon string) *cv.Flex {
 	board.right = true
 	side.SetPadding(1, 0, 2, 2) // breathing room from the left edge and the board
-	body := &boardLayout{Flex: cv.NewFlex(), board: board}
+	body := &boardLayout{Flex: cv.NewFlex(), side: side, board: board, left: cv.NewBox(), right: cv.NewBox(), shape: [5]int{-1}}
 	body.AddItem(side, 0, 1, false)
 	body.AddItem(board, 0, 0, true)
+	layoutOf[board] = body
 
 	root := cv.NewFlex()
 	root.SetDirection(cv.FlexRow)
@@ -184,7 +305,7 @@ func globalKeys(ev *tc.EventKey) *tc.EventKey {
 			return nil
 		}
 	}
-	return ev
+	return menuKeys(ev)
 }
 
 // textBox is a read-only text view for the sidebar.
@@ -263,6 +384,10 @@ type postGame struct {
 	History *cv.TextView
 	List    *cv.List
 	Bottom  *cv.TextView
+
+	analysis  *analysisPanel
+	positions []*chess.Position // the game that ended, for the analysis
+	moves     []*chess.Move
 }
 
 func newPostGame(items []*cv.ListItem, ribbon string) (*postGame, cv.Primitive) {
@@ -274,14 +399,25 @@ func newPostGame(items []*cv.ListItem, ribbon string) (*postGame, cv.Primitive) 
 		List:    menuList(),
 		Bottom:  textBox(cv.AlignLeft),
 	}
+	items = append([]*cv.ListItem{menuItem("Computer analysis", 'a', func() {
+		p.analysis.start(p.positions, p.moves, func(msg string) { p.Result.SetText(p.Result.GetText(false) + "\n" + msg) })
+	})}, items...)
 	for _, item := range items {
 		p.List.AddItem(item)
 	}
 	linkMoveList(p.History, p.Board)
 	side := cv.NewFlex()
 	side.SetDirection(cv.FlexRow)
+	p.analysis = newAnalysisPanel(side, p.History, p.Board)
+	p.Board.mu.Lock()
+	linked := p.Board.onShown
+	p.Board.onShown = func(ply int) { linked(ply); p.analysis.shown(ply) }
+	p.Board.mu.Unlock()
 	side.AddItem(p.Top, 2, 0, false)
 	side.AddItem(p.Result, 0, 1, false)
+	side.AddItem(p.analysis.graph, 0, 0, false)
+	side.AddItem(p.analysis.table, 0, 0, false)
+	side.AddItem(p.analysis.note, 0, 0, false)
 	side.AddItem(p.History, 0, 2, false)
 	side.AddItem(p.List, len(items)+1, 0, true)
 	side.AddItem(p.Bottom, 2, 0, false)
@@ -312,6 +448,9 @@ func (p *postGame) show(panel string, from *BoardView, top, bottom *cv.TextView,
 	p.Bottom.SetText(bottom.GetText(false))
 	p.Result.SetText(Root.gameState.Status)
 	Root.gameState.Status = ""
+	p.analysis.reset()
+	p.positions = append([]*chess.Position(nil), Root.gameState.Game.Positions()...)
+	p.moves = append([]*chess.Move(nil), Root.gameState.Game.Moves()...)
 	DrawMoveHistory(p.History)
 	DrawBoard(p.Board, white)
 	p.Board.copyClockBars(from)

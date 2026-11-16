@@ -64,7 +64,7 @@ func (ss *StudyScreen) Init() cv.Primitive {
 		text string
 		key  rune
 		f    func()
-	}{{"Flip board", 'f', ss.flip}, {"Leave", 'l', gotoWelcome}} {
+	}{{"Flip board", 'f', ss.flip}, {"Leave", 'x', gotoWelcome}} {
 		ss.List.AddItem(menuItem(it.text, it.key, it.f))
 	}
 
@@ -150,6 +150,7 @@ func (ss *StudyScreen) Init() cv.Primitive {
 		}
 		return event
 	})
+	registerMenus("study", false, ss.List, ss.Chapters)
 	return newGameLayout(ss.Board, side, studyRibbon)
 }
 

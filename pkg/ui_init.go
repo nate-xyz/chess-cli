@@ -43,7 +43,8 @@ func InitUI() {
 	Root.study = new(StudyScreen)
 	panels.AddPanel("study", Root.study.Init(), true, false)
 	panels.AddPanel("prompt", promptInit(), true, false)
-	setMoveBoxAlways(moveBoxAlways()) // apply the saved setting
+	setMoveBoxAlways(moveBoxAlways()) // apply the saved settings
+	applyKeyPrefs()
 	refreshNews()
 	onboard := needsOnboarding()
 	if onboard {

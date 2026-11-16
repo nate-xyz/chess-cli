@@ -604,12 +604,14 @@ func initConstruct() *cv.Grid {
 	firstOption()
 
 	grid.SetColumns(-1, -1)
+	fitMenuColumn(grid, list, []int{-1, -1}, 1)
 	grid.SetRows(-1, -2, 1)
 
 	grid.AddItem(list, 1, 1, 1, 1, 0, 0, true)
 	grid.AddItem(tv, 0, 0, 1, 2, 0, 0, false)
 	grid.AddItem(tree, 1, 0, 1, 1, 0, 0, false)
 	grid.AddItem(Ribbon, 2, 0, 1, 2, 0, 0, false)
+	registerMenus("challenge", false, list)
 
 	return grid
 }

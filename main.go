@@ -17,7 +17,10 @@ var version = "dev"
 
 const usage = `chess-cli: play chess in the terminal, locally or on Lichess.
 
-Usage: chess-cli [--version | --help]
+Usage: chess-cli [--version | --help | --reset]
+
+  --reset    put all settings back to their defaults; the first-run setup
+             runs next time (your Lichess login and saved games are kept)
 
 Files are kept in %s
 `
@@ -27,6 +30,23 @@ func main() {
 		switch os.Args[1] {
 		case "-v", "--version", "version":
 			fmt.Println("chess-cli", version)
+			return
+		case "--reset":
+			if dir, err := api.ConfigDir(); err == nil {
+				if err := pkg.LockInstance(dir); errors.Is(err, pkg.ErrAlreadyRunning) {
+					fmt.Fprintf(os.Stderr, "%v: quit it first, then reset.\n", err)
+					os.Exit(1)
+				}
+			}
+			if err := api.LoadConfig(); err != nil && !errors.Is(err, os.ErrNotExist) {
+				fmt.Fprintf(os.Stderr, "Couldn't read the settings (%v); writing defaults.\n", err)
+			}
+			if err := api.ResetPreferences(); err != nil {
+				fmt.Fprintln(os.Stderr, "Couldn't reset:", err)
+				os.Exit(1)
+			}
+			fmt.Println("Settings reset to defaults. Your Lichess login and saved games are kept.")
+			fmt.Println("Run chess-cli to go through the first-run setup again.")
 			return
 		default:
 			dir, err := api.ConfigDir()

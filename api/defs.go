@@ -76,6 +76,9 @@ type UserConfig struct {
 	LocalClock     int    `json:",omitempty"` // local games time control (index; 0 = none)
 	Sound          string `json:",omitempty"` // sound theme: "" (retro), "wood" or "off"
 	SoundAsked     bool   `json:",omitempty"` // the first-run screen asked about sound
+	StockfishAsked bool   `json:",omitempty"` // the first-run screen offered to get Stockfish
+	NoVimKeys      bool   `json:",omitempty"` // arrow keys only: hjkl (and g/G in lists) don't move
+	KeysAsked      bool   `json:",omitempty"` // the first-run screen asked about hjkl
 	// Puzzle preferences
 	PuzzleCasual     bool   `json:",omitempty"`
 	PuzzleDifficulty string `json:",omitempty"`

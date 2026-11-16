@@ -3,6 +3,7 @@ package pkg
 import (
 	"testing"
 
+	cv "codeberg.org/tslocum/cview"
 	tc "github.com/gdamore/tcell/v3"
 	"github.com/gdamore/tcell/v3/vt"
 	"github.com/notnil/chess"
@@ -174,4 +175,134 @@ func TestParseMoveInput(t *testing.T) {
 			t.Errorf("%q: got %q, %v; want %q", tc.in, got, err, tc.want)
 		}
 	}
+}
+
+// The keyboard cursor stays hidden until a key is used (the first key only
+// shows it), a click hides it, and a study board never shows it.
+func TestBoardCursorShowsOnKeys(t *testing.T) {
+	key := func(b *BoardView, k tc.Key) {
+		b.InputHandler()(tc.NewEventKey(k, "", tc.ModNone), func(cv.Primitive) {})
+	}
+	var picked []chess.Square
+	b := NewBoardView(func(sq chess.Square) { picked = append(picked, sq) })
+	if b.keyboard {
+		t.Fatal("cursor shown before any key")
+	}
+	key(b, tc.KeyUp)
+	if !b.keyboard || b.cursor != chess.E2 {
+		t.Fatalf("first key: shown %v on %v, want shown on e2", b.keyboard, b.cursor)
+	}
+	key(b, tc.KeyUp)
+	if b.cursor != chess.E3 {
+		t.Errorf("second key moved cursor to %v, want e3", b.cursor)
+	}
+	key(b, tc.KeyEnter)
+	if len(picked) != 1 || picked[0] != chess.E3 {
+		t.Errorf("Enter picked %v, want [e3]", picked)
+	}
+
+	study := NewBoardView(func(chess.Square) {})
+	study.browse = true
+	key(study, tc.KeyUp)
+	key(study, tc.KeyEnter)
+	if study.keyboard {
+		t.Error("study board shows a cursor")
+	}
+}
+
+// The game layout adapts: sidebar beside a good-sized board, the board on
+// top in a narrow tall terminal, the board alone in a small one, and in a
+// wide one the sidebar stops growing and the two are centred.
+func TestGameLayoutAdapts(t *testing.T) {
+	sq := func(w, h int) int {
+		_, s := boardGeometry(w, h, styleGlyph, 2)
+		return s
+	}
+	for _, c := range []struct {
+		w, h int
+		want layoutMode
+	}{
+		{120, 36, layoutSide},
+		{250, 60, layoutSide},
+		{100, 30, layoutSide},
+		{80, 24, layoutBoard}, // beside a sidebar the squares would be one row high
+		{70, 50, layoutStacked},
+		{56, 22, layoutBoard},
+	} {
+		if got := layoutFor(c.w, c.h, sq); got != c.want {
+			t.Errorf("%dx%d: layout %d, want %d", c.w, c.h, got, c.want)
+		}
+	}
+
+	startTestApp(t, 160, 50)
+	onUI(func() {
+		Root.Switch("study")
+		Root.study.show(parseStudyPGN(testStudyPGN), "")
+	})
+	draw := func(w, h int) *boardLayout {
+		var l *boardLayout
+		onUI(func() {
+			_, p := Root.nav.GetFrontPanel()
+			l = layoutOf[Root.study.Board]
+			scr := newMockScreen(t, w, h)
+			p.SetRect(0, 0, w, h)
+			p.Draw(scr)
+		})
+		return l
+	}
+	defer onUI(func() { Root.nav.SetRect(0, 0, 160, 50) })
+
+	l := draw(250, 60)
+	_, _, sw, _ := l.side.GetRect()
+	lx, _, lw, _ := l.left.GetRect()
+	_, _, rw, _ := l.right.GetRect()
+	if sw != maxSidebar || lw == 0 || lx != 0 || lw-rw > 1 || rw-lw > 1 {
+		t.Errorf("wide: sidebar %d (want %d), margins %d and %d (want equal, non-zero)", sw, maxSidebar, lw, rw)
+	}
+
+	l = draw(70, 50)
+	_, by, _, bh := l.board.GetRect()
+	_, sy, _, _ := l.side.GetRect()
+	if by != 0 || sy != by+bh {
+		t.Errorf("narrow: board at row %d (%d high), sidebar at row %d; want board on top, sidebar below", by, bh, sy)
+	}
+
+	l = draw(56, 22)
+	_, _, bw, _ := l.board.GetRect()
+	if bw != 56 {
+		t.Errorf("small: board %d wide, want the whole width", bw)
+	}
+	// the menu focused: the board stays, the menu shows under it
+	onUI(func() { Root.App.SetFocus(Root.study.List) })
+	l = draw(56, 22)
+	_, by, bw, bh = l.board.GetRect()
+	_, my, mw, mh := Root.study.List.GetRect()
+	if bw != 56 || bh < 14 || my != by+bh || mw != 56 || mh != Root.study.List.GetItemCount() {
+		t.Errorf("small with the menu focused: board %dx%d at row %d, menu %dx%d at row %d; want the board, the menu under it",
+			bw, bh, by, mw, mh, my)
+	}
+	// typing a move in a small local game: the board stays in view
+	onUI(func() {
+		startNewLocalGame()
+		Root.lgame.Move.show()
+	})
+	var gl *boardLayout
+	onUI(func() {
+		gl = layoutOf[Root.lgame.Board]
+		_, p := Root.nav.GetFrontPanel()
+		scr := newMockScreen(t, 56, 22)
+		p.SetRect(0, 0, 56, 22)
+		p.Draw(scr)
+	})
+	_, by, bw, bh = gl.board.GetRect()
+	_, iy, _, ih := Root.lgame.Move.input.GetRect()
+	if bw != 56 || bh < 14 || iy != by+bh || ih != 1 {
+		t.Errorf("typing a move: board %dx%d, move box at row %d (%d high); want the board with the box under it", bw, bh, iy, ih)
+	}
+	onUI(func() {
+		Root.lgame.Move.hide()
+		gotoWelcome()
+		Root.Switch("study")
+	})
+	onUI(func() { Root.App.SetFocus(Root.study.Board) })
 }

@@ -24,13 +24,14 @@ const (
 	ApplicationTitle string = `[blue]chess-cli ♟️ [white]
 Play locally with a [yellow]friend[white] or online with [red]Lichess!`
 	LichessTitle        string = "[blue]chess-cli[white]: [red]lichess[white] client"
-	LichessRibbon       string = "CHESS-CLI | LICHESS CLIENT | Press 'Ctrl-c' to quit"
-	welcomeRibbonstr    string = "WELCOME TO CHESS-CLI ! | Press 'Ctrl-c' to quit"
+	LichessRibbon       string = " chess-cli · Lichess │ ↑↓ + Enter, or press a letter │ Ctrl-C quit"
+	welcomeRibbonstr    string = " chess-cli │ ↑↓ + Enter, or press a letter │ Ctrl-C quit"
 	gameRibbonstr       string = " chess-cli · local game │ Ctrl-K type a move │ click or arrows/hjkl + Enter to move │ Tab menu │ Ctrl-C quit"
-	challengeRibbonstr  string = "CHESS-CLI -> create a challenge | Press 'Ctrl-c' to quit"
+	challengeRibbonstr  string = " chess-cli · new challenge │ ↑↓ + Enter, or press a letter │ Ctrl-C quit"
 	gameOnlineRibbonstr string = " chess-cli · Lichess game │ Ctrl-K type a move │ click or arrows/hjkl + Enter to move │ Tab chat/menu │ Ctrl-C quit"
 	postRibbonstr       string = " chess-cli · game over │ click a move, scroll or [ ] to look back │ Tab board ⇄ menu │ Ctrl-C quit"
-	OngoingRibbonstr    string = "CHESS-CLI -> Ongoing Games | Press 'Ctrl-c' to quit"
+	OngoingRibbonstr    string = " chess-cli · ongoing games │ ↑↓ or 1-9 to pick │ Tab menu │ Ctrl-C quit"
+	savedRibbonstr      string = " chess-cli · saved games │ ↑↓ or 1-9 to pick │ Tab menu │ Ctrl-C quit"
 	saved_path          string = "saved_games.json" // legacy location, see savedGamesPath
 )
 

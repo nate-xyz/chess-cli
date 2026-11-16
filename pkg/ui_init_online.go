@@ -35,6 +35,7 @@ func (w *WelcomeOnline) Init() *cv.Grid {
 
 	grid := cv.NewGrid()
 	grid.SetColumns(-2, -1)
+	fitMenuColumn(grid, welcomeList, []int{-2, -1}, 1)
 	grid.SetRows(-1, -2, -1, 1)
 	grid.SetBorders(false)
 
@@ -44,6 +45,7 @@ func (w *WelcomeOnline) Init() *cv.Grid {
 	grid.AddItem(welcomeRibbon, 3, 0, 1, 2, 0, 0, false)
 
 	Root.wonline.Title = titleBox
+	registerMenus("lichesswelcome", false, welcomeList)
 
 	return grid
 }
@@ -69,7 +71,7 @@ func (l *Loader) Init() *cv.Grid {
 		return event
 	})
 
-	loaderRibbon := ribbonPrimitive("CHESS-CLI -> Waiting for Lichess | Esc to cancel", loaderMsgBox)
+	loaderRibbon := ribbonPrimitive(" chess-cli · waiting for Lichess │ Esc to cancel", loaderMsgBox)
 
 	grid := cv.NewGrid()
 	grid.SetColumns(-1)
@@ -174,6 +176,7 @@ func (g *OnlineGame) Init() cv.Primitive {
 	g.UserTimer = userTimerBox
 	g.UserInfo = userInfoBox
 	g.List = options
+	registerMenus("onlinegame", false, options)
 
 	return screen
 }
@@ -187,6 +190,7 @@ func (pg *OnlinePostGame) Init() cv.Primitive {
 		menuItem("Quit", 'q', Root.App.Stop),
 	}, postRibbonstr)
 	pg.postGame = p
+	registerMenus("postonline", false, p.List)
 	return screen
 }
 
@@ -216,12 +220,14 @@ func (ong *Ongoing) Init() *cv.Grid {
 	})
 
 	options := cv.NewList()
-	optionsList := []string{"Leave", "Quit"}
-	optionsExplain := []string{"Go back Home", "Close chess-cli"}
+	optionsList := []string{"Back", "Quit"}
+	optionsExplain := []string{"Back to the Lichess menu", "Close chess-cli"}
 	optionsFunc := []ListSelectedFunc{gotoLichessAfterLogin, Root.App.Stop}
+	keys := []rune{'b', 'q'}
 	for i, opt := range optionsList {
 		item := cv.NewListItem(opt)
 		item.SetSecondaryText(optionsExplain[i])
+		item.SetShortcut(keys[i])
 		item.SetSelectedFunc(optionsFunc[i])
 		options.AddItem(item)
 	}
@@ -233,10 +239,7 @@ func (ong *Ongoing) Init() *cv.Grid {
 	title := titlePrimitive("Select an ongoing game.", gameList)
 
 	preview := NewBoardView(nil)
-	preview.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(gameList)
-		return nil
-	})
+	forwardKeys(preview, gameList)
 
 	grid := cv.NewGrid()
 	grid.SetColumns(-1, -2, -4)
@@ -252,6 +255,7 @@ func (ong *Ongoing) Init() *cv.Grid {
 
 	ong.List = gameList
 	ong.Preview = preview
+	registerMenus("ongoing", true, gameList, options)
 
 	return grid
 }
@@ -323,18 +327,20 @@ func (c *Challenges) Init() *cv.Grid {
 	options.SetSelectedFocusOnly(true)
 	options.SetHover(true)
 	optionsList := []string{"Back", "Quit"}
-	optionsExplain := []string{"Go back Home", "Close chess-cli"}
+	optionsExplain := []string{"Back to the Lichess menu", "Close chess-cli"}
 	optionsFunc := []ListSelectedFunc{gotoLichessAfterLogin, Root.App.Stop}
+	keys := []rune{'b', 'q'}
 	for i, opt := range optionsList {
 		item := cv.NewListItem(opt)
 		item.SetSecondaryText(optionsExplain[i])
+		item.SetShortcut(keys[i])
 		item.SetSelectedFunc(optionsFunc[i])
 		options.AddItem(item)
 	}
 
 	outtitle := titlePrimitive("Outgoing challenges\n[gray]Enter cancels[-]", outgoing)
 	intitle := titlePrimitive("Incoming challenges\n[gray]Enter accepts, d declines[-]", incoming)
-	ribbon := ribbonPrimitive("CHESS-CLI -> Challenges", incoming)
+	ribbon := ribbonPrimitive(" chess-cli · challenges │ ↑↓ or 1-9 to pick │ Tab next list │ Ctrl-C quit", incoming)
 
 	grid := cv.NewGrid()
 	grid.SetColumns(-1, -3, -3, -1)
@@ -350,6 +356,7 @@ func (c *Challenges) Init() *cv.Grid {
 
 	c.Out = outgoing
 	c.In = incoming
+	registerMenus("listchallenge", true, incoming, outgoing, options)
 
 	return grid
 }

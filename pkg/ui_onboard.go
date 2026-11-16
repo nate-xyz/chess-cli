@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	cv "codeberg.org/tslocum/cview"
-	tc "github.com/gdamore/tcell/v3"
 	"github.com/nate-xyz/chess-cli/api"
 )
 
@@ -13,10 +12,82 @@ import (
 // been saved; it can be changed later in Options.
 
 // needsOnboarding: no rendering style chosen yet, or never asked about
-// sound (people upgrading get just that question).
-func needsOnboarding() bool { return api.UserInfo.Pieces == "" || !api.UserInfo.SoundAsked }
+// sound, or about Stockfish when there's none (people upgrading get just the
+// new questions).
+func needsOnboarding() bool {
+	return api.UserInfo.Pieces == "" || !api.UserInfo.SoundAsked || !api.UserInfo.KeysAsked || needsStockfishStep()
+}
+
+// keysStep asks about hjkl (if not asked yet), then Stockfish.
+func keysStep(list *cv.List, info *cv.TextView) {
+	if api.UserInfo.KeysAsked {
+		onboardStockfish(list, info)
+		return
+	}
+	onboardKeys(list, info, func() { onboardStockfish(list, info) })
+}
+
+func needsStockfishStep() bool { return !api.UserInfo.StockfishAsked && findEngine() == "" }
+
+// onboardStockfish offers to download Stockfish, for games against the
+// computer and analysis, when there's none on this computer.
+func onboardStockfish(list *cv.List, info *cv.TextView) {
+	if !needsStockfishStep() {
+		gotoWelcome()
+		return
+	}
+	finish := func() {
+		_ = api.UpdateConfig(func(c *api.UserConfig) { c.StockfishAsked = true })
+		gotoWelcome()
+	}
+	list.SetChangedFunc(nil)
+	list.Clear()
+	add := func(text, explain string, f func()) {
+		item := cv.NewListItem(text)
+		item.SetShortcut(numberKey(list.GetItemCount()))
+		item.SetSecondaryText("  " + explain)
+		item.SetSelectedFunc(f)
+		list.AddItem(item)
+	}
+	add("Download Stockfish [green](recommended)[-]", "the official release from GitHub, about 80 MB", func() {
+		if !downloading {
+			downloadEngine(list, finish)
+		}
+	})
+	add("I'll install it myself", installHint(), finish)
+	add("Not now", "later: Home → Local → Play local Stockfish", finish)
+	list.SetCurrentItem(0)
+	info.SetText("[::b]Stockfish?[::-]\n\nStockfish is the chess engine chess-cli uses to play against you offline " +
+		"and to analyse your games when they end: accuracy, mistakes and an evaluation graph.\n\n" +
+		"It isn't on this computer yet. chess-cli can download it for you, or you can install it yourself.\n\n[#a0a0a0]Stockfish is free software (GPLv3), from stockfishchess.org.[-]")
+	Root.App.SetFocus(list)
+}
 
 var onboardList *cv.List
+
+// resetSettings puts all settings back to their defaults, applies them and
+// runs the first-run setup again.
+func resetSettings() {
+	if err := api.ResetPreferences(); err != nil {
+		optionsScreen.note.SetText("[red]Couldn't reset: " + cv.Escape(err.Error()) + "[-]")
+		return
+	}
+	setMoveBoxAlways(moveBoxAlways())
+	applyLayoutPrefs()
+	applyKeyPrefs()
+	previewPieces("")
+	runOnboarding()
+}
+
+// runOnboarding shows the first-run setup (again).
+func runOnboarding() {
+	if Root.nav.HasPanel("onboard") {
+		Root.nav.RemovePanel("onboard")
+	}
+	Root.nav.AddPanel("onboard", onboardInit(), true, false)
+	Root.Switch("onboard")
+	Root.App.SetFocus(onboardList)
+}
 
 // soundStep moves the first-run screen on to the sound question.
 var soundStep = func() {}
@@ -31,13 +102,14 @@ func onboardSound(list *cv.List, info *cv.TextView) {
 		{SoundWood, "Yes, wood sounds", "  a soft click of pieces on a board"},
 		{SoundOff, "No sound", "  chess-cli stays quiet"},
 	}
-	for _, c := range choices {
+	for i, c := range choices {
 		c := c
 		item := cv.NewListItem(c.text)
+		item.SetShortcut(numberKey(i))
 		item.SetSecondaryText(c.explain)
 		item.SetSelectedFunc(func() {
 			_ = api.UpdateConfig(func(cfg *api.UserConfig) { cfg.Sound, cfg.SoundAsked = c.theme, true })
-			gotoWelcome()
+			keysStep(list, info)
 		})
 		list.AddItem(item)
 	}
@@ -60,10 +132,7 @@ func onboardInit() cv.Primitive {
 	list.SetHover(true)
 	list.SetWrapAround(true)
 	info := textBox(cv.AlignLeft)
-	preview.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(list)
-		return nil
-	})
+	forwardKeys(preview, list)
 
 	rec := RecommendedPieces()
 	styles := []string{PiecesImage, PiecesText, PiecesBasic}
@@ -86,6 +155,7 @@ func onboardInit() cv.Primitive {
 			text += " [green](recommended)[-]"
 		}
 		item := cv.NewListItem(text)
+		item.SetShortcut(numberKey(len(list.GetItems())))
 		item.SetSecondaryText("  " + explain[st])
 		item.SetSelectedFunc(func() {
 			_ = SetPiecesSetting(st)
@@ -117,12 +187,12 @@ func onboardInit() cv.Primitive {
 	}
 	soundStep = func() {
 		if api.UserInfo.SoundAsked {
-			gotoWelcome()
+			keysStep(list, info)
 			return
 		}
 		onboardSound(list, info)
 	}
-	if api.UserInfo.Pieces != "" { // only the sound question is new
+	if api.UserInfo.Pieces != "" { // only the later questions are new
 		defer soundStep()
 	}
 	info.SetText(fmt.Sprintf("[::b]Welcome to chess-cli![::-]\n\nYou're using [::b]%s[::-].\n%s\n\n"+
@@ -136,13 +206,12 @@ func onboardInit() cv.Primitive {
 	right.AddItem(cv.NewBox(), 0, 1, false)
 	right.SetPadding(1, 0, 2, 2)
 
-	body := cv.NewFlex()
-	body.AddItem(preview, 0, 3, false)
-	body.AddItem(right, 0, 2, true)
+	body := newPreviewLayout(preview, right)
 
 	root := cv.NewFlex()
 	root.SetDirection(cv.FlexRow)
 	root.AddItem(body, 0, 1, true)
 	root.AddItem(ribbonPrimitive(" chess-cli · first run │ ↑↓ preview │ Enter to choose │ Ctrl-C quit", list), 1, 0, false)
+	registerMenus("onboard", false, list)
 	return root
 }

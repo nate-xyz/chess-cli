@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -27,7 +29,9 @@ var stockfishLevels = []struct {
 }
 
 // FindStockfish returns the Stockfish to use: $CHESS_CLI_STOCKFISH, then
-// "stockfish" on the PATH, then common install locations. "" if none.
+// "stockfish" on the PATH, then where installers put it (in case the PATH
+// hasn't caught up, e.g. a shell opened before winget installed it). ""
+// if none.
 func FindStockfish() string {
 	if p := os.Getenv("CHESS_CLI_STOCKFISH"); p != "" {
 		return p
@@ -35,13 +39,40 @@ func FindStockfish() string {
 	if p, err := exec.LookPath("stockfish"); err == nil {
 		return p
 	}
-	for _, p := range []string{"/usr/games/stockfish", "/usr/local/bin/stockfish", "/opt/homebrew/bin/stockfish",
-		"/snap/bin/stockfish", `C:\Program Files\Stockfish\stockfish.exe`} {
+	for _, p := range stockfishLocations() {
 		if st, err := os.Stat(p); err == nil && !st.IsDir() {
 			return p
 		}
 	}
 	return ""
+}
+
+// stockfishLocations are the usual install locations on this system.
+func stockfishLocations() []string {
+	home, _ := os.UserHomeDir()
+	switch runtime.GOOS {
+	case "windows":
+		var ps []string
+		if d := os.Getenv("LOCALAPPDATA"); d != "" {
+			ps = append(ps, filepath.Join(d, "Microsoft", "WinGet", "Links", "stockfish.exe")) // winget
+		}
+		if home != "" {
+			ps = append(ps, filepath.Join(home, "scoop", "shims", "stockfish.exe")) // Scoop
+		}
+		if d := os.Getenv("ProgramData"); d != "" {
+			ps = append(ps, filepath.Join(d, "chocolatey", "bin", "stockfish.exe")) // Chocolatey
+		}
+		for _, env := range []string{"ProgramFiles", "ProgramFiles(x86)"} {
+			if d := os.Getenv(env); d != "" {
+				ps = append(ps, filepath.Join(d, "Stockfish", "stockfish.exe"))
+			}
+		}
+		return ps
+	case "darwin":
+		return []string{"/opt/homebrew/bin/stockfish", "/usr/local/bin/stockfish", "/opt/local/bin/stockfish"} // Homebrew (Apple silicon, Intel), MacPorts
+	}
+	return []string{"/usr/games/stockfish", "/usr/bin/stockfish", "/usr/local/bin/stockfish", "/snap/bin/stockfish",
+		filepath.Join(home, ".local", "bin", "stockfish")}
 }
 
 // Engine is a running UCI engine.
@@ -153,6 +184,82 @@ func (e *Engine) BestMove(ctx context.Context, startFEN string, moves []string) 
 		return "", errors.New("the engine has no move")
 	}
 	return f[1], nil
+}
+
+// Score is an engine evaluation from White's side: centipawns, or mate in
+// Mate moves (positive: White mates; negative: Black mates; 0: no mate).
+type Score struct {
+	CP   int
+	Mate int
+}
+
+// Evaluate searches a position (start FEN plus UCI moves) at full strength
+// for up to movetime, and returns its score from White's side and the best
+// move (UCI; "" when the game is over).
+func (e *Engine) Evaluate(ctx context.Context, startFEN string, moves []string, movetime time.Duration, depth int) (Score, string, error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.closed.Load() {
+		return Score{}, "", errors.New("the engine was closed")
+	}
+	pos := "position fen " + startFEN
+	if len(moves) > 0 {
+		pos += " moves " + strings.Join(moves, " ")
+	}
+	if err := e.send(pos); err != nil {
+		return Score{}, "", err
+	}
+	if err := e.send(fmt.Sprintf("go movetime %d depth %d", movetime.Milliseconds(), depth)); err != nil {
+		return Score{}, "", err
+	}
+	var sc Score
+	for {
+		var line string
+		select {
+		case l, ok := <-e.lines:
+			if !ok {
+				return Score{}, "", errors.New("the engine stopped")
+			}
+			line = l
+		case <-ctx.Done():
+			_ = e.send("stop")
+			_, _ = e.waitFor(context.Background(), "bestmove") // keep the engine in step
+			return Score{}, "", ctx.Err()
+		}
+		f := strings.Fields(line)
+		if len(f) == 0 {
+			continue
+		}
+		if f[0] == "info" {
+			for i := 1; i+2 < len(f); i++ {
+				if f[i] == "score" && (f[i+1] == "cp" || f[i+1] == "mate") {
+					var v int
+					if _, err := fmt.Sscan(f[i+2], &v); err == nil {
+						switch {
+						case f[i+1] == "cp":
+							sc = Score{CP: v}
+						case v == 0: // checkmated already: as lost as can be
+							sc = Score{Mate: -1}
+						default:
+							sc = Score{Mate: v}
+						}
+					}
+				}
+			}
+			continue
+		}
+		if f[0] == "bestmove" {
+			best := ""
+			if len(f) > 1 && f[1] != "(none)" {
+				best = f[1]
+			}
+			// The engine scores for the side to move; turn it to White's side.
+			if len(moves)%2 == 1 != (strings.Fields(startFEN)[1] == "b") {
+				sc = Score{CP: -sc.CP, Mate: -sc.Mate}
+			}
+			return sc, best, nil
+		}
+	}
 }
 
 // Close quits the engine (killing it if it doesn't go quietly).

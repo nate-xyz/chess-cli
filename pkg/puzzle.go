@@ -93,6 +93,7 @@ func (ps *PuzzleScreen) Init() cv.Primitive {
 		}
 		return event
 	})
+	registerMenus("puzzle", false, ps.List)
 	return newGameLayout(ps.Board, side, " chess-cli · puzzles │ Ctrl-K type a move │ click or arrows/hjkl + Enter to move │ Tab menu │ Ctrl-C quit")
 }
 
@@ -235,19 +236,20 @@ func (ps *PuzzleScreen) updateInfo() {
 func (ps *PuzzleScreen) updateMenu() {
 	l := ps.List
 	l.Clear()
-	add := func(text string, f func()) {
+	add := func(text string, key rune, f func()) {
 		item := cv.NewListItem(text)
+		item.SetShortcut(key)
 		item.SetSelectedFunc(f)
 		l.AddItem(item)
 	}
 	if ps.p != nil && !ps.done {
-		add("Hint", ps.hint)
-		add("View solution", ps.reveal)
+		add("Hint", 'i', ps.hint)
+		add("View solution", 's', ps.reveal)
 	}
 	if ps.p != nil && ps.done || ps.p == nil && !ps.loading {
-		add("Next puzzle", func() { startPuzzle(false) })
+		add("Next puzzle", 'n', func() { startPuzzle(false) })
 	}
-	add("Leave puzzles", gotoWelcome)
+	add("Leave puzzles", 'x', gotoWelcome)
 	ps.Side.ResizeItem(l, l.GetItemCount(), 0)
 }
 

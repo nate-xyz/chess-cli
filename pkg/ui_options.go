@@ -27,10 +27,7 @@ func optionsInit() cv.Primitive {
 	list.SetWrapAround(true)
 
 	preview := newPreviewBoard()
-	preview.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(list)
-		return nil
-	})
+	forwardKeys(preview, list)
 
 	note := textBox(cv.AlignLeft)
 	title := titlePrimitive("[blue]Options[white]", list)
@@ -40,10 +37,8 @@ func optionsInit() cv.Primitive {
 	right.AddItem(list, 0, 3, true)
 	right.AddItem(note, 0, 1, false)
 
-	body := cv.NewFlex()
-	body.AddItem(preview, 0, 3, false)
-	body.AddItem(cv.NewBox(), 2, 0, false)
-	body.AddItem(right, 0, 2, true)
+	right.SetPadding(0, 0, 2, 0)
+	body := newPreviewLayout(preview, right)
 
 	root := cv.NewFlex()
 	root.SetDirection(cv.FlexRow)
@@ -52,11 +47,50 @@ func optionsInit() cv.Primitive {
 	root.AddItem(ribbonPrimitive(" chess-cli · options │ ↑↓ preview │ Enter to choose │ Esc back │ Ctrl-C quit", list), 1, 0, false)
 
 	optionsScreen.list, optionsScreen.preview, optionsScreen.note = list, preview, note
+	registerMenus("options", false, list)
 	return root
 }
 
 // newPreviewBoard shows a sample position with a last move, a selected
 // piece and its moves, to preview how boards look.
+// previewLayout is a sample board on the left and text on the right (first
+// run, Options): the board gets the width it needs and the text the rest,
+// so explanations aren't cut off in a big terminal.
+type previewLayout struct {
+	*cv.Flex
+	board *BoardView
+	text  cv.Primitive
+	last  int
+}
+
+// The text column's width: wide enough for every explanation when there's
+// room (the board is only a sample here), never less than the minimum.
+const (
+	textWidth       = 76
+	minTextWidth    = 50
+	minPreviewWidth = 40 // the sample board keeps at least this
+)
+
+func newPreviewLayout(board *BoardView, text cv.Primitive) *previewLayout {
+	l := &previewLayout{Flex: cv.NewFlex(), board: board, text: text, last: -1}
+	l.AddItem(board, 0, 3, false)
+	l.AddItem(text, 0, 2, true)
+	return l
+}
+
+func (l *previewLayout) Draw(screen tc.Screen) {
+	_, _, w, h := l.GetRect()
+	text := max(minTextWidth, min(textWidth, w-minPreviewWidth)) // small terminal: share the room
+	_, bw, _ := l.board.fit(screen, max(0, w-text), h)
+	bw = min(w, bw+4) // a little room around the board
+	if bw != l.last {
+		l.last = bw
+		l.ResizeItem(l.board, bw, 0)
+		l.ResizeItem(l.text, 0, 1)
+	}
+	l.Flex.Draw(screen)
+}
+
 func newPreviewBoard() *BoardView {
 	preview := NewBoardView(nil)
 	game := chess.NewGame(chess.UseNotation(chess.UCINotation{}))
@@ -145,12 +179,20 @@ func updateOptions() {
 		}
 		return "off"
 	}
-	add("Clock bar: [::b]"+onOff(clockBarsOn())+"[::-]", "Time and a bar beside the board, or plain clocks in the sidebar", 'k', func() {
+	add("Clock bar: [::b]"+onOff(clockBarsOn())+"[::-]", "Clocks with a bar beside the board, or plain in the sidebar", 'k', func() {
 		setClockBars(!clockBarsOn())
 		updateOptions()
 	})
 	add("Zen mode: [::b]"+onOff(zenMode())+"[::-]", "Hide names, ratings, chat and game info during games", 'z', func() {
 		setZen(!zenMode())
+		updateOptions()
+	})
+	keys := "arrows and hjkl"
+	if !vimKeys() {
+		keys = "arrows only"
+	}
+	add("Keys: [::b]"+keys+"[::-]", "Move with the arrow keys, or with vim's hjkl too", 'y', func() {
+		setVimKeys(!vimKeys())
 		updateOptions()
 	})
 	soundExplain := "Retro chiptune, Wood, or off; Enter for the next"
@@ -168,6 +210,11 @@ func updateOptions() {
 		playSound(soundMove) // a sample of the new theme
 		updateOptions()
 	})
+	reset := cv.NewListItem("Reset all settings")
+	reset.SetSecondaryText("  Defaults, then first-run setup again (keeps login and games)")
+	reset.SetShortcut('r')
+	confirmItem(reset, "Reset all settings", "Reset all settings? Press again", resetSettings)
+	o.list.AddItem(reset)
 	add("Back", "Return to the home screen", 'b', gotoWelcome)
 	o.list.SetCurrentItem(sel)
 
@@ -201,6 +248,7 @@ func (o *optionsState) showChoices(values []string, current string, apply func(s
 	for i, v := range values {
 		v := v
 		item := cv.NewListItem("  " + v)
+		item.SetShortcut(numberKey(i))
 		if v == current {
 			item.SetMainText("[green]●[-] " + v)
 			sel = i
@@ -214,6 +262,7 @@ func (o *optionsState) showChoices(values []string, current string, apply func(s
 		o.list.AddItem(item)
 	}
 	back := cv.NewListItem("Back")
+	back.SetShortcut('b')
 	back.SetSelectedFunc(optionsBack)
 	o.list.AddItem(back)
 	o.list.SetCurrentItem(sel)

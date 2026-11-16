@@ -1,10 +1,9 @@
 package pkg
 
 import (
-	"bufio"
 	"context"
-	"fmt"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -12,61 +11,23 @@ import (
 	"github.com/notnil/chess"
 )
 
-// TestMain lets the test binary act as a tiny UCI engine (FAKE_UCI=1), so
-// the engine code can be tested without Stockfish installed. It plays the
-// first legal move in the position it's given.
 func TestMain(m *testing.M) {
-	if os.Getenv("FAKE_UCI") == "1" {
-		fakeEngine()
-		return
-	}
 	soundsMuted.Store(true) // tests never make a noise
 	os.Exit(m.Run())
 }
 
-func fakeEngine() {
-	sc := bufio.NewScanner(os.Stdin)
-	game := chess.NewGame()
-	for sc.Scan() {
-		f := strings.Fields(sc.Text())
-		if len(f) == 0 {
-			continue
-		}
-		switch f[0] {
-		case "uci":
-			fmt.Println("id name FakeFish\nuciok")
-		case "isready":
-			fmt.Println("readyok")
-		case "position": // position fen <6 fields> [moves ...]
-			fen, _ := chess.FEN(strings.Join(f[2:8], " "))
-			game = chess.NewGame(fen)
-			if len(f) > 9 {
-				for _, uci := range f[9:] {
-					m, _ := chess.UCINotation{}.Decode(game.Position(), uci)
-					game.Move(m)
-				}
-			}
-		case "go":
-			moves := game.ValidMoves()
-			if len(moves) == 0 {
-				fmt.Println("bestmove (none)")
-			} else {
-				fmt.Println("bestmove " + chess.UCINotation{}.Encode(game.Position(), moves[0]))
-			}
-		case "quit":
-			return
-		}
-	}
-}
-
-func fakeEnginePath(t *testing.T) string {
+// realStockfish is the installed Stockfish; the test is skipped without one.
+func realStockfish(t *testing.T) string {
 	t.Helper()
-	t.Setenv("FAKE_UCI", "1")
-	return os.Args[0]
+	path := findEngine()
+	if path == "" {
+		t.Skip("Stockfish isn't installed")
+	}
+	return path
 }
 
 func TestEngineBestMove(t *testing.T) {
-	e, err := StartEngine(fakeEnginePath(t), 3)
+	e, err := StartEngine(realStockfish(t), 3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,9 +52,9 @@ func TestEngineRejectsNonEngine(t *testing.T) {
 	}
 }
 
-// A game against the (fake) engine on the real UI: the engine replies.
+// A game against Stockfish on the real UI: the engine replies.
 func TestEngineGame(t *testing.T) {
-	path := fakeEnginePath(t)
+	path := realStockfish(t)
 	startTestApp(t, 160, 50)
 	onUI(func() { startEngineGame(path, 2, chess.White) })
 	g := Root.lgame
@@ -111,4 +72,24 @@ func TestEngineGame(t *testing.T) {
 		gotoWelcome() // leaving stops the engine
 	})
 	waitFor(t, "engine stopped", func() bool { return g.engine == nil })
+}
+
+// Where installers put Stockfish: the package managers' folders on each
+// system, so it's found even before the PATH catches up.
+func TestStockfishLocations(t *testing.T) {
+	locs := strings.Join(stockfishLocations(), "\n")
+	var want []string
+	switch runtime.GOOS {
+	case "windows":
+		want = []string{`WinGet\Links\stockfish.exe`, `scoop\shims\stockfish.exe`, `chocolatey\bin\stockfish.exe`}
+	case "darwin":
+		want = []string{"/opt/homebrew/bin/stockfish", "/usr/local/bin/stockfish"}
+	default:
+		want = []string{"/usr/games/stockfish", "/usr/bin/stockfish"}
+	}
+	for _, w := range want {
+		if !strings.Contains(locs, w) {
+			t.Errorf("%s not looked in on %s", w, runtime.GOOS)
+		}
+	}
 }
