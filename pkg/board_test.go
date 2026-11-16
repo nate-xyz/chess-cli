@@ -239,66 +239,62 @@ func TestGameLayoutAdapts(t *testing.T) {
 		Root.Switch("study")
 		Root.study.show(parseStudyPGN(testStudyPGN), "")
 	})
-	draw := func(w, h int) *boardLayout {
-		var l *boardLayout
+	// draw lays the screen out at w x h and runs check on the result, all in
+	// one go on the UI goroutine: onUI redraws the app at its own size
+	// afterwards, which would move everything again before a later look.
+	draw := func(board *BoardView, w, h int, check func(l *boardLayout)) {
 		onUI(func() {
 			_, p := Root.nav.GetFrontPanel()
-			l = layoutOf[Root.study.Board]
 			scr := newMockScreen(t, w, h)
 			p.SetRect(0, 0, w, h)
 			p.Draw(scr)
+			check(layoutOf[board])
 		})
-		return l
 	}
 	defer onUI(func() { Root.nav.SetRect(0, 0, 160, 50) })
 
-	l := draw(250, 60)
-	_, _, sw, _ := l.side.GetRect()
-	lx, _, lw, _ := l.left.GetRect()
-	_, _, rw, _ := l.right.GetRect()
-	if sw != maxSidebar || lw == 0 || lx != 0 || lw-rw > 1 || rw-lw > 1 {
-		t.Errorf("wide: sidebar %d (want %d), margins %d and %d (want equal, non-zero)", sw, maxSidebar, lw, rw)
-	}
-
-	l = draw(70, 50)
-	_, by, _, bh := l.board.GetRect()
-	_, sy, _, _ := l.side.GetRect()
-	if by != 0 || sy != by+bh {
-		t.Errorf("narrow: board at row %d (%d high), sidebar at row %d; want board on top, sidebar below", by, bh, sy)
-	}
-
-	l = draw(56, 22)
-	_, _, bw, _ := l.board.GetRect()
-	if bw != 56 {
-		t.Errorf("small: board %d wide, want the whole width", bw)
-	}
+	draw(Root.study.Board, 250, 60, func(l *boardLayout) {
+		_, _, sw, _ := l.side.GetRect()
+		lx, _, lw, _ := l.left.GetRect()
+		_, _, rw, _ := l.right.GetRect()
+		if sw != maxSidebar || lw == 0 || lx != 0 || lw-rw > 1 || rw-lw > 1 {
+			t.Errorf("wide: sidebar %d (want %d), margins %d and %d (want equal, non-zero)", sw, maxSidebar, lw, rw)
+		}
+	})
+	draw(Root.study.Board, 70, 50, func(l *boardLayout) {
+		_, by, _, bh := l.board.GetRect()
+		_, sy, _, _ := l.side.GetRect()
+		if by != 0 || sy != by+bh {
+			t.Errorf("narrow: board at row %d (%d high), sidebar at row %d; want board on top, sidebar below", by, bh, sy)
+		}
+	})
+	draw(Root.study.Board, 56, 22, func(l *boardLayout) {
+		if _, _, bw, _ := l.board.GetRect(); bw != 56 {
+			t.Errorf("small: board %d wide, want the whole width", bw)
+		}
+	})
 	// the menu focused: the board stays, the menu shows under it
 	onUI(func() { Root.App.SetFocus(Root.study.List) })
-	l = draw(56, 22)
-	_, by, bw, bh = l.board.GetRect()
-	_, my, mw, mh := Root.study.List.GetRect()
-	if bw != 56 || bh < 14 || my != by+bh || mw != 56 || mh != Root.study.List.GetItemCount() {
-		t.Errorf("small with the menu focused: board %dx%d at row %d, menu %dx%d at row %d; want the board, the menu under it",
-			bw, bh, by, mw, mh, my)
-	}
+	draw(Root.study.Board, 56, 22, func(l *boardLayout) {
+		_, by, bw, bh := l.board.GetRect()
+		_, my, mw, mh := Root.study.List.GetRect()
+		if bw != 56 || bh < 14 || my != by+bh || mw != 56 || mh != Root.study.List.GetItemCount() {
+			t.Errorf("small with the menu focused: board %dx%d at row %d, menu %dx%d at row %d; want the board, the menu under it",
+				bw, bh, by, mw, mh, my)
+		}
+	})
 	// typing a move in a small local game: the board stays in view
 	onUI(func() {
 		startNewLocalGame()
 		Root.lgame.Move.show()
 	})
-	var gl *boardLayout
-	onUI(func() {
-		gl = layoutOf[Root.lgame.Board]
-		_, p := Root.nav.GetFrontPanel()
-		scr := newMockScreen(t, 56, 22)
-		p.SetRect(0, 0, 56, 22)
-		p.Draw(scr)
+	draw(Root.lgame.Board, 56, 22, func(l *boardLayout) {
+		_, by, bw, bh := l.board.GetRect()
+		_, iy, _, ih := Root.lgame.Move.input.GetRect()
+		if bw != 56 || bh < 14 || iy != by+bh || ih != 1 {
+			t.Errorf("typing a move: board %dx%d, move box at row %d (%d high); want the board with the box under it", bw, bh, iy, ih)
+		}
 	})
-	_, by, bw, bh = gl.board.GetRect()
-	_, iy, _, ih := Root.lgame.Move.input.GetRect()
-	if bw != 56 || bh < 14 || iy != by+bh || ih != 1 {
-		t.Errorf("typing a move: board %dx%d, move box at row %d (%d high); want the board with the box under it", bw, bh, iy, ih)
-	}
 	onUI(func() {
 		Root.lgame.Move.hide()
 		gotoWelcome()
