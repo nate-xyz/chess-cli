@@ -161,6 +161,13 @@ func TestAnalysisPanel(t *testing.T) {
 				t.Errorf("table has no %q:\n%s", want, table)
 			}
 		}
+		b := Root.pgame.postGame.Board
+		b.mu.Lock()
+		sq, g := b.glyphSq, b.glyph
+		b.mu.Unlock()
+		if sq != chess.G5 || g.text() != "??" {
+			t.Errorf("board glyph %v on %v, want ?? on g5", g.text(), sq)
+		}
 		if !strings.Contains(p.history.GetText(true), "Ng5??") {
 			t.Errorf("move list not marked:\n%s", p.history.GetText(true))
 		}
@@ -169,5 +176,17 @@ func TestAnalysisPanel(t *testing.T) {
 			t.Errorf("graph %d rows, want 9", gh)
 		}
 	})
-	onUI(func() { gotoWelcome() })
+	// a move without a judgment: no symbol
+	onUI(func() { Root.pgame.postGame.Board.ShowPly(2) })
+	waitFor(t, "the note for e5", func() bool { return strings.Contains(p.note.GetText(true), "1… e5") })
+	onUI(func() {
+		b := Root.pgame.postGame.Board
+		b.mu.Lock()
+		g := b.glyph
+		b.mu.Unlock()
+		if g != 0 {
+			t.Errorf("e5 shows %v on the board", g.text())
+		}
+		gotoWelcome()
+	})
 }

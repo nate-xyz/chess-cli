@@ -240,6 +240,7 @@ func (p *analysisPanel) reset() {
 	for _, it := range []cv.Primitive{p.graph, p.table, p.note} {
 		p.side.ResizeItem(it, 0, 0)
 	}
+	p.board.SetGlyph(chess.NoSquare, 0)
 }
 
 // start analyses the game with the local Stockfish; status reports
@@ -289,7 +290,7 @@ func (p *analysisPanel) start(positions []*chess.Position, moves []*chess.Move, 
 // finished shows the numbers once every position is analysed.
 func (p *analysisPanel) finished() {
 	a := p.a
-	p.setT("Computer analysis · Stockfish")
+	p.setT("Stockfish analysis") // short: the sidebar can be 30 wide
 	p.table.SetText(analysisTable(a))
 	p.side.ResizeItem(p.table, strings.Count(p.table.GetText(false), "\n"), 0)
 	p.side.ResizeItem(p.note, 2, 0)
@@ -300,9 +301,18 @@ func (p *analysisPanel) finished() {
 	p.shown(ply)
 }
 
-// shown updates the note for the move the board is showing.
+// shown updates the note for the move the board is showing, and marks the
+// square it went to with its ?! ? or ?? (as studies show their symbols).
 func (p *analysisPanel) shown(ply int) {
-	if p.a != nil {
-		p.note.SetText(moveNote(p.a, ply))
+	if p.a == nil {
+		return
 	}
+	p.note.SetText(moveNote(p.a, ply))
+	if p.a.complete() && ply >= 1 && ply <= len(p.a.moves) {
+		if j := p.a.judged[ply-1]; j != judgeNone {
+			p.board.SetGlyph(p.a.moves[ply-1].S2(), j.nag())
+			return
+		}
+	}
+	p.board.SetGlyph(chess.NoSquare, 0)
 }
