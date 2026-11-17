@@ -156,12 +156,13 @@ func confirmItem(item *cv.ListItem, text, ask string, f func()) {
 // fitMenuColumn makes column col of a grid as wide as its menu needs (the
 // widest entry or description, with the shortcut), so descriptions aren't
 // cut off; the other columns share the rest. cols are the grid's columns
-// otherwise (used when the menu wouldn't leave room for the rest).
+// otherwise (used when the menu wouldn't leave room for the rest, or the
+// menu is empty because something else has its place for now).
 func fitMenuColumn(g *cv.Grid, list *cv.List, cols []int, col int) {
 	const minRest = 30 // columns kept for the rest of the screen
 	g.SetDrawFunc(func(_ tc.Screen, x, y, w, h int) (int, int, int, int) {
 		c := append([]int(nil), cols...)
-		if need := menuWidth(list); need <= w-minRest {
+		if need := menuWidth(list); list.GetItemCount() > 0 && need <= w-minRest {
 			c[col] = need
 		}
 		g.SetColumns(c...) // the grid's own lock, not the box's held here

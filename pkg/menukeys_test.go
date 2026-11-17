@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"strings"
 	"testing"
 
 	cv "codeberg.org/tslocum/cview"
@@ -127,4 +128,45 @@ func TestMenuColumnFits(t *testing.T) {
 			t.Errorf("home menu %d wide, needs %d", w, need)
 		}
 	})
+}
+
+// The challenge maker's time step swaps its menu for sliders: they get the
+// keyboard and room (not the 2 columns an empty menu needs), and Submit goes
+// on to the next step.
+func TestChallengeIntervalStep(t *testing.T) {
+	scr := startTestApp(t, 160, 50)
+	var list *cv.List
+	onUI(func() {
+		gotoChallengeConstruction()
+		list = menusByScreen["challenge"].lists[0]
+		Root.App.SetFocus(list)
+	})
+	for _, k := range []string{"a", "a", "a"} { // Random, standard, real time
+		press(scr, tc.KeyRune, k)
+	}
+	var slider *cv.Slider
+	waitFor(t, "the minutes slider has the keyboard", func() bool {
+		slider, _ = Root.App.GetFocus().(*cv.Slider)
+		return slider != nil
+	})
+	onUI(func() {
+		_, p := Root.nav.GetFrontPanel()
+		p.SetRect(0, 0, 160, 50)
+		p.Draw(newMockScreen(t, 160, 50))
+		if _, _, w, _ := slider.GetRect(); w < 40 {
+			t.Errorf("slider %d wide", w)
+		}
+	})
+	press(scr, tc.KeyRight, "")
+	waitFor(t, "right moves the slider", func() bool {
+		return strings.Contains(slider.GetLabel(), "11")
+	})
+	// Tab past the increment slider to Submit
+	press(scr, tc.KeyTab, "")
+	press(scr, tc.KeyTab, "")
+	press(scr, tc.KeyEnter, "")
+	waitFor(t, "the rated step", func() bool {
+		return Root.App.GetFocus() == list && list.GetItemCount() > 0 && list.GetItem(0).GetMainText() == "casual"
+	})
+	onUI(func() { gotoWelcome() })
 }
