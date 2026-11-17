@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"fmt"
+	"math/rand/v2"
 	"time"
 
 	"github.com/nate-xyz/chess-cli/api"
@@ -102,7 +103,8 @@ func startEngineGame(path string, level int, player chess.Color) {
 	}()
 }
 
-// engineMove asks Stockfish for its move and plays it.
+// engineMove asks Stockfish for its move and plays it once it has taken a
+// person's time over it (see engine_think.go), its clock running meanwhile.
 func (g *GameScreen) engineMove() {
 	e, gen := g.engine, g.engineGen
 	game := Root.gameState.Game
@@ -111,11 +113,21 @@ func (g *GameScreen) engineMove() {
 	for i, m := range game.Moves() {
 		moves = append(moves, chess.UCINotation{}.Encode(game.Positions()[i], m))
 	}
+	w, b := g.remaining()
+	left := w
+	if g.engineColor == chess.Black {
+		left = b
+	}
+	think := engineThinkTime(game, left, g.clock.increment, g.clock.on, rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64())))
+	asked := time.Now()
 	g.UpdateStatus()
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		uci, err := e.BestMove(ctx, start, moves)
+		if err == nil {
+			time.Sleep(think - time.Since(asked)) // (no wait if it took longer)
+		}
 		Root.App.QueueUpdateDraw(func() {
 			if gen != g.engineGen || g.engine != e {
 				return // the game was left or restarted meanwhile
