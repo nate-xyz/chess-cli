@@ -48,6 +48,11 @@ func (j judgment) plural() string {
 	return [...]string{"", "Inaccuracies", "Mistakes", "Blunders"}[j]
 }
 
+// nag is the judgment's annotation symbol (NAG) for the board: ?! ? ??.
+func (j judgment) nag() moveGlyph {
+	return [...]moveGlyph{0, 6, 2, 4}[j]
+}
+
 // colour is the tag the move list and summary use for a judgment (Lichess's
 // colours).
 func (j judgment) colour() string {
