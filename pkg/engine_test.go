@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"context"
+	"math/rand/v2"
 	"os"
 	"runtime"
 	"strings"
@@ -13,6 +14,8 @@ import (
 
 func TestMain(m *testing.M) {
 	soundsMuted.Store(true) // tests never make a noise
+	// Stockfish replies at once (TestThinkTime covers the waiting)
+	engineThinkTime = func(*chess.Game, time.Duration, time.Duration, bool, *rand.Rand) time.Duration { return 0 }
 	os.Exit(m.Run())
 }
 
