@@ -484,19 +484,30 @@ func (b *BoardView) Draw(screen tc.Screen) {
 		queueImages(pieceSize, currentPieceSet(), images)
 		queueOverlay(overlay, key)
 	}
+	// Stepping back through the moves (not in studies, which browse): a
+	// banner on the row above the board, to the right of the top clock if
+	// there is one, so that clock (often the one running) stays in sight.
+	topWidth := 8 * sqW
 	if b.back > 0 && !b.browse && b.oy > y {
-		label := b.historyLabel()
-		lx := b.ox + 8*sqW - len([]rune(label))
+		room := topWidth
+		if bars && b.topBar.shown() {
+			room -= clockRoom
+		}
+		label := []rune(b.historyLabel(room))
+		lx := b.ox + topWidth - len(label)
 		for i, r := range label {
 			screen.SetContent(lx+i, b.oy-1, r, nil, tc.StyleDefault.Foreground(tc.ColorBlack).Background(tintLastMove))
 		}
+		topWidth -= len(label) + 1
 	}
 
 	if bars {
 		bg := b.GetBackgroundColor()
-		if b.back == 0 || b.browse { // the history banner uses this row (not in studies)
-			drawClockBar(screen, b.ox, b.oy-1, 8*sqW, b.topBar, style == styleBasic, bg)
+		top := b.topBar
+		if topWidth < 8*sqW {
+			top.right = "" // the banner has that end
 		}
+		drawClockBar(screen, b.ox, b.oy-1, topWidth, top, style == styleBasic, bg)
 		drawClockBar(screen, b.ox, b.oy+8*sqH+labelH, 8*sqW, b.bottomBar, style == styleBasic, bg)
 	}
 	labelStyle := tc.StyleDefault.Foreground(colLabel).Background(b.GetBackgroundColor())
@@ -507,6 +518,10 @@ func (b *BoardView) Draw(screen tc.Screen) {
 		screen.SetContent(b.ox+i*sqW+sqW/2, b.oy+8*sqH, rune(file[0]), nil, labelStyle)
 	}
 }
+
+// clockRoom is the cells a clock keeps beside the history banner: its time
+// (up to " 1:00:00 ") and a little of its bar.
+const clockRoom = 16
 
 // squareLook is what one square shows.
 type squareLook struct {

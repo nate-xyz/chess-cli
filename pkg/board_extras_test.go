@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"strings"
 	"testing"
 
 	tc "github.com/gdamore/tcell/v3"
@@ -114,5 +115,39 @@ func TestDrawBoardStyles(t *testing.T) {
 		b.step(1)
 		b.mu.Unlock()
 		b.Draw(s)
+	}
+}
+
+// Stepping back in a game with clocks: the banner shares the row above the
+// board with the top clock (it used to cover it, though that clock is often
+// the one running), and is drawn in one piece (the · used to leave a gap).
+func TestHistoryBannerKeepsClock(t *testing.T) {
+	for _, w := range []int{160, 70} {
+		s := newMockScreen(t, w, 50)
+		b := NewBoardView(nil)
+		b.SetRect(0, 0, w, 50)
+		g, _ := gameFromSAN("", "e4 e5 Nf3 Nc6 Bc4 Nd4 Bxf7+")
+		b.SetPosition(g.Position(), true)
+		b.SetHistory(g.Positions(), g.Moves())
+		b.SetClockBars(clockBar{label: "9:18", frac: 0.9, right: "10+5", active: true}, clockBar{label: "9:30", frac: 0.95})
+		b.mu.Lock()
+		b.step(2)
+		b.mu.Unlock()
+		b.Draw(s)
+		var row strings.Builder
+		for x := 0; x < w; x++ {
+			c, _, _ := s.Get(x, b.oy-1)
+			row.WriteString(c)
+		}
+		text := row.String()
+		if !strings.Contains(text, "9:18") {
+			t.Errorf("%d wide: top clock hidden: %q", w, text)
+		}
+		if !strings.Contains(text, "move 5/7") && !strings.Contains(text, "move 5 of 7 · ") {
+			t.Errorf("%d wide: banner %q", w, text)
+		}
+		if end := strings.TrimRight(text, " "); len([]rune(end)) > b.ox+8*b.sqW {
+			t.Errorf("%d wide: banner runs past the board: %q", w, text)
+		}
 	}
 }

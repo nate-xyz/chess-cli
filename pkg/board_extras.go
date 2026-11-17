@@ -158,10 +158,21 @@ func (b *BoardView) notifyShown() {
 	go Root.App.QueueUpdateDraw(func() { f(ply) })
 }
 
-// historyLabel describes the position shown while stepping back.
-func (b *BoardView) historyLabel() string {
-	i := len(b.history) - 1 - b.back
-	return fmt.Sprintf(" move %d of %d · scroll down or ] to return ", i, len(b.history)-1)
+// historyLabel describes the position shown while stepping back, in at
+// most width cells if it can (shorter forms for a narrow board or a clock
+// sharing the row).
+func (b *BoardView) historyLabel(width int) string {
+	i, n := len(b.history)-1-b.back, len(b.history)-1
+	for _, l := range []string{
+		fmt.Sprintf(" move %d of %d · scroll down or ] to return ", i, n),
+		fmt.Sprintf(" move %d of %d · ] to return ", i, n),
+		fmt.Sprintf(" move %d/%d · ] returns ", i, n),
+	} {
+		if len([]rune(l)) <= width {
+			return l
+		}
+	}
+	return fmt.Sprintf(" %d/%d ", i, n)
 }
 
 // toggleShape adds a shape, or removes it if it's already drawn (in any
