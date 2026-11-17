@@ -2,16 +2,9 @@ package pkg
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
-	"os"
-	"strconv"
 	"strings"
-	"time"
-	"unicode"
 
-	cv "code.rocketnine.space/tslocum/cview"
-	tc "github.com/gdamore/tcell/v3"
 	"github.com/notnil/chess"
 )
 
@@ -24,30 +17,9 @@ func contains(s []string, str string) bool {
 	return false
 }
 
+// GetRandomQuote picks one of the quotes (keys 0..n-1) at random.
 func GetRandomQuote() string {
-	rand.Seed(time.Now().UnixNano())
-	minrand := 0
-	maxrand := 56
-	rand_quote_int := rand.Intn(maxrand-minrand+1) + minrand
-	var rand_quote string = RandQuoteMap[rand_quote_int]
-	return rand_quote
-}
-
-//writes to a local text file
-func WriteLocal(title string, payload string) {
-	f, err := os.Create(fmt.Sprintf("%s.txt", title))
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer f.Close()
-
-	_, err2 := f.WriteString(payload)
-
-	if err2 != nil {
-		log.Fatal(err2)
-	}
+	return RandQuoteMap[rand.Intn(len(RandQuoteMap))]
 }
 
 func timeFormat(time int64) string {
@@ -74,34 +46,6 @@ func timeFormat(time int64) string {
 	} else {
 		return fmt.Sprintf("%d Days %d Hours", days, hours)
 	}
-}
-
-func translateSelectedCell(row, col int, white bool) string {
-	var rank string
-	var file string
-	if white {
-		rank = fmt.Sprintf("%v", 8-(row-1))
-		file = string(rune('a' + (col - 1)))
-	} else {
-		rank = fmt.Sprintf("%v", (row))
-		file = string(rune('h' - (col - 1)))
-	}
-	return file + rank
-}
-
-func translateAlgtoCell(alg string, white bool) (r, c int) {
-	file := alg[0]
-	rank := alg[1]
-	var row int
-	var col int
-	if white {
-		row = -int(rank) + 57
-		col = int(file) - 96
-	} else {
-		row = int(rank) - 48
-		col = -int(file) + 105
-	}
-	return row, col
 }
 
 func GetPiece(p string, g *chess.Game) chess.Piece {
@@ -195,99 +139,16 @@ func GetMoveType(movestr string, g *chess.Game) (*chess.Move, error) {
 	return new(chess.Move), fmt.Errorf("unable to decode move string")
 }
 
-func FENtoBoard(table *cv.Table, FEN string, white bool) {
-	if white {
-		for i := 0; i < 8; i++ {
-			rank := cv.NewTableCell(fmt.Sprintf("%v", i+1))
-			file := cv.NewTableCell(string(rune('a' + i)))
-			rank.SetAlign(cv.AlignRight)
-			file.SetAlign(cv.AlignRight)
-			rank.SetSelectable(false)
-			file.SetSelectable(false)
-			table.SetCell(8-i, 0, rank)
-			table.SetCell(8-i, 9, rank)
-			table.SetCell(0, i+1, file)
-			table.SetCell(9, i+1, file)
-		}
-	} else {
-		for i := 0; i < 8; i++ {
-			rank := cv.NewTableCell(fmt.Sprintf("%v", 8-i))
-			file := cv.NewTableCell(string(rune('h' - i)))
-			rank.SetAlign(cv.AlignRight)
-			file.SetAlign(cv.AlignRight)
-			rank.SetSelectable(false)
-			file.SetSelectable(false)
-			table.SetCell(8-i, 0, rank)
-			table.SetCell(8-i, 9, rank)
-			table.SetCell(0, i+1, file)
-			table.SetCell(9, i+1, file)
-		}
+// FENtoBoard shows a position given as FEN on a board (used for previews).
+func FENtoBoard(board *BoardView, FEN string, white bool) {
+	opt, err := chess.FEN(FEN)
+	if err != nil {
+		return
 	}
-
-	empty := cv.NewTableCell(EmptyChar)
-	empty.SetSelectable(false)
-	empty.SetTextColor(tc.ColorBlack.TrueColor())
-	table.SetCell(0, 0, empty)
-	table.SetCell(0, 9, empty)
-	table.SetCell(9, 0, empty)
-	table.SetCell(9, 9, empty)
-
-	//loop through current FEN and print to board
-	square := 0
-	col, row := 1, 1
-	for _, current_piece := range FEN { //loop to parse the FEN string
-
-		if current_piece == ' ' {
-			break
-		} else if current_piece == '/' {
-			col = 1
-			row++
-			square++
-			continue
-		} else if unicode.IsDigit(current_piece) { //nothing
-			int_, _ := strconv.Atoi(string(current_piece))
-			for i := 1; i <= int_; i++ {
-				cell := cv.NewTableCell(EmptyChar)
-				cell.SetSelectable(true)
-				cell.SetAlign(cv.AlignRight)
-
-				if square%2 == 0 {
-					cell.SetTextColor(tc.NewRGBColor(145, 130, 109))
-					cell.SetBackgroundColor(tc.NewRGBColor(145, 130, 109))
-				} else {
-					cell.SetTextColor(tc.NewRGBColor(108, 81, 59))
-					cell.SetBackgroundColor(tc.NewRGBColor(108, 81, 59))
-				}
-				table.SetCell(row, col, cell)
-				col++
-				square++
-			}
-			if col > 8 {
-				col = 1
-			}
-			continue
-		} else if !unicode.IsDigit(current_piece) {
-			cell := cv.NewTableCell(PiecesMap[unicode.ToLower(current_piece)] + " ")
-			cell.SetSelectable(true)
-			cell.SetAlign(cv.AlignRight)
-			if unicode.IsUpper(current_piece) {
-				cell.SetTextColor(tc.NewRGBColor(255, 248, 220))
-			} else {
-				cell.SetTextColor(tc.NewRGBColor(18, 18, 18))
-			}
-			if square%2 == 0 {
-				cell.SetBackgroundColor(tc.NewRGBColor(145, 130, 109))
-			} else {
-				cell.SetBackgroundColor(tc.NewRGBColor(108, 81, 59))
-			}
-			table.SetCell(row, col, cell)
-			square++
-			col++
-		} else {
-			log.Fatal("error parsing starting FEN")
-		}
-	}
-	Root.App.QueueUpdateDraw(func() {}, table)
+	board.SetPosition(chess.NewGame(opt).Position(), white)
+	board.SetLastMove(chess.NoSquare, chess.NoSquare)
+	board.ClearSelection()
+	Root.App.QueueUpdateDraw(func() {}) // full draw, so big pieces are flushed too
 }
 
 // func containedInOngoingGames(a []api.OngoingGameInfo, gameid string) bool {
@@ -298,3 +159,50 @@ func FENtoBoard(table *cv.Table, FEN string, white bool) {
 // 	}
 // 	return false
 // }
+
+// parseMoveInput turns a typed move into UCI. It accepts UCI ("e2e4",
+// "e7e8q"), UCI with a promotion marker ("e7e8=N", "e7e8N"), standard
+// algebraic notation ("Nf3", "exd5", "e8=Q", "O-O", "0-0") and long algebraic
+// ("Ng1f3"). Only legal moves are returned.
+func parseMoveInput(g *chess.Game, in string) (string, error) {
+	in = strings.TrimSpace(in)
+	if in == "" {
+		return "", fmt.Errorf("empty move")
+	}
+	pos := g.Position()
+	legal := map[string]bool{}
+	for _, m := range g.ValidMoves() {
+		legal[chess.UCINotation{}.Encode(pos, m)] = true
+	}
+	try := func(n chess.Notation, s string) (string, bool) {
+		m, err := n.Decode(pos, s)
+		if err != nil {
+			return "", false
+		}
+		uci := chess.UCINotation{}.Encode(pos, m)
+		return uci, legal[uci]
+	}
+	uciForm := strings.ToLower(strings.NewReplacer("=", "", "-", "", "+", "", "#", "", " ", "").Replace(in))
+	if uci, ok := try(chess.UCINotation{}, uciForm); ok {
+		return uci, nil
+	}
+	san := strings.NewReplacer("0-0-0", "O-O-O", "0-0", "O-O").Replace(in)
+	for _, n := range []chess.Notation{chess.AlgebraicNotation{}, chess.LongAlgebraicNotation{}} {
+		if uci, ok := try(n, san); ok {
+			return uci, nil
+		}
+	}
+	return "", fmt.Errorf("not a legal move: %s", in)
+}
+
+// invalidMoveHint explains why a typed move was rejected, with a nudge for the
+// common case of a promotion typed without its piece.
+// It also plays the error sound, since it's shown for every rejected move.
+func invalidMoveHint(move string) string {
+	playSound(soundError)
+	m := strings.ToLower(strings.TrimSpace(move))
+	if len(m) == 4 && contains(Root.gameState.LegalMoves, m+"q") {
+		return fmt.Sprintf("[yellow]%s is a promotion: add the piece, e.g. %s=Q (Q, R, B or N).[white]\n", move, move)
+	}
+	return fmt.Sprintf("[red]%q isn't a legal move.[white] Try e2e4, Nf3 or e8=Q.\n", move)
+}

@@ -2,19 +2,14 @@ package api
 
 //API TYPES
 
-//https://lichess.org/api#operation/boardGameStream
-type StreamBoardResign struct {
-	Type   string `json:"type"`
-	Moves  string `json:"moves"`
-	Wtime  int    `json:"wtime"`
-	Btime  int    `json:"btime"`
-	Winc   int    `json:"winc"`
-	Binc   int    `json:"binc"`
-	Status string `json:"status"`
-	Winner string `json:"winner"`
+// StreamOpponentGone reports the opponent leaving the game (or returning).
+// Once ClaimWinInSeconds reaches 0 you may claim victory or a draw.
+type StreamOpponentGone struct {
+	Type              string `json:"type"`
+	Gone              bool   `json:"gone"`
+	ClaimWinInSeconds int    `json:"claimWinInSeconds"`
 }
 
-//https://lichess.org/api#operation/boardGameStream
 type StreamBoardChat struct {
 	Type     string `json:"type"`
 	Username string `json:"username"`
@@ -22,7 +17,7 @@ type StreamBoardChat struct {
 	Room     string `json:"room"`
 }
 
-//https://lichess.org/api#operation/boardGameStream
+// https://lichess.org/api#operation/boardGameStream
 type StreamBoardGameState struct {
 	Type      string `json:"type"`
 	Moves     string `json:"moves"`
@@ -38,7 +33,7 @@ type StreamBoardGameState struct {
 	Btakeback bool   `json:"btakeback"`
 }
 
-//https://lichess.org/api#operation/boardGameStream
+// https://lichess.org/api#operation/boardGameStream
 type StreamBoardGameFull struct {
 	Type    string `json:"type"`
 	ID      string `json:"id"`
@@ -52,37 +47,30 @@ type StreamBoardGameFull struct {
 		Initial   int `json:"initial"`
 		Increment int `json:"increment"`
 	} `json:"clock"`
-	Speed string `json:"speed"`
-	Perf  struct {
+	DaysPerTurn int    `json:"daysPerTurn"`
+	Speed       string `json:"speed"`
+	Perf        struct {
 		Name string `json:"name"`
 	} `json:"perf"`
-	CreatedAt int64 `json:"createdAt"`
-	White     struct {
-		ID          string `json:"id"`
-		Name        string `json:"name"`
-		Provisional bool   `json:"provisional"`
-		Rating      int    `json:"rating"`
-		Title       string `json:"title"`
-	} `json:"white"`
-	Black struct {
-		ID     string      `json:"id"`
-		Name   string      `json:"name"`
-		Rating int         `json:"rating"`
-		Title  interface{} `json:"title"`
-	} `json:"black"`
-	InitialFen string `json:"initialFen"`
-	State      struct {
-		Type   string `json:"type"`
-		Moves  string `json:"moves"`
-		Wtime  int    `json:"wtime"`
-		Btime  int    `json:"btime"`
-		Winc   int    `json:"winc"`
-		Binc   int    `json:"binc"`
-		Status string `json:"status"`
-	} `json:"state"`
+	CreatedAt  int64                `json:"createdAt"`
+	White      GamePlayer           `json:"white"`
+	Black      GamePlayer           `json:"black"`
+	InitialFen string               `json:"initialFen"`
+	State      StreamBoardGameState `json:"state"`
 }
 
-//https://lichess.org/api#operation/apiStreamEvent
+// GamePlayer is one side of a Board API game. AiLevel is set (1-8) when the
+// side is Lichess's Stockfish, in which case ID and Name are empty.
+type GamePlayer struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Provisional bool   `json:"provisional"`
+	Rating      int    `json:"rating"`
+	Title       string `json:"title"`
+	AiLevel     int    `json:"aiLevel"`
+}
+
+// https://lichess.org/api#operation/apiStreamEvent
 type StreamEventChallenge struct {
 	Type      string `json:"type"`
 	Challenge struct {
@@ -132,7 +120,7 @@ type StreamEventChallenge struct {
 	} `json:"challenge"`
 }
 
-//https://lichess.org/api#operation/apiStreamEvent
+// https://lichess.org/api#operation/apiStreamEvent
 type StreamEventGame struct {
 	Type string `json:"type"`
 	Game struct {
@@ -164,7 +152,7 @@ type StreamEventGame struct {
 	} `json:"game"`
 }
 
-//https://lichess.org/api#operation/apiAccountPlaying
+// https://lichess.org/api#operation/apiAccountPlaying
 type OngoingGameInfo struct {
 	GameID   string `json:"gameId"`
 	FullID   string `json:"fullId"`
@@ -189,7 +177,7 @@ type OngoingGameInfo struct {
 	} `json:"variant"`
 }
 
-//https://lichess.org/api#operation/challengeList
+// https://lichess.org/api#operation/challengeList
 type ChallengeInfo struct {
 	ID          string `json:"id"`
 	URL         string `json:"url"`

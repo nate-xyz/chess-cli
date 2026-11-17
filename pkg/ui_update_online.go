@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"time"
 
-	cv "code.rocketnine.space/tslocum/cview"
+	cv "codeberg.org/tslocum/cview"
 	tc "github.com/gdamore/tcell/v3"
 	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"
@@ -14,61 +15,77 @@ import (
 func (og *OnlineGame) UpdateAll() {
 	Root.gameState.UpdateLegalMoves()
 	DrawMoveHistory(og.History)
-	DrawBoard(og.Board, og.Full.White.Name == Root.User.Name)
+	DrawBoard(og.Board, og.IsWhite())
 	og.UpdateStatus()
 	og.UpdateUserInfo()
 	og.UpdateList()
-	Root.RefreshAll()
 }
 
 func (og *OnlineGame) UpdateList() {
 	list := og.List
 	list.Clear()
-	optionsList := []string{"Back", "Quit"}
-	optionsExplain := []string{"Go back Home", "Close chess-cli"}
+	optionsList := []string{"Leave game", "Quit"}
+	optionsExplain := []string{"Back to the Lichess menu (the game keeps going)", "Close chess-cli"}
 	optionsFunc := []ListSelectedFunc{gotoLichessFromGame, Root.App.Stop}
+	keys := []rune{'x', 'q'}
 	for i, opt := range optionsList {
 		item := cv.NewListItem(opt)
 		item.SetSecondaryText(optionsExplain[i])
 		item.SetSelectedFunc(optionsFunc[i])
+		item.SetShortcut(keys[i])
 		list.AddItem(item)
 	}
 
-	optionsList = []string{"Takeback", "Abort", "Offer Draw", "Resign"}
-	optionsExplain = []string{"Propose a takeback", "Abort the current game", "Offer a draw to your opponent", "Resign from the current game"}
-	optionsFunc = []ListSelectedFunc{og.doProposeTakeBack, og.doAbort, og.doOfferDraw, og.doResign}
+	optionsList = []string{"Takeback", "Abort", "Offer Draw", "Resign", "Claim Draw", "Claim Victory"}
+	optionsExplain = []string{"Propose a takeback", "Abort the current game", "Offer a draw to your opponent", "Resign from the current game",
+		"Opponent left: end the game as a draw", "Opponent left: claim the win"}
+	optionsFunc = []ListSelectedFunc{og.doProposeTakeBack, og.doAbort, og.doOfferDraw, og.doResign, og.doClaimDraw, og.doClaimVictory}
+	keys = []rune{'t', 'a', 'd', 'g', 'c', 'v'} // g: give up (r picks a rook when promoting)
 	for i, opt := range optionsList {
 		if opt == "Takeback" && Root.gameState.MoveCount == 0 {
 			continue
 		}
+		if opt == "Abort" && Root.gameState.MoveCount >= 2 {
+			continue // Lichess only allows aborting before both sides have moved
+		}
 		if (opt == "Offer Draw" || opt == "Resign") && Root.gameState.MoveCount < 2 {
+			continue
+		}
+		if (opt == "Claim Draw" || opt == "Claim Victory") && !(og.Gone.Gone && og.canClaim) {
 			continue
 		}
 		item := cv.NewListItem(opt)
 		item.SetSecondaryText(optionsExplain[i])
-		item.SetSelectedFunc(optionsFunc[i])
+		item.SetShortcut(keys[i])
+		if opt == "Abort" || opt == "Resign" { // press twice: a stray key shouldn't end the game
+			confirmItem(item, opt, opt+"? Press again", optionsFunc[i])
+		} else {
+			item.SetSelectedFunc(optionsFunc[i])
+		}
 		list.InsertItem(1, item)
 	}
-
+	og.Side.ResizeItem(list, list.GetItemCount(), 0)
 }
 
 func (w *WelcomeOnline) UpdateTitle(msg string) {
 	var titlestr string = LichessTitle
-	if api.Online {
+	if api.IsOnline() {
 		titlestr += " 🟢"
 	} else {
 		titlestr += " ⚪"
 	}
-	if api.UserInfo.ApiToken == "" {
-		titlestr += "[red]\nNot logged into lichess.[blue]\nPlease login through your browser.[white]\nLink should open automatically."
+	if Root.User == nil || Root.User.Name == "" {
+		titlestr += "[red]\nNot logged in to Lichess.[white]"
+		if loginURL != "" {
+			titlestr += "\n[blue]Log in through your browser; it should open by itself.[white]\nIf it didn't, open this link:\n" + cv.Escape(loginURL)
+		}
 	} else {
-		titlestr += fmt.Sprintf("\n[green]Logged in[white] as: [blue]%s, %s[white]\n", Root.User.Name, Root.User.Email)
+		titlestr += fmt.Sprintf("\n[green]Logged in[white] as: [blue]%s[white]\n", cv.Escape(Root.User.Name))
 	}
 	if msg != "" {
 		titlestr += msg
 	}
 	w.Title.SetText(titlestr)
-	Root.App.QueueUpdateDraw(func() {}, w.Title)
 }
 
 func (og *OnlineGame) UpdateStatus() {
@@ -82,7 +99,9 @@ func (og *OnlineGame) UpdateStatus() {
 		ratestr = "Casual"
 	}
 
-	if og.Full.Speed == "correspondence" {
+	if zenMode() {
+		// zen: no game info
+	} else if og.Full.Speed == "correspondence" {
 		status += fmt.Sprintf("\n%v • %v %v\n",
 			ratestr,
 			caser.String(og.Full.Speed),
@@ -97,58 +116,54 @@ func (og *OnlineGame) UpdateStatus() {
 	}
 
 	if Root.gameState.Game.Position().Turn() == chess.White {
-		status += "White's turn. \n\n"
+		status += "White to move.\n"
 	} else {
-		status += "Black's turn. \n\n"
+		status += "Black to move.\n"
+	}
+	if og.Gone.Gone {
+		if og.canClaim {
+			status += "[yellow]Your opponent left. You can claim victory or a draw from the menu.[-]\n"
+		} else {
+			status += fmt.Sprintf("[yellow]Your opponent left. You can claim the game in %ds if they don't return.[-]\n", og.Gone.ClaimWinInSeconds)
+		}
 	}
 	og.Status.SetText(status)
 }
 
 func (og *OnlineGame) UpdateUserInfo() {
-	var (
-		OppName      string = "%s"
-		You          string = "%s"
-		UserString   string = "\n[blue]%v[white]"
-		OppString    string = "\n[red]%v[white]"
-		BlackCapture string = strings.Join(Root.gameState.BlackCaptured, "") + " \t"
-		WhiteCapture string = strings.Join(Root.gameState.WhiteCaptured, "") + " \t"
-	)
-
-	if og.Full.White.Name == Root.User.Name {
-		if og.Full.Rated {
-			OppName = fmt.Sprintf("%s (%d)", og.Full.Black.Name, og.Full.Black.Rating)
-			You = fmt.Sprintf("%s (%d)", Root.User.Name, og.Full.White.Rating)
-		} else {
-			OppName = og.Full.Black.Name
-			You = Root.User.Name
+	describe := func(p api.GamePlayer) string {
+		if p.AiLevel > 0 {
+			return fmt.Sprintf("🤖 Stockfish level %d", p.AiLevel)
 		}
-		UserString = UserString + " (white)\n"
-		UserString += WhiteCapture
-		OppString = OppString + " (black)\n"
-		OppString = BlackCapture + OppString
-	} else {
-		if og.Full.Rated {
-			OppName = fmt.Sprintf("%s (%d)", og.Full.White.Name, og.Full.White.Rating)
-			You = fmt.Sprintf("%s (%d)", Root.User.Name, og.Full.Black.Rating)
-		} else {
-			OppName = og.Full.White.Name
-			You = Root.User.Name
+		name := p.Name
+		if p.Title != "" {
+			name = p.Title + " " + name
 		}
-		OppString = OppString + " (white)\n"
-		OppString = WhiteCapture + OppString
-		UserString = UserString + " (black)\n"
-		UserString += BlackCapture
+		name = cv.Escape(name)
+		if og.Full.Rated && p.Rating > 0 {
+			name += fmt.Sprintf(" (%d", p.Rating)
+			if p.Provisional {
+				name += "?"
+			}
+			name += ")"
+		}
+		return name
 	}
-
-	if CurrentChallenge.Type == 2 {
-		OppName = "🤖"
+	whiteCaptured := strings.Join(Root.gameState.WhiteCaptured, "") + " \t"
+	blackCaptured := strings.Join(Root.gameState.BlackCaptured, "") + " \t"
+	white := og.IsWhite()
+	me, opp := og.Full.White, og.Full.Black
+	myColor, oppColor, myCaptured, oppCaptured := "white", "black", whiteCaptured, blackCaptured
+	if !white {
+		me, opp = opp, me
+		myColor, oppColor, myCaptured, oppCaptured = oppColor, myColor, oppCaptured, myCaptured
 	}
-
-	UserString = fmt.Sprintf(UserString, You)
-	OppString = fmt.Sprintf(OppString, OppName)
-
-	og.UserInfo.SetText(UserString)
-	og.OppInfo.SetText(OppString)
+	meName, oppName := describe(me), describe(opp)
+	if zenMode() {
+		meName, oppName = "You", "Opponent"
+	}
+	og.UserInfo.SetText(fmt.Sprintf("\n[blue]%s[white] (%s)\n%s", meName, myColor, myCaptured))
+	og.OppInfo.SetText(fmt.Sprintf("%s\n[red]%s[white] (%s)\n", oppCaptured, oppName, oppColor))
 }
 
 func (l *Loader) DrawIcon(i int) int {
@@ -161,50 +176,50 @@ func (l *Loader) DrawIcon(i int) int {
 	if i > 7 {
 		i = 0
 	}
-	Root.RefreshAll()
 	return i
 }
 
-func (l *Loader) DrawMessage(msg string) {
-	l.Message.SetText(msg)
-	Root.RefreshAll()
-}
-
+// DoMove plays a move: it's shown straight away, then sent to Lichess in the
+// background. If Lichess rejects it, the board goes back to the last position
+// Lichess confirmed. UI goroutine only.
 func (og *OnlineGame) DoMove(move string) error {
-	go func() {
-		err := Root.gameState.Game.MoveStr(move)
-		if err == nil {
-			DrawBoard(og.Board, og.Full.White.Name == Root.User.Name)
-			Root.App.QueueUpdateDraw(func() {}, og.Board)
-		}
-	}()
-
-	err := api.MakeMove(currentGameID, move) //do the move
-	if err != nil {
+	if err := Root.gameState.Game.MoveStr(move); err != nil {
 		return err
 	}
+	Root.gameState.NextMove = ""
+	DrawBoard(og.Board, og.IsWhite())
+	og.UpdateStatus()
 	Root.App.GetScreen().Beep()
 
-	DrawBoard(og.Board, og.Full.White.Name == Root.User.Name)
-
-	Root.gameState.NextMove = "" //clear the next move
-	og.UpdateStatus()
-
+	gameID := currentGameID
+	go func() {
+		err := api.MakeMove(gameID, move)
+		if err == nil {
+			return
+		}
+		Root.App.QueueUpdateDraw(func() {
+			if og.ended || currentGameID != gameID {
+				return
+			}
+			Root.gameState.Status += fmt.Sprintf("[red]Move %s rejected: %v[-]\n", move, err)
+			og.applyState(og.State) // back to the last confirmed position
+		})
+	}()
 	return nil
 }
 
-func (og *OnlineGame) InitTimeView() {
-	b := int64(og.Full.State.Btime)
-	w := int64(og.Full.State.Wtime)
-	og.LiveUpdateTime(b, w)
-}
-
 func (og *OnlineGame) LiveUpdateTime(b int64, w int64) { //MoveCount
-	if og.Full.State.Btime == math.MaxInt32 {
+	if og.Full.State.Btime == math.MaxInt32 { // unlimited: no clocks
+		if clockBarsOn() {
+			og.Board.SetClockBars(clockBar{label: "∞", frac: -1, right: "Unlimited"}, clockBar{label: "∞", frac: -1, right: "Unlimited"})
+		} else {
+			og.UserTimer.SetText("∞")
+			og.OppTimer.SetText("∞ Unlimited")
+		}
 		return
 	}
 
-	var White bool = og.Full.White.Name == Root.User.Name
+	var White bool = og.IsWhite()
 	var UserStr string
 	var OppoStr string
 
@@ -254,30 +269,64 @@ func (og *OnlineGame) LiveUpdateTime(b int64, w int64) { //MoveCount
 
 	og.UserTimer.SetText(UserStr)
 	og.OppTimer.SetText(OppoStr)
+	mine := w
+	if !og.IsWhite() {
+		mine = b
+	}
+	myTurn := (Root.gameState.Game.Position().Turn() == chess.White) == og.IsWhite()
+	if !og.lowWarned && !og.ended && myTurn && og.Full.Speed != "correspondence" &&
+		lowTime(time.Duration(mine)*time.Millisecond, time.Duration(og.Full.Clock.Initial)*time.Millisecond) {
+		og.lowWarned = true
+		playSound(soundLowTime)
+	}
+	if clockBarsOn() {
+		og.updateClockBars(b, w)
+	}
 }
 
-func (online *OnlineGame) OnlineTableHandler(row, col int) {
-	selectedCell := translateSelectedCell(row, col, online.Full.White.Name == Root.User.Name)
+// timeControl describes the game's time control, e.g. "10+5".
+func (og *OnlineGame) timeControl() string {
+	return timeControlText(og.Full.Clock.Initial/1000, og.Full.Clock.Increment/1000, og.Full.Speed, og.Full.DaysPerTurn)
+}
 
-	if LastSelectedCell.Alg == selectedCell { //toggle selected status of this cell
+// updateClockBars shows the clocks beside the board: you at the bottom.
+// b and w are milliseconds.
+func (og *OnlineGame) updateClockBars(b, w int64) {
+	initial := int64(og.Full.Clock.Initial)
+	running := Root.gameState.MoveCount >= 2 && !og.ended
+	whiteToMove := Root.gameState.Game.Position().Turn() == chess.White
+	bar := func(ms int64, active bool) clockBar {
+		c := clockBar{label: clockLabel(int(ms / 1000)), frac: -1, active: active && running}
+		if og.Full.Speed != "correspondence" && initial > 0 {
+			c.frac = float64(ms) / float64(initial)
+		}
+		return c
+	}
+	wc, bc := bar(w, whiteToMove), bar(b, !whiteToMove)
+	top, bottom := bc, wc
+	if !og.IsWhite() {
+		top, bottom = wc, bc
+	}
+	top.right, bottom.right = og.timeControl(), og.timeControl()
+	og.Board.SetClockBars(top, bottom)
+}
 
-		online.Board.Select(100, 100)
-		LastSelectedCell = PiecePosition{-1, -1, "", true, ""}
-	} else { //try to do move
-
-		todoMove := LastSelectedCell.Alg + selectedCell
-		if contains(Root.gameState.LegalMoves, todoMove) {
-			err := online.DoMove(todoMove)
-			if err != nil {
+// OnlineSquareHandler handles a click (or Enter) on a board square in an online game.
+// Only your own pieces can be selected, and only on your turn.
+func (online *OnlineGame) OnlineSquareHandler(sq chess.Square) {
+	white := online.IsWhite()
+	myTurn := (Root.gameState.Game.Position().Turn() == chess.White) == white
+	if !myTurn {
+		online.Board.ClearSelection()
+	} else {
+		online.Board.HandleSquare(Root.gameState.Game, sq, true, func(uci string) {
+			if err := online.DoMove(uci); err != nil {
 				Root.gameState.Status += fmt.Sprintf("%v", err)
 				online.UpdateStatus()
 			}
-		}
-		//check if select is empty for updateBoard
-		symbol := online.Board.GetCell(row, col).GetText()
-		LastSelectedCell = PiecePosition{row, col, selectedCell, (symbol == EmptyChar), symbol}
+		})
 	}
-	DrawBoard(online.Board, online.Full.White.Name == Root.User.Name)
+	DrawBoard(online.Board, white)
 }
 
 func (ongoing *Ongoing) UpdateList() {
@@ -288,8 +337,8 @@ func (ongoing *Ongoing) UpdateList() {
 			continue
 		}
 		GameListIDArr = append(GameListIDArr, game.FullID)
-		variant := game.Variant.Name
-		opp := game.Opponent.Username
+		variant := cv.Escape(game.Variant.Name)
+		opp := cv.Escape(game.Opponent.Username)
 		oppRating := game.Opponent.Rating
 		perf := caser.String(game.Perf)
 		listString := fmt.Sprintf("%v vs %v", perf, opp)
@@ -316,17 +365,17 @@ func (ongoing *Ongoing) UpdateList() {
 			} else {
 				text += " White to play, "
 			}
-			text += fmt.Sprintf("(%v)", Root.User.Name)
+			text += fmt.Sprintf("(%v)", cv.Escape(Root.User.Name))
 		} else {
 			if game.Color == "black" {
 				text += "White to play, "
 			} else {
 				text += "Black to play, "
 			}
-			text += fmt.Sprintf("(%v)", game.Opponent.ID)
+			text += fmt.Sprintf("(%v)", cv.Escape(game.Opponent.ID))
 		}
 		item.SetSecondaryText(text)
-		item.SetShortcut(rune('a' + i))
+		item.SetShortcut(numberKey(i))
 
 		ongoing.List.AddItem(item)
 	}
@@ -335,16 +384,18 @@ func (ongoing *Ongoing) UpdateList() {
 func (c *Challenges) UpdateList() {
 	c.In.Clear()
 	c.Out.Clear()
+	InChallengeGameID = nil
+	OutChallengeGameID = nil
 
 	for i, challenge := range Root.User.IncomingChallenges {
 		if contains(InChallengeGameID, challenge.ID) {
 			continue
 		}
 		InChallengeGameID = append(InChallengeGameID, challenge.ID)
-		variant := challenge.Variant.Name
-		opp := challenge.Challenger.Name
+		variant := cv.Escape(challenge.Variant.Name)
+		opp := cv.Escape(challenge.Challenger.Name)
 		oppRating := challenge.Challenger.Rating
-		perf := caser.String(challenge.Perf.Name)
+		perf := cv.Escape(caser.String(challenge.Perf.Name))
 		listString := fmt.Sprintf("%v challenge from %v", perf, opp)
 		if oppRating > 0 {
 			listString += fmt.Sprintf(" (%v) ", oppRating)
@@ -357,9 +408,9 @@ func (c *Challenges) UpdateList() {
 		} else {
 			text += " • Casual • "
 		}
-		text += fmt.Sprintf("%v plays %v", challenge.Challenger.Name, challenge.Color)
+		text += fmt.Sprintf("%v plays %v", cv.Escape(challenge.Challenger.Name), cv.Escape(challenge.Color))
 		item.SetSecondaryText(text)
-		item.SetShortcut(rune('a' + i))
+		item.SetShortcut(numberKey(i))
 		c.In.AddItem(item)
 	}
 	for i, challenge := range Root.User.OutgoingChallenges {
@@ -368,7 +419,7 @@ func (c *Challenges) UpdateList() {
 		}
 		OutChallengeGameID = append(OutChallengeGameID, challenge.ID)
 		variant := challenge.Variant.Name
-		opp := challenge.DestUser.Name
+		opp := cv.Escape(challenge.DestUser.Name)
 		oppRating := challenge.DestUser.Rating
 		perf := caser.String(challenge.Perf.Name)
 		listString := fmt.Sprintf("%v challenge to %v", perf, opp)
@@ -385,13 +436,8 @@ func (c *Challenges) UpdateList() {
 		}
 		text += fmt.Sprintf("%v plays %v", challenge.Challenger.Name, challenge.Color)
 		item.SetSecondaryText(text)
-		item.SetShortcut(rune('a' + i))
+		item.SetShortcut(numberKey(i))
 		c.Out.AddItem(item)
 	}
 
-}
-
-func (pg *OnlinePostGame) UpdateResult() {
-	pg.Result.SetText(Root.gameState.Status)
-	Root.gameState.Status = ""
 }

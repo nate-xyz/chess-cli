@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	cv "code.rocketnine.space/tslocum/cview"
+	cv "codeberg.org/tslocum/cview"
 	"github.com/notnil/chess"
 )
 
@@ -12,13 +12,13 @@ func (g *GameScreen) UpdateStatus() {
 	var status string = Root.gameState.Status
 	Root.gameState.Status = ""
 	if Root.gameState.Game.Position().Turn() == chess.White {
-		status += "White's turn. \n\n"
+		status = "White to move. " + status
 	} else {
-		status += "Black's turn. \n\n"
+		status = "Black to move. " + status
 	}
-
-	Root.gameState.UpdateLegalMoves()
-	status += "Valid Moves: [green]" + strings.Join(Root.gameState.LegalMoves, ", ") + "[white]\n"
+	if g.engineTurn() {
+		status += "\n[#a0a0a0]Stockfish is thinking…[-]"
+	}
 	g.Status.SetText(status)
 }
 
@@ -26,8 +26,10 @@ func (g *GameScreen) DoMove(m string) error {
 	gClone := Root.gameState.Game.Clone()
 	move, _ := GetMoveType(m, Root.gameState.Game) //store move
 	p := GetPiece(m[2:], gClone).String()          //get piece
-	err := Root.gameState.Game.MoveStr(m)          //do the move
+	mover := Root.gameState.Game.Position().Turn()
+	err := Root.gameState.Game.MoveStr(m) //do the move
 	if err == nil {
+		g.clockMoved(mover)
 		if move.HasTag(chess.Check) {
 			Root.gameState.Status += "Check!"
 		}
@@ -40,7 +42,7 @@ func (g *GameScreen) DoMove(m string) error {
 		}
 		Root.gameState.MoveHistoryArray = append(Root.gameState.MoveHistoryArray, m)
 		DrawMoveHistory(g.History)
-		DrawBoard(g.Board, Root.gameState.Game.Position().Turn() == chess.White)
+		DrawBoard(g.Board, g.whiteAtBottom())
 		Root.gameState.NextMove = "" //clear the next move
 		g.UpdateStatus()
 		g.UpdateUserInfo()
@@ -48,6 +50,8 @@ func (g *GameScreen) DoMove(m string) error {
 		Root.App.GetScreen().Beep()
 		if Root.gameState.Game.Outcome() != chess.NoOutcome { //check if game is done
 			gotoPostLocal()
+		} else if g.engineTurn() {
+			g.engineMove()
 		}
 		return nil
 	}
@@ -79,36 +83,29 @@ func (g *GameScreen) UpdateUserInfo() {
 		OppString = fmt.Sprintf("%v\n%v", WhiteCapture, OppString)
 	}
 
+	if g.vsEngine() {
+		you, sf := WhiteCapture, BlackCapture
+		youName, sfName := "White", "Black"
+		if g.engineColor == chess.White {
+			you, sf, youName, sfName = BlackCapture, WhiteCapture, "Black", "White"
+		}
+		UserString = fmt.Sprintf("[blue]You (%s)[white]\n%v", youName, you)
+		OppString = fmt.Sprintf("%v\n[red]Stockfish level %d (%s)[white]", sf, g.engineLevel, sfName)
+	}
 	g.UserInfo.SetText(UserString)
 	g.OppInfo.SetText(OppString)
 }
 
-func LocalTableHandler(row, col int) {
-	selectedCell := translateSelectedCell(row, col, Root.gameState.Game.Position().Turn() == chess.White)
-	if LastSelectedCell.Alg == selectedCell {
-		//toggle selected status of this cell
-		Root.lgame.Board.Select(100, 100)
-		LastSelectedCell = PiecePosition{-1, -1, "", true, ""}
-	} else {
-		//try to do move
-		todoMove := LastSelectedCell.Alg + selectedCell
-		if contains(Root.gameState.LegalMoves, todoMove) {
-			err := Root.lgame.DoMove(todoMove)
-			if err != nil {
-				Root.gameState.Status += fmt.Sprintf("%v", err)
-				Root.lgame.UpdateStatus()
-			}
+// LocalSquareHandler handles a click (or Enter) on a board square in a local game.
+func LocalSquareHandler(sq chess.Square) {
+	g := Root.lgame
+	g.Board.HandleSquare(Root.gameState.Game, sq, !g.engineTurn(), func(uci string) {
+		if err := g.DoMove(uci); err != nil {
+			Root.gameState.Status += fmt.Sprintf("%v", err)
+			g.UpdateStatus()
 		}
-		//check if select is empty for updateBoard
-		symbol := Root.lgame.Board.GetCell(row, col).GetText()
-		LastSelectedCell = PiecePosition{row, col, selectedCell, (symbol == EmptyChar), symbol}
-	}
-	DrawBoard(Root.lgame.Board, Root.gameState.Game.Position().Turn() == chess.White)
-}
-
-func (g *PostGameScreen) UpdateResult() {
-	g.Result.SetText(Root.gameState.Status)
-	Root.gameState.Status = ""
+	})
+	DrawBoard(g.Board, g.whiteAtBottom())
 }
 
 func (sg *SavedGames) UpdateList() {
@@ -130,7 +127,7 @@ func (sg *SavedGames) UpdateList() {
 
 		item := cv.NewListItem(text)
 		item.SetSecondaryText(game.FEN)
-		item.SetShortcut(rune('a' + i))
+		item.SetShortcut(numberKey(i))
 		sg.List.AddItem(item)
 	}
 }

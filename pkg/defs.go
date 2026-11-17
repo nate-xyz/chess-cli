@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	cv "code.rocketnine.space/tslocum/cview"
+	cv "codeberg.org/tslocum/cview"
 	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"
 	"golang.org/x/text/cases"
@@ -10,19 +10,13 @@ import (
 
 var (
 	Root               = new(State)
-	killGame           chan string
-	NewChessGame       *chess.Game             //used in online.go in the LichessGame() function to update the board position from new stream event
 	newChallenge       api.CreateChallengeType //used initUI.go in initConstruct() in order to save settings from a challenge construction
 	CurrentChallenge   api.CreateChallengeType
 	currentGameID      string
-	gameStateChan      chan api.BoardEvent
 	StreamChannel      chan api.StreamEventType
-	LastSelectedCell   PiecePosition
 	GameListIDArr      []string
 	OutChallengeGameID []string
 	InChallengeGameID  []string
-	EventStreamArr     []api.StreamEventType
-	Ready              chan struct{}
 	caser              = cases.Title(language.English)
 )
 
@@ -30,14 +24,15 @@ const (
 	ApplicationTitle string = `[blue]chess-cli ♟️ [white]
 Play locally with a [yellow]friend[white] or online with [red]Lichess!`
 	LichessTitle        string = "[blue]chess-cli[white]: [red]lichess[white] client"
-	LichessRibbon       string = "CHESS-CLI | LICHESS CLIENT | Press 'Ctrl-c' to quit"
-	welcomeRibbonstr    string = "WELCOME TO CHESS-CLI ! | Press 'Ctrl-c' to quit"
-	gameRibbonstr       string = "CHESS-CLI -> local game | Press 'Ctrl-c' to quit"
-	challengeRibbonstr  string = "CHESS-CLI -> create a challenge | Press 'Ctrl-c' to quit"
-	gameOnlineRibbonstr string = "CHESS-CLI -> online game | Press 'Ctrl-c' to quit"
-	OngoingRibbonstr    string = "CHESS-CLI -> Ongoing Games | Press 'Ctrl-c' to quit"
-	EmptyChar           string = "博"
-	saved_path          string = "saved_games.json"
+	LichessRibbon       string = " chess-cli · Lichess │ ↑↓ + Enter, or press a letter │ Ctrl-C quit"
+	welcomeRibbonstr    string = " chess-cli │ ↑↓ + Enter, or press a letter │ Ctrl-C quit"
+	gameRibbonstr       string = " chess-cli · local game │ Ctrl-K type a move │ click or arrows/hjkl + Enter to move │ Tab menu │ Ctrl-C quit"
+	challengeRibbonstr  string = " chess-cli · new challenge │ ↑↓ + Enter, or press a letter │ Ctrl-C quit"
+	gameOnlineRibbonstr string = " chess-cli · Lichess game │ Ctrl-K type a move │ click or arrows/hjkl + Enter to move │ Tab chat/menu │ Ctrl-C quit"
+	postRibbonstr       string = " chess-cli · game over │ click a move, scroll or [ ] to look back │ Tab board ⇄ menu │ Ctrl-C quit"
+	OngoingRibbonstr    string = " chess-cli · ongoing games │ ↑↓ or 1-9 to pick │ Tab menu │ Ctrl-C quit"
+	savedRibbonstr      string = " chess-cli · saved games │ ↑↓ or 1-9 to pick │ Tab menu │ Ctrl-C quit"
+	saved_path          string = "saved_games.json" // legacy location, see savedGamesPath
 )
 
 type State struct {
@@ -55,12 +50,14 @@ type State struct {
 	ponline    *OnlinePostGame
 	ongoing    *Ongoing
 	challenges *Challenges
+	puzzle     *PuzzleScreen
+	watch      *WatchScreen
+	study      *StudyScreen
 	sglist     *SavedGameList
 }
 
 type Login struct {
 	Token              string
-	Email              string
 	Online             bool
 	StreamStart        bool
 	Name               string
@@ -94,11 +91,6 @@ type PiecePosition struct {
 	Symbol string
 }
 
-type BothInc struct {
-	wtime int64
-	btime int64
-}
-
 var (
 	PiecesMap = map[rune]string{
 		'K': "♔",
@@ -112,7 +104,7 @@ var (
 		'r': "♜",
 		'b': "♝",
 		'n': "♞",
-		'p': "🨾",
+		'p': "♟\uFE0E", // U+FE0E: text, not emoji
 	}
 
 	KnightIconMap = map[int]string{

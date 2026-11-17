@@ -1,12 +1,16 @@
 package pkg
 
 import (
-	cv "code.rocketnine.space/tslocum/cview"
+	"context"
+	"time"
+
+	cv "codeberg.org/tslocum/cview"
 	"github.com/nate-xyz/chess-cli/api"
+	"github.com/notnil/chess"
 )
 
 type GameScreen struct {
-	Board     *cv.Table
+	Board     *BoardView
 	Status    *cv.TextView
 	History   *cv.TextView
 	UserInfo  *cv.TextView
@@ -14,17 +18,22 @@ type GameScreen struct {
 	OppInfo   *cv.TextView
 	OppTimer  *cv.TextView
 	List      *cv.List
+	Move      *moveBox
+
+	engine      *Engine // set when playing a local Stockfish
+	engineColor chess.Color
+	engineLevel int
+	engineGen   int // bumped when an engine game starts or stops
+	clock       localClock
 }
 
 type PostGameScreen struct {
-	Board   *cv.Table
-	Result  *cv.TextView
-	History *cv.TextView
+	*postGame
 }
 
 type SavedGames struct {
 	List    *cv.List
-	Preview *cv.Table
+	Preview *BoardView
 }
 
 type WelcomeOnline struct {
@@ -37,8 +46,9 @@ type Loader struct {
 }
 
 type OnlineGame struct {
-	Grid      *cv.Grid
-	Board     *cv.Table
+	Side      *cv.Flex
+	Move      *moveBox
+	Board     *BoardView
 	Status    *cv.TextView
 	History   *cv.TextView
 	List      *cv.List
@@ -47,24 +57,33 @@ type OnlineGame struct {
 	OppInfo   *cv.TextView
 	OppTimer  *cv.TextView
 	PopUp     *cv.Flex
+	Chat      *cv.TextView
+	ChatInput *cv.InputField
 
-	Full   api.StreamBoardGameFull
-	State  api.StreamBoardGameState
-	Resign api.StreamBoardResign
+	Full  api.StreamBoardGameFull
+	State api.StreamBoardGameState
+	Gone  api.StreamOpponentGone
+
+	// per-game state, reset by startNewOnlineGame; UI goroutine only
+	ctx       context.Context
+	cancel    context.CancelFunc
+	ended     bool
+	popupKind string    // which offer the popup is showing, if any
+	goneSince time.Time // when the opponent-gone event arrived
+	canClaim  bool      // opponent gone long enough to claim
+	clockW    int64     // clocks (ms) as of clockAt
+	clockB    int64
+	clockAt   time.Time
+	lowWarned bool // the low-time sound has played this game
 }
 
 type OnlinePostGame struct {
-	Grid *cv.Grid
-
-	Board   *cv.Table
-	Result  *cv.TextView
-	History *cv.TextView
-	PopUp   *cv.Flex
+	*postGame
 }
 
 type Ongoing struct {
 	List    *cv.List
-	Preview *cv.Table
+	Preview *BoardView
 }
 
 type Challenges struct {

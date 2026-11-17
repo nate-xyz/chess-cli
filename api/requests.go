@@ -1,665 +1,316 @@
 package api
 
 import (
+	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
-	"net/http"
 	"net/url"
-	"strings"
+	"strconv"
 )
 
-//create a challenge against a specific user or get the url
-func MakeMove(gameid string, move string) error {
-	requestUrl := fmt.Sprintf("%s/api/board/game/%s/move/%s", HostUrl, gameid, move)
+// Time options used by CreateChallengeType.TimeOption.
+const (
+	TimeRealTime       = 0
+	TimeCorrespondence = 1
+	TimeUnlimited      = 2
+)
 
-	// create the request and execute it
-	req, err := http.NewRequest("POST", requestUrl, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	if err != nil {
-		return err
+// challengeForm builds the shared challenge parameters (clock, variant, colour).
+func challengeForm(c CreateChallengeType) url.Values {
+	f := url.Values{"variant": {c.Variant}}
+	if c.Color != "" {
+		f.Set("color", c.Color)
 	}
-
-	//do http request. must be done in this fashion so we can add the auth bear token headers above
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return err
+	if c.Fen != "" {
+		f.Set("fen", c.Fen)
 	}
-
-	if res.StatusCode != http.StatusOK {
-		//read resp body
-		body, err := io.ReadAll(res.Body)
-		if err != nil {
-			err := fmt.Errorf("%v", err)
-			return err
-		}
-		defer res.Body.Close()
-
-		err = fmt.Errorf("%s\n%s", res.Status, string(body))
-		return err
+	switch c.TimeOption {
+	case TimeRealTime:
+		f.Set("clock.limit", c.ClockLimit)
+		f.Set("clock.increment", c.ClockIncrement)
+	case TimeCorrespondence:
+		f.Set("days", c.Days)
 	}
-	return nil
+	return f
 }
 
-//create a challenge against a specific user or get the url (POST)
-func CreateChallenge(challenge CreateChallengeType) (error, string) {
-	requestUrl := fmt.Sprintf("%s/api/challenge/%s", HostUrl, challenge.DestUser)
-	var reqParam url.Values
-	switch challenge.TimeOption {
-	case 0: //realtime
-		reqParam = url.Values{
-			"rated":           {challenge.Rated},
-			"clock.limit":     {challenge.ClockLimit},
-			"clock.increment": {challenge.ClockIncrement},
-			"color":           {challenge.Color}, //enum: 0, 1, or 2
-			"variant":         {challenge.Variant},
-			"keepAliveStream": {"true"},
-		}
-	case 1: //corresondesnce
-		reqParam = url.Values{
-			"rated":           {challenge.Rated},
-			"days":            {challenge.Days},
-			"color":           {challenge.Color},
-			"variant":         {challenge.Variant},
-			"keepAliveStream": {"true"},
-		}
-	case 2: //unlimited
-		reqParam = url.Values{
-			"rated":           {challenge.Rated},
-			"color":           {challenge.Color},
-			"variant":         {challenge.Variant},
-			"keepAliveStream": {"true"},
-		}
-	}
-
-	//application/x-www-form-urlencoded
-
-	// create the request and add headers
-	req, err := http.NewRequest("POST", requestUrl, strings.NewReader(reqParam.Encode()))
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-	if err != nil {
-		return err, ""
-	}
-
-	//do http request. must be done in this fashion so we can add the auth bear token headers above
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return err, ""
-	}
-	//read resp body
-	body, err := io.ReadAll(res.Body) //TODO: display body error on loading screen
-	if err != nil {
-		err := fmt.Errorf("%v", err)
-		return err, ""
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		err := fmt.Errorf("%s", res.Status)
-		return err, ""
-	}
-
-	d := json.NewDecoder(strings.NewReader(string(body)))
-	for {
-		select {
-		// case <-quit_stream:
-		// 	return nil
-		default:
-			var responseData map[string]interface{}
-			err = d.Decode(&responseData)
-			if err != nil {
-				if err != io.EOF {
-					log.Fatal(err)
-					return err, ""
-				}
-				continue
-			}
-			if !isNil(responseData["challenge"]) { // retrieve the username out of the map
-				challenge := responseData["challenge"].(map[string]interface{})
-				ChallengeId := challenge["id"].(string)
-				return nil, ChallengeId
-			}
-			//fmt.Printf("waiting 2")
-			//return fmt.Errorf("username response interface is nil")
-		}
-	}
-	//return fmt.Errorf("username response interface is nil"), ""
+// Pending is an open challenge or seek. Lichess keeps it alive only while the
+// connection stays open, so Cancel withdraws it.
+type Pending struct {
+	ID     string // challenge id (empty for real-time seeks)
+	cancel context.CancelFunc
+	done   chan string
 }
 
-func CreateAiChallenge(challenge CreateChallengeType) (error, string) {
-	requestUrl := fmt.Sprintf("%s/api/challenge/ai", HostUrl)
-	var reqParam url.Values
-	switch challenge.TimeOption {
-	case 0: //realtime
-		reqParam = url.Values{
-			"level":           {challenge.Level},
-			"clock.limit":     {challenge.ClockLimit},
-			"clock.increment": {challenge.ClockIncrement},
-			"color":           {challenge.Color}, //enum: 0, 1, or 2
-			"variant":         {challenge.Variant},
-			"keepAliveStream": {"true"},
-		}
-	case 1: //corresondesnce
-		reqParam = url.Values{
-			"level":           {challenge.Level},
-			"days":            {challenge.Days},
-			"color":           {challenge.Color},
-			"variant":         {challenge.Variant},
-			"keepAliveStream": {"true"},
-		}
-	case 2: //unlimited
-		reqParam = url.Values{
-			"level":           {challenge.Level},
-			"color":           {challenge.Color},
-			"variant":         {challenge.Variant},
-			"keepAliveStream": {"true"},
-		}
-	}
-
-	//application/x-www-form-urlencoded
-
-	// create the request and add headers
-	req, err := http.NewRequest("POST", requestUrl, strings.NewReader(reqParam.Encode()))
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	req.Header.Add("Content-type", "application/x-www-form-urlencoded")
-
-	if err != nil {
-		return err, ""
-	}
-
-	//do http request. must be done in this fashion so we can add the auth bear token headers above
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return err, ""
-	}
-
-	//read resp body
-	body, err := io.ReadAll(res.Body) //TODO: display body error on loading screen
-	if err != nil {
-		err := fmt.Errorf("%v", err)
-		//log.Fatalln(err)
-		return err, ""
-	}
-	defer res.Body.Close()
-
-	//fmt.Printf("%v", res.StatusCode)
-	//fmt.Printf(string(body))
-
-	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusCreated {
-		err := fmt.Errorf("%s", res.Status)
-		return err, ""
-	}
-
-	d := json.NewDecoder(strings.NewReader(string(body)))
-	for {
-		select {
-		// case <-quit_stream:
-		// 	return nil
-		default:
-			var responseData map[string]interface{}
-			err = d.Decode(&responseData)
-			if err != nil {
-				if err != io.EOF {
-					log.Fatal(err)
-					return err, ""
-				}
-				continue
-			}
-			if !isNil(responseData["id"]) { // retrieve the username out of the map
-				ChallengeId := responseData["id"].(string)
-				return nil, ChallengeId
-			}
-			//fmt.Printf("waiting 2")
-			//return fmt.Errorf("username response interface is nil")
-		}
-	}
-	//return fmt.Errorf("username response interface is nil"), ""
-}
-
-func CreateSeek(challenge CreateChallengeType) error {
-	requestUrl := fmt.Sprintf("%s/api/board/seek", HostUrl)
-	var reqParam url.Values
-	switch challenge.TimeOption {
-	case 0: //realtime
-		reqParam = url.Values{
-			"rated":           {challenge.Rated},
-			"clock.limit":     {challenge.ClockLimit},
-			"clock.increment": {challenge.ClockIncrement},
-			"color":           {challenge.Color}, //enum: 0, 1, or 2
-			"variant":         {challenge.Variant},
-			"keepAliveStream": {"true"},
-		}
-	case 1: //corresondesnce
-		reqParam = url.Values{
-			"rated":           {challenge.Rated},
-			"days":            {challenge.Days},
-			"color":           {challenge.Color},
-			"variant":         {challenge.Variant},
-			"keepAliveStream": {"true"},
-		}
-	case 2: //unlimited
-		reqParam = url.Values{
-			"rated":           {challenge.Rated},
-			"color":           {challenge.Color},
-			"variant":         {challenge.Variant},
-			"keepAliveStream": {"true"},
-		}
-	}
-
-	//application/x-www-form-urlencoded
-
-	// create the request and add headers
-	req, err := http.NewRequest("POST", requestUrl, strings.NewReader(reqParam.Encode()))
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	req.Header.Add("Content-type", "application/x-www-form-urlencoded")
-
-	if err != nil {
-		return err
-	}
-
-	//do http request. must be done in this fashion so we can add the auth bear token headers above
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	//read resp body
-	body, err := io.ReadAll(res.Body) //TODO: display body error on loading screen
-	if err != nil {
-		err := fmt.Errorf("%v", err)
-		return err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		err := fmt.Errorf("%s\n%s", res.Status, string(body))
-		return err
-	} else {
-		return nil
+// Cancel withdraws the challenge or seek by closing its connection.
+func (p *Pending) Cancel() {
+	if p != nil && p.cancel != nil {
+		p.cancel()
 	}
 }
 
+// Done delivers how the request ended ("accepted", "declined", "canceled", or
+// "closed" if the connection dropped), then closes.
+func (p *Pending) Done() <-chan string { return p.done }
+
+// keepAlive drains a kept-alive challenge/seek stream in the background until
+// Lichess reports it finished or the connection closes.
+func keepAlive(body io.ReadCloser, cancel context.CancelFunc, sc *bufio.Scanner) *Pending {
+	p := &Pending{cancel: cancel, done: make(chan string, 1)}
+	go func() {
+		defer body.Close()
+		defer close(p.done)
+		for sc.Scan() {
+			var msg struct {
+				Done string `json:"done"`
+			}
+			if unmarshal(sc.Bytes(), &msg) == nil && msg.Done != "" {
+				p.done <- msg.Done
+				return
+			}
+		}
+		p.done <- "closed"
+	}()
+	return p
+}
+
+// CreateChallenge challenges a user. The challenge stays open until accepted,
+// declined, or Pending.Cancel is called.
+func CreateChallenge(c CreateChallengeType) (*Pending, error) {
+	if !ValidUsername(c.DestUser) {
+		return nil, ErrBadUsername
+	}
+	f := challengeForm(c)
+	f.Set("rated", c.Rated)
+	f.Set("keepAliveStream", "true")
+	ctx, cancel := context.WithCancel(context.Background())
+	body, err := openStream(ctx, "POST", "/api/challenge/"+url.PathEscape(c.DestUser), f)
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+	// The first line is the challenge itself; later lines report completion.
+	sc := bufio.NewScanner(body)
+	sc.Buffer(make([]byte, 64<<10), 1<<20)
+	for sc.Scan() {
+		var first struct {
+			Challenge struct {
+				ID string `json:"id"`
+			} `json:"challenge"`
+			ID string `json:"id"`
+		}
+		if len(sc.Bytes()) == 0 {
+			continue // keep-alive newline
+		}
+		if err := unmarshal(sc.Bytes(), &first); err != nil {
+			body.Close()
+			cancel()
+			return nil, fmt.Errorf("unexpected challenge response: %w", err)
+		}
+		p := keepAlive(body, cancel, sc)
+		p.ID = first.Challenge.ID
+		if p.ID == "" {
+			p.ID = first.ID
+		}
+		return p, nil
+	}
+	body.Close()
+	cancel()
+	return nil, fmt.Errorf("challenge stream closed before a challenge was created")
+}
+
+// CreateAiChallenge starts a game against Lichess's Stockfish and returns the
+// game id. The game starts immediately.
+func CreateAiChallenge(c CreateChallengeType) (string, error) {
+	f := challengeForm(c)
+	f.Set("level", c.Level)
+	var game struct {
+		ID string `json:"id"`
+	}
+	if err := call("POST", "/api/challenge/ai", f, &game); err != nil {
+		return "", err
+	}
+	return game.ID, nil
+}
+
+// CreateSeek looks for a random opponent. Real-time seeks stay open until an
+// opponent is found or Pending.Cancel is called; correspondence seeks return
+// straight away with an id.
+func CreateSeek(c CreateChallengeType) (*Pending, error) {
+	f := url.Values{"rated": {c.Rated}, "variant": {c.Variant}}
+	if c.Color != "" && c.Color != "random" {
+		f.Set("color", c.Color)
+	}
+	switch c.TimeOption {
+	case TimeRealTime:
+		// The seek endpoint takes minutes + increment, unlike challenges.
+		f.Set("time", strconv.FormatFloat(c.MinTurn, 'f', -1, 64))
+		f.Set("increment", c.ClockIncrement)
+	case TimeCorrespondence:
+		f.Set("days", c.Days)
+	default:
+		return nil, fmt.Errorf("seeks need a clock or days per move; unlimited games are challenge-only")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	body, err := openStream(ctx, "POST", "/api/board/seek", f)
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+	if c.TimeOption == TimeCorrespondence {
+		defer body.Close()
+		defer cancel()
+		var seek struct {
+			ID string `json:"id"`
+		}
+		if err := decode(json.NewDecoder(body), &seek); err != nil {
+			return nil, err
+		}
+		done := make(chan string, 1)
+		done <- "created"
+		close(done)
+		return &Pending{ID: seek.ID, done: done}, nil
+	}
+	sc := bufio.NewScanner(body)
+	return keepAlive(body, cancel, sc), nil
+}
+
+// GetOngoingGames lists the user's games in progress.
 func GetOngoingGames() ([]OngoingGameInfo, error) {
-	requestUrl := fmt.Sprintf("%s/api/account/playing", HostUrl)
-	reqParam := url.Values{"nb": {"11-50"}}
-	req, err := http.NewRequest("GET", requestUrl, strings.NewReader(reqParam.Encode()))
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	req.Header.Add("Content-Type", "application/json")
-
-	if err != nil {
+	var res struct {
+		NowPlaying []OngoingGameInfo `json:"nowPlaying"`
+	}
+	if err := call("GET", "/api/account/playing?nb=50", nil, &res); err != nil {
 		return nil, err
 	}
-
-	//do http request. must be done in this fashion so we can add the auth bear token headers above
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		err := fmt.Errorf("bad response: %v", resp.StatusCode)
-		return nil, err
-	}
-	d := json.NewDecoder(resp.Body)
-	var OngoingGames []OngoingGameInfo
-	for {
-		var responseData map[string]interface{}
-		err := d.Decode(&responseData)
-		if err != nil {
-			if err != io.EOF {
-				return nil, err
-			} else {
-				return OngoingGames, nil
-			}
-		}
-
-		if !isNil(responseData["nowPlaying"]) { //make sure response is valid
-			jsonStr, err := json.Marshal(responseData["nowPlaying"])
-			if err != nil {
-				return nil, err
-			}
-			var OngoingGameList []OngoingGameInfo
-			if err := json.Unmarshal(jsonStr, &OngoingGameList); err != nil {
-				return nil, err
-			}
-			OngoingGames = append(OngoingGames, OngoingGameList...)
-		}
-	}
+	return res.NowPlaying, nil
 }
 
-func GetChallenges() ([]ChallengeInfo, []ChallengeInfo, error) {
-	requestUrl := fmt.Sprintf("%s/api/challenge", HostUrl)
-	req, err := http.NewRequest("GET", requestUrl, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	//req.Header.Add("Content-Type", "application/json")
-
-	if err != nil {
+// GetChallenges lists incoming and outgoing challenges.
+func GetChallenges() (in, out []ChallengeInfo, err error) {
+	var res struct {
+		In  []ChallengeInfo `json:"in"`
+		Out []ChallengeInfo `json:"out"`
+	}
+	if err := call("GET", "/api/challenge", nil, &res); err != nil {
 		return nil, nil, err
 	}
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("bad response: %v ", resp.Status)
-		return nil, nil, err
-	}
-
-	d := json.NewDecoder(resp.Body)
-	var IncomingChallenges []ChallengeInfo
-	var OutgoingChallenges []ChallengeInfo
-
-	for {
-		var responseData map[string]interface{}
-		err := d.Decode(&responseData)
-		if err != nil {
-			if err != io.EOF {
-				return nil, nil, err
-			} else {
-				return IncomingChallenges, OutgoingChallenges, nil
-			}
-		}
-
-		if !isNil(responseData["in"]) { //make sure response is valid
-			jsonStr, err := json.Marshal(responseData["in"])
-			if err != nil {
-				return nil, nil, err
-			}
-			var In []ChallengeInfo
-			if err := json.Unmarshal(jsonStr, &In); err != nil {
-				return nil, nil, err
-			}
-			IncomingChallenges = append(IncomingChallenges, In...)
-		}
-
-		if !isNil(responseData["out"]) { //make sure response is valid
-			jsonStr, err := json.Marshal(responseData["out"])
-			if err != nil {
-				return nil, nil, err
-			}
-			var Out []ChallengeInfo
-			if err := json.Unmarshal(jsonStr, &Out); err != nil {
-				return nil, nil, err
-			}
-			OutgoingChallenges = append(OutgoingChallenges, Out...)
-		}
-	}
+	return res.In, res.Out, nil
 }
 
-//get user email
-func GetEmail() (string, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/account/email", HostUrl), nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	if err != nil {
-		return "", err
-	}
-	//do http request. must be done in this fashion so we can add the auth bear token headers above
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf(string(body))
-	}
-	// unmarshal the json into a string map
-	var responseData map[string]interface{}
-	err = json.Unmarshal(body, &responseData)
-	if err != nil {
-		return "", err
-	}
-
-	// retrieve the access token out of the map, and return to caller
-	if !isNil(responseData["email"]) {
-		return responseData["email"].(string), nil
-	}
-	return "", fmt.Errorf("response interface is nil")
-
-}
-
-//get username from profile json
+// GetUsername returns the logged-in user's username.
 func GetUsername() (string, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/account", HostUrl), nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	if err != nil {
+	var acct struct {
+		Username string `json:"username"`
+	}
+	if err := call("GET", "/api/account", nil, &acct); err != nil {
 		return "", err
 	}
-	//do http request. must be done in this fashion so we can add the auth bear token headers above
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
+	if acct.Username == "" {
+		return "", fmt.Errorf("lichess account has no username")
 	}
-	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf(string(body))
-	}
-	// unmarshal the json into a string map
-	var responseData map[string]interface{}
-	err = json.Unmarshal(body, &responseData)
-	if err != nil {
-		return "", err
-	}
-
-	// retrieve the username out of the map, and return to caller
-	if !isNil(responseData["username"]) {
-		return responseData["username"].(string), nil
-	}
-	return "", fmt.Errorf("response interface is nil")
+	return acct.Username, nil
 }
 
-// //get full user profile json
-// func GetProfile() error {
-// 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/account", HostUrl), nil)
-// 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	//do http request. must be done in this fashion so we can add the auth bear token headers above
-// 	client := &http.Client{}
-// 	resp, err := client.Do(req)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	body, _ := io.ReadAll(resp.Body)
-// 	if resp.StatusCode != http.StatusOK {
-// 		return fmt.Errorf(string(body))
-// 	} else if err != nil {
-// 		return err
-// 	}
-// 	// unmarshal the json into a string map
-// 	err = json.Unmarshal(body, &UserProfile)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
-//application/x-ndjson
-//list of friends(and their online/offline status), to be displayed on challenge screen
+// GetFriends returns the usernames the user follows.
 func GetFriends() ([]string, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/rel/following", HostUrl), nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	req.Header.Add("Content-Type", "application/x-ndjson")
+	body, err := openStream(context.Background(), "GET", "/api/rel/following", nil)
 	if err != nil {
 		return nil, err
 	}
-
-	//do http request. must be done in this fashion so we can add the auth bear token headers above
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("GET FRIENDS %v: %v", resp.StatusCode, err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("GET FRIENDS bad response: %v", resp.StatusCode)
-	}
-
-	d := json.NewDecoder(resp.Body)
-	var allFriends []string
+	defer body.Close()
+	var friends []string
+	d := json.NewDecoder(body)
 	for {
-		var responseData map[string]interface{}
-		err := d.Decode(&responseData)
-		if err != nil {
-			if err != io.EOF {
-				return nil, err
-			}
-			return allFriends, nil
+		var u struct {
+			Username string `json:"username"`
 		}
-		if !isNil(responseData["username"]) { // retrieve the username out of the map
-			FriendsString := responseData["username"].(string)
-			allFriends = append(allFriends, FriendsString)
-		} else {
-			return nil, fmt.Errorf("no type in stream event")
+		if err := decode(d, &u); err == io.EOF {
+			return friends, nil
+		} else if err != nil {
+			return friends, err
+		}
+		if u.Username != "" {
+			friends = append(friends, u.Username)
 		}
 	}
 }
 
-func AcceptChallenge(gameid string) error {
-	requestUrl := fmt.Sprintf("%s/api/challenge/%s/accept", HostUrl, gameid)
-
-	// create the request and execute it
-	req, err := http.NewRequest("POST", requestUrl, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	if err != nil {
-		return err
-	}
-
-	//do http request
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	if res.StatusCode != http.StatusOK {
-		err := fmt.Errorf("reponse %v", res.Status)
-		return err
-	}
-	return nil
+// AcceptChallenge accepts an incoming challenge.
+func AcceptChallenge(id string) error {
+	return call("POST", "/api/challenge/"+url.PathEscape(id)+"/accept", nil, nil)
 }
 
-func AbortGame(gameid string) error {
-	requestUrl := fmt.Sprintf("%s/api/board/game/%s/abort", HostUrl, gameid)
-
-	// create the request and execute it
-	req, err := http.NewRequest("POST", requestUrl, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	if err != nil {
-		return err
+// DeclineChallenge declines an incoming challenge. reason may be empty, or one
+// of Lichess's reasons: generic, later, tooFast, tooSlow, timeControl, rated,
+// casual, standard, variant, noBot, onlyBot.
+func DeclineChallenge(id, reason string) error {
+	var f url.Values
+	if reason != "" {
+		f = url.Values{"reason": {reason}}
 	}
-
-	//do http request
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	if res.StatusCode != http.StatusOK {
-		err := fmt.Errorf("%v", res.Status)
-		return err
-	}
-	return nil
+	return call("POST", "/api/challenge/"+url.PathEscape(id)+"/decline", f, nil)
 }
 
-func ResignGame(gameid string) error {
-	requestUrl := fmt.Sprintf("%s/api/board/game/%s/resign", HostUrl, gameid)
-
-	// create the request and execute it
-	req, err := http.NewRequest("POST", requestUrl, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	if err != nil {
-		return err
-	}
-
-	//do http request
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	if res.StatusCode != http.StatusOK {
-		err := fmt.Errorf("%v", res.Status)
-		return err
-	}
-	return nil
+// CancelChallenge withdraws an outgoing challenge.
+func CancelChallenge(id string) error {
+	return call("POST", "/api/challenge/"+url.PathEscape(id)+"/cancel", nil, nil)
 }
 
-func HandleDraw(gameid string, accept bool) error {
-	var acceptStr string
-	if accept {
-		acceptStr = "yes"
-	} else {
-		acceptStr = "no"
-	}
-	requestUrl := fmt.Sprintf("%s/api/board/game/%s/draw/%s", HostUrl, gameid, acceptStr)
-
-	// create the request and execute it
-	req, err := http.NewRequest("POST", requestUrl, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	if err != nil {
-		return err
-	}
-
-	//do http request
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	if res.StatusCode != http.StatusOK {
-		err := fmt.Errorf("%v", res.Status)
-		return err
-	}
-	return nil
-
+func boardAction(gameID, action string) error {
+	return call("POST", "/api/board/game/"+url.PathEscape(gameID)+"/"+action, nil, nil)
 }
 
-func HandleTakeback(gameid string, accept bool) error {
-	var acceptStr string
-	if accept {
-		acceptStr = "yes"
-	} else {
-		acceptStr = "no"
+func yesNo(b bool) string {
+	if b {
+		return "yes"
 	}
-	requestUrl := fmt.Sprintf("%s/api/board/game/%s/takeback/%s", HostUrl, gameid, acceptStr)
+	return "no"
+}
 
-	// create the request and execute it
-	req, err := http.NewRequest("POST", requestUrl, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	if err != nil {
-		return err
-	}
+// MakeMove plays a move (UCI notation) in a Board API game.
+func MakeMove(gameID, move string) error { return boardAction(gameID, "move/"+url.PathEscape(move)) }
 
-	//do http request
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return err
-	}
+// AbortGame aborts a game that hasn't really started yet.
+func AbortGame(gameID string) error { return boardAction(gameID, "abort") }
 
-	if res.StatusCode != http.StatusOK {
-		err := fmt.Errorf("%v", res.Status)
-		return err
-	}
-	return nil
+// ResignGame resigns a game.
+func ResignGame(gameID string) error { return boardAction(gameID, "resign") }
 
+// HandleDraw offers/accepts (true) or declines (false) a draw.
+func HandleDraw(gameID string, accept bool) error {
+	return boardAction(gameID, "draw/"+yesNo(accept))
+}
+
+// HandleTakeback proposes/accepts (true) or declines (false) a takeback.
+func HandleTakeback(gameID string, accept bool) error {
+	return boardAction(gameID, "takeback/"+yesNo(accept))
+}
+
+// ClaimVictory claims the win when the opponent has left the game.
+func ClaimVictory(gameID string) error { return boardAction(gameID, "claim-victory") }
+
+// ClaimDraw claims a draw when the opponent has left the game. (Threefold
+// repetition is claimed by offering a draw.)
+func ClaimDraw(gameID string) error { return boardAction(gameID, "claim-draw") }
+
+// ChatMessage is one line of game chat.
+type ChatMessage struct {
+	User string `json:"user"`
+	Text string `json:"text"`
+}
+
+// WriteChat posts to a game's chat. room is "player" or "spectator".
+func WriteChat(gameID, room, text string) error {
+	return call("POST", "/api/board/game/"+url.PathEscape(gameID)+"/chat",
+		url.Values{"room": {room}, "text": {text}}, nil)
+}
+
+// GetChat fetches the player chat history of a game.
+func GetChat(gameID string) ([]ChatMessage, error) {
+	var msgs []ChatMessage
+	err := call("GET", "/api/board/game/"+url.PathEscape(gameID)+"/chat", nil, &msgs)
+	return msgs, err
 }

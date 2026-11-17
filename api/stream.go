@@ -1,173 +1,191 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
-	"log"
 	"net/http"
+	"net/url"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
-//starts event stream for a user after login
-func StreamEvent(EventChannel chan<- StreamEventType, got_token chan struct{}) error {
-	<-got_token
-	StreamEventStarted = true
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/stream/event", HostUrl), nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	req.Header.Add("Content-Type", "application/x-ndjson")
-	if err != nil {
-		//WriteLocal("STREAM EVENT REQ ERR", fmt.Sprintf("stream event get request failed: %v", err))
-		log.Fatal(err)
+var (
+	online        atomic.Bool
+	streamRunning atomic.Bool
+)
+
+// IsOnline reports whether the account event stream is currently connected.
+func IsOnline() bool { return online.Load() }
+
+// StartEventStream makes sure the account's event stream (game starts and
+// finishes, challenges) is running, sending events to events. Call it after
+// logging in; it does nothing if the stream is already running. The stream
+// reconnects with backoff if the connection drops, and stops if the token is
+// rejected (a later login starts it again).
+func StartEventStream(events chan<- StreamEventType) {
+	if streamRunning.CompareAndSwap(false, true) {
+		ctx, cancel := context.WithCancel(context.Background())
+		streamMu.Lock()
+		streamStop = cancel
+		streamMu.Unlock()
+		go streamEvents(ctx, events)
 	}
-	//do http request. must be done in this fashion so we can add the auth bear token headers above
-	client := &http.Client{}
-	resp, err := client.Do(req)
+}
 
-	if err != nil {
-		log.Fatal(fmt.Errorf("%v: %v", resp.StatusCode, err))
-		return fmt.Errorf("%v: %v", resp.StatusCode, err)
+// StopEventStream stops the account event stream (e.g. when logging out).
+func StopEventStream() {
+	streamMu.Lock()
+	defer streamMu.Unlock()
+	if streamStop != nil {
+		streamStop()
+		streamStop = nil
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		//WriteLocal("STREAM EVENT RESP ERR", fmt.Sprintf("bad response: %v", resp.StatusCode))
-		log.Fatal(fmt.Errorf("bad response: %v", resp.StatusCode))
-	}
+}
 
-	Online = true
+var (
+	streamMu   sync.Mutex
+	streamStop context.CancelFunc
+)
 
-	d := json.NewDecoder(resp.Body)
-
-	for {
-		var responseData map[string]interface{}
-		err := d.Decode(&responseData)
-		if err != nil {
-			if err != io.EOF {
-				return err
-			}
-			continue
+func streamEvents(ctx context.Context, events chan<- StreamEventType) {
+	defer streamRunning.Store(false)
+	backoff := time.Second
+	for ctx.Err() == nil {
+		start := time.Now()
+		err := streamEventsOnce(ctx, events)
+		online.Store(false)
+		var apiErr *APIError
+		if errors.As(err, &apiErr) && apiErr.Status == http.StatusUnauthorized {
+			return // token revoked or expired; reconnecting won't help
 		}
-		if !isNil(responseData["type"]) {
+		if time.Since(start) > time.Minute {
+			backoff = time.Second // it was a healthy connection; retry quickly
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(backoff):
+		}
+		backoff = min(backoff*2, time.Minute)
+	}
+}
 
-			streamEvent := responseData["type"].(string)
-			var streamEventID string
-			var streamSource string
-			switch streamEvent {
-			case "gameStart", "gameFinish": //game type stream event
-				game := responseData["game"].(map[string]interface{})
-				streamEventID = game["id"].(string)
-				streamSource = game["source"].(string)
+func streamEventsOnce(ctx context.Context, events chan<- StreamEventType) error {
+	body, err := openStream(ctx, "GET", "/api/stream/event", nil)
+	if err != nil {
+		return err
+	}
+	defer body.Close()
+	online.Store(true)
 
-				// jsonStr, err := json.Marshal(responseData)
-				// if err != nil {
-				// 	log.Fatal(err)
-				// }
-				// if err := json.Unmarshal(jsonStr, &CurrentStreamEventGame); err != nil {
-				// 	log.Fatal(err)
-				// }
-
-			case "challenge", "challengeCanceled", "challengeDeclined": //challenge type stream event
-				challenge := responseData["challenge"].(map[string]interface{})
-				streamEventID = challenge["id"].(string)
-
-				// jsonStr, err := json.Marshal(responseData)
-				// if err != nil {
-				// 	log.Fatal(err)
-				// }
-				// if err := json.Unmarshal(jsonStr, &CurrentStreamEventChallenge); err != nil {
-				// 	log.Fatal(err)
-				// }
-
+	d := json.NewDecoder(body)
+	for {
+		var ev struct {
+			Type string `json:"type"`
+			Game struct {
+				ID     string `json:"id"`
+				Source string `json:"source"`
+			} `json:"game"`
+			Challenge struct {
+				ID string `json:"id"`
+			} `json:"challenge"`
+		}
+		if err := decode(d, &ev); err != nil {
+			if err == io.EOF {
+				return io.ErrUnexpectedEOF
 			}
-			EventChannel <- StreamEventType{streamEvent, streamEventID, streamSource}
-		} else {
-			Online = false
-			return fmt.Errorf("invalid stream event")
+			return err
+		}
+		out := StreamEventType{EventType: ev.Type}
+		switch ev.Type {
+		case "gameStart", "gameFinish":
+			out.GameID, out.Source = ev.Game.ID, ev.Game.Source
+		case "challenge", "challengeCanceled", "challengeDeclined":
+			out.GameID = ev.Challenge.ID
+		default:
+			continue // unknown event types are ignored, not fatal
+		}
+		select {
+		case events <- out:
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 }
 
-//https://lichess.org/api/board/game/stream/{gameId}
-//after initializing a game, this function streams the the state of the board of the game
-func StreamBoardState(EventChannel chan<- BoardEvent, StreamError chan<- error, game string) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/board/game/stream/%s", HostUrl, game), nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", UserInfo.ApiToken))
-	req.Header.Add("Content-Type", "application/x-ndjson")
-	if err != nil {
-		StreamError <- fmt.Errorf("stream event get request failed: %v", err)
-	}
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		StreamError <- fmt.Errorf("%v: %v", resp.Status, err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		StreamError <- fmt.Errorf("%v", resp.Status)
-	}
-
-	d := json.NewDecoder(resp.Body)
-
-	for {
-		var responseData map[string]interface{}
-		err := d.Decode(&responseData)
-
-		if err != nil {
-			if err != io.EOF {
-				StreamError <- err
-				return
-			} else {
-				EventChannel <- BoardEvent{Type: EOF}
-				return
-			}
+// StreamBoardState streams one game's events (full state, moves, chat, the
+// opponent leaving) until the game stream ends, an error occurs, or ctx is
+// cancelled. Exactly one of these happens at the end: an EOF event is sent,
+// an error is sent on errs, or ctx is done.
+func StreamBoardState(ctx context.Context, events chan<- BoardEvent, errs chan<- error, gameID string) {
+	send := func(ev BoardEvent) bool {
+		select {
+		case events <- ev:
+			return true
+		case <-ctx.Done():
+			return false
 		}
+	}
+	fail := func(err error) {
+		select {
+		case errs <- err:
+		case <-ctx.Done():
+		}
+	}
 
-		if !isNil(responseData["type"]) { //make sure response is valid
-			var bEvent BoardEvent
-			streamEvent := responseData["type"].(string)
+	body, err := openStream(ctx, "GET", "/api/board/game/stream/"+url.PathEscape(gameID), nil)
+	if err != nil {
+		fail(err)
+		return
+	}
+	defer body.Close()
 
-			switch streamEvent {
-
-			case "gameFull":
-				bEvent.Type = GameFull
-				jsonStr, err := json.Marshal(responseData)
-				if err != nil {
-					log.Fatal(err)
-				}
-				if err := json.Unmarshal(jsonStr, &bEvent.Full); err != nil {
-					log.Fatal(err)
-				}
-
-			case "gameState":
-				bEvent.Type = GameState
-				jsonStr, err := json.Marshal(responseData)
-				if err != nil {
-					log.Fatal(err)
-				}
-				if err := json.Unmarshal(jsonStr, &bEvent.State); err != nil {
-					log.Fatal(err)
-				}
-
-			case "chatLine":
-				bEvent.Type = ChatLine
-
-			case "chatLineSpectator":
-				bEvent.Type = ChatLineSpectator
-
-			case "gameStateResign":
-				bEvent.Type = GameStateResign
-				jsonStr, err := json.Marshal(responseData)
-				if err != nil {
-					log.Fatal(err)
-				}
-				if err := json.Unmarshal(jsonStr, &bEvent.Resign); err != nil {
-					log.Fatal(err)
-				}
-
+	d := json.NewDecoder(body)
+	for {
+		var raw json.RawMessage
+		if err := decode(d, &raw); err != nil {
+			if ctx.Err() != nil {
+				return
 			}
-			EventChannel <- bEvent //signal what event just happened
-		} else {
-			StreamError <- fmt.Errorf("invalid ndjson")
+			if err == io.EOF {
+				send(BoardEvent{Type: EOF})
+				return
+			}
+			fail(err)
+			return
+		}
+		var head struct {
+			Type string `json:"type"`
+		}
+		if err := unmarshal(raw, &head); err != nil {
+			fail(err)
+			return
+		}
+		var ev BoardEvent
+		switch head.Type {
+		case "gameFull":
+			ev.Type = GameFull
+			err = unmarshal(raw, &ev.Full)
+		case "gameState":
+			ev.Type = GameState
+			err = unmarshal(raw, &ev.State)
+		case "chatLine":
+			ev.Type = ChatLine
+			err = unmarshal(raw, &ev.Chat)
+		case "opponentGone":
+			ev.Type = OpponentGone
+			err = unmarshal(raw, &ev.Gone)
+		default:
+			continue
+		}
+		if err != nil {
+			fail(err)
+			return
+		}
+		if !send(ev) {
 			return
 		}
 	}

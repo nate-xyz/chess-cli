@@ -1,126 +1,155 @@
 package pkg
 
 import (
+	cv "codeberg.org/tslocum/cview"
+	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/nate-xyz/chess-cli/api"
 )
 
-func SendChallengeRequest(gchan chan<- string, errchan chan<- error) {
-	if api.UserInfo.ApiToken != "" {
-		var err error
-		var id string
-		switch CurrentChallenge.Type {
-		case 0:
-			err = api.CreateSeek(CurrentChallenge)
-			if err == nil {
-				gchan <- "Seek created. Searching for opponent..."
-				return
-			}
-		case 1: //challenge friend
-			err, id = api.CreateChallenge(CurrentChallenge)
-		case 2: //lichess ai
-			err, id = api.CreateAiChallenge(CurrentChallenge)
-		}
-		if err != nil {
-			errchan <- err
-		} else {
-			gchan <- id
-		}
-	} else {
-		log.Fatal(fmt.Errorf("tried to send api request with no api token"))
+// loaderCancel withdraws the request currently shown on the loading screen.
+// Only touched on the UI goroutine.
+var loaderCancel context.CancelFunc
+
+// startRequest sends a new game request (seek, challenge or AI game), shows the
+// loading screen, and moves to the game once Lichess starts it.
+func startRequest(c api.CreateChallengeType) {
+	CurrentChallenge = c
+	ctx, cancel := context.WithCancel(context.Background())
+	loaderCancel = cancel
+	Root.loader.Message.SetText("Requesting a new game from Lichess…")
+	Root.Switch("loader")
+	events, unsubscribe := subscribeEvents() // subscribe before sending, so no gameStart is missed
+	go waitForGame(ctx, c, events, unsubscribe)
+}
+
+// cancelLoader is bound to Esc on the loading screen.
+func cancelLoader() {
+	if loaderCancel != nil {
+		loaderCancel()
 	}
 }
 
-func WaitForLichessGameResponse() {
-	var localid string
-	getgameid := make(chan string, 1)
-	ticker := time.NewTicker(time.Millisecond * 250)
-	var icon_index int = 0
-	RequestError := make(chan error, 1)
-	var RandomSeek bool = CurrentChallenge.Type == 0
-	go SendChallengeRequest(getgameid, RequestError) //send the request
-	load_msg := "Requesting new game from Lichess, please wait."
-	Root.loader.DrawMessage(load_msg)
+func waitForGame(ctx context.Context, c api.CreateChallengeType, events <-chan api.StreamEventType, unsubscribe func()) {
+	defer unsubscribe()
+	show := func(msg string) {
+		Root.App.QueueUpdateDraw(func() { Root.loader.Message.SetText(msg) })
+	}
+	start := func(gameID string) {
+		Root.App.QueueUpdateDraw(func() {
+			loaderCancel = nil
+			currentGameID = gameID
+			startNewOnlineGame()
+		})
+	}
+	// leave shows a final message, then returns to the Lichess menu (or
+	// straight away if the user presses Esc).
+	leave := func(msg string) {
+		show(msg + "\n\n[gray](returning to the menu, Esc to go now)[-]")
+		select {
+		case <-time.After(4 * time.Second):
+		case <-ctx.Done():
+		}
+		Root.App.QueueUpdateDraw(func() {
+			loaderCancel = nil
+			gotoLichessAfterLogin()
+		})
+	}
+
+	var (
+		pending *api.Pending
+		gameID  string
+		err     error
+	)
+	switch c.Type {
+	case 0: // random opponent
+		pending, err = api.CreateSeek(c)
+		if err == nil && c.TimeOption == api.TimeCorrespondence {
+			leave("Correspondence seek created. When someone accepts, the game will appear under Ongoing Games.")
+			return
+		}
+		show("Seek created. Searching for an opponent…\n\n[gray]Esc to cancel[-]")
+	case 1: // a specific user
+		pending, err = api.CreateChallenge(c)
+		if err == nil {
+			gameID = pending.ID
+			show(fmt.Sprintf("Waiting for [blue]%s[-] to accept the challenge.\n%s/%s\n\n[gray]Esc to cancel[-]",
+				cv.Escape(c.DestUser), api.HostUrl, gameID))
+		}
+	case 2: // Lichess AI: the game starts immediately
+		gameID, err = api.CreateAiChallenge(c)
+		if err == nil {
+			start(gameID)
+			return
+		}
+	}
+	if err != nil {
+		leave(fmt.Sprintf("[red]Could not create the game:[-] %v", err))
+		return
+	}
+	defer pending.Cancel()
+
+	done := pending.Done()
+	spinner := time.NewTicker(250 * time.Millisecond)
+	defer spinner.Stop()
+	icon := 0
 	for {
 		select {
-		case e := <-RequestError:
-			load_msg = fmt.Sprintf("ERROR: %v", e)
-			Root.loader.DrawMessage(load_msg)
-			go func() {
-				time.Sleep(time.Second * 5)
-				Root.App.QueueUpdate(gotoLichessAfterLogin)
-			}()
-		case id := <-getgameid:
-			if !RandomSeek {
-				localid = id
-			} else {
-				load_msg = id
-				Root.loader.DrawMessage(load_msg)
+		case <-ctx.Done():
+			pending.Cancel()
+			Root.App.QueueUpdateDraw(func() {
+				loaderCancel = nil
+				gotoLichessAfterLogin()
+			})
+			return
+
+		case e := <-events:
+			switch {
+			case e.EventType == "gameStart" && gameID != "" && e.GameID == gameID:
+				start(e.GameID)
+				return
+			case e.EventType == "gameStart" && c.Type == 0 && e.Source != "friend" && e.Source != "ai":
+				start(e.GameID)
+				return
+			case e.EventType == "challengeDeclined" && e.GameID == gameID:
+				leave(fmt.Sprintf("[red]%s declined the challenge.[-]", cv.Escape(c.DestUser)))
+				return
+			case e.EventType == "challengeCanceled" && e.GameID == gameID:
+				leave("The challenge was cancelled.")
+				return
 			}
-		case e := <-StreamChannel: // receive event directly
-			EventStreamArr = append([]api.StreamEventType{e}, EventStreamArr...)
-			if !RandomSeek { //friend or AI challenge
-				if e.GameID == localid {
-					load_msg = "Game started, going to game screen. (FROM ARRAY)"
-					Root.loader.DrawMessage(load_msg)
-					currentGameID = e.GameID
-					Root.App.QueueUpdate(startNewOnlineGame) //goto game
-					return                                   //necessary for QueueUpdate
-				}
-			} else {
-				if e.EventType == "gameStart" && e.Source != "friend" { //TODO: check to make sure match random seek request
-					load_msg = "Found random opponent!"
-					Root.loader.DrawMessage(load_msg)
-					go func() {
-						currentGameID = e.GameID
-						time.Sleep(time.Second)
-						Root.App.QueueUpdate(startNewOnlineGame)
-					}()
-				}
+
+		case result, ok := <-done:
+			if !ok {
+				done = nil
+				continue
 			}
-		case <-ticker.C:
-			if !RandomSeek {
-				if localid != "" {
-					s, b := containedInEventStream(EventStreamArr, localid)
-					if b {
-						switch s {
-						case "challenge":
-							load_msg = fmt.Sprintf("Waiting for %v to accept the challenge %v/%v.", CurrentChallenge.DestUser, api.HostUrl, localid)
-							Root.loader.DrawMessage(load_msg)
-						case "gameFinish":
-							return
-						case "challengeCanceled", "challengeDeclined":
-							return
-						case "gameStart":
-							load_msg = "Game started, going to game screen. (FROM STREAM)"
-							Root.loader.DrawMessage(load_msg)
-							currentGameID = localid
-							Root.App.QueueUpdate(startNewOnlineGame) ///goto game
-							return                                   //necessary for QueueUpdate
-						}
-					} else {
-						load_msg = fmt.Sprintf("Waiting for %v to accept the challenge %v/%v.", CurrentChallenge.DestUser, api.HostUrl, localid)
-						Root.loader.DrawMessage(load_msg)
-					}
+			switch result {
+			case "accepted":
+				show("Accepted! Starting the game…")
+				done = nil // gameStart arrives on the event stream
+			case "declined":
+				leave(fmt.Sprintf("[red]%s declined the challenge.[-]", cv.Escape(c.DestUser)))
+				return
+			case "canceled":
+				leave("The challenge was cancelled.")
+				return
+			default:
+				if c.Type == 0 {
+					// a real-time seek's stream closes once paired; wait for gameStart
+					done = nil
+					continue
 				}
-			} else {
-				e, b := EventContainedInEventStream(EventStreamArr, "gameStart") //TODO: check to make sure match random seek request
-				if b && (e.Source != "friend") {
-					load_msg = "Found random opponent!"
-					Root.loader.DrawMessage(load_msg)
-					go func() {
-						currentGameID = e.GameID
-						time.Sleep(time.Second)
-						Root.App.QueueUpdate(startNewOnlineGame)
-					}()
-				}
+				leave("[red]Lost the connection to Lichess; the request was withdrawn.[-]")
+				return
 			}
-			icon_index = Root.loader.DrawIcon(icon_index)
-		default:
-			Root.loader.DrawMessage(load_msg)
+
+		case <-spinner.C:
+			i := icon
+			Root.App.QueueUpdateDraw(func() { Root.loader.DrawIcon(i) })
+			icon = (icon + 1) % len(KnightIconMap)
 		}
 	}
 }

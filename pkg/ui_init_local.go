@@ -2,10 +2,16 @@ package pkg
 
 import (
 	"fmt"
+	"strings"
 
-	cv "code.rocketnine.space/tslocum/cview"
+	"github.com/nate-xyz/chess-cli/api"
+
+	cv "codeberg.org/tslocum/cview"
 	tc "github.com/gdamore/tcell/v3"
 )
+
+// resetWelcome puts the home screen back to its main menu.
+var resetWelcome = func() {}
 
 func WelcomeInit() *cv.Grid {
 	List := cv.NewList()
@@ -13,20 +19,33 @@ func WelcomeInit() *cv.Grid {
 	List.SetWrapAround(true)
 
 	//list construction
-	var secondList func()
+	var secondList, puzzleList, watchList, studyList func()
+	var mainList func()
 
-	mainList := func() {
+	mainList = func() {
 		List.Clear()
-		choices := []string{"Local", "Online", "Quit"}
-		explain := []string{"Play a local chess game", "Play a game on lichess", "Press to exit"}
-		shortcuts := []rune{'l', 'o', 'q'}
-		selectFunc := []ListSelectedFunc{secondList, gotoLichess, Root.App.Stop}
-
-		for i := 0; i < len(choices); i++ {
-			item := cv.NewListItem(choices[i])
-			item.SetSecondaryText(explain[i])
-			item.SetShortcut(rune(shortcuts[i]))
-			item.SetSelectedFunc(selectFunc[i])
+		online := api.HasValidToken() // Watch and Studies only once you've logged in to Lichess
+		for _, c := range []struct {
+			text, explain string
+			key           rune
+			f             ListSelectedFunc
+			needsLogin    bool
+		}{
+			{"Local", "Play a local chess game", 'l', secondList, false},
+			{"Online", "Play a game on lichess", 'o', gotoLichess, false},
+			{"Puzzles", "Lichess puzzles: daily or training, rated or casual", 'p', puzzleList, false},
+			{"Watch", "Lichess TV, a player's game, or any game", 'w', watchList, true},
+			{"Studies", "Your Lichess studies, or any study by link", 't', studyList, true},
+			{"Options", "How the board and pieces look", 's', gotoOptions, false},
+			{"Quit", "Press to exit", 'q', Root.App.Stop, false},
+		} {
+			if c.needsLogin && !online {
+				continue
+			}
+			item := cv.NewListItem(c.text)
+			item.SetSecondaryText(c.explain)
+			item.SetShortcut(c.key)
+			item.SetSelectedFunc(c.f)
 			List.AddItem(item)
 		}
 	}
@@ -35,8 +54,13 @@ func WelcomeInit() *cv.Grid {
 		List.Clear()
 		standard := cv.NewListItem("New")
 		standard.SetShortcut('n')
-		standard.SetSecondaryText("Begin a new game")
+		standard.SetSecondaryText("Two players, one keyboard")
 		standard.SetSelectedFunc(startNewLocalGame)
+
+		engine := cv.NewListItem("Play local Stockfish")
+		engine.SetShortcut('f')
+		engine.SetSecondaryText("Play the Stockfish engine on this computer, offline")
+		engine.SetSelectedFunc(func() { stockfishList(List, secondList) })
 
 		ongoing := cv.NewListItem("Saved")
 		ongoing.SetSecondaryText("Select a game from your saved games")
@@ -52,13 +76,102 @@ func WelcomeInit() *cv.Grid {
 		quit.SetShortcut('q')
 		quit.SetSecondaryText("Press to exit")
 		quit.SetSelectedFunc(Root.App.Stop)
+		clock := cv.NewListItem("Clock: " + localClockName(localClockIndex()))
+		clock.SetShortcut('c')
+		clock.SetSecondaryText("Time control for local games; Enter for the next")
+		clock.SetSelectedFunc(func() {
+			nextLocalClock()
+			cur := List.GetCurrentItemIndex()
+			secondList()
+			List.SetCurrentItem(cur)
+		})
 		List.AddItem(standard)
+		List.AddItem(engine)
+		List.AddItem(clock)
 		List.AddItem(ongoing)
 		List.AddItem(back)
 		List.AddItem(quit)
 	}
 
+	puzzleList = func() {
+		cur := List.GetCurrentItemIndex()
+		List.Clear()
+		add := func(text, explain string, key rune, f func()) {
+			item := cv.NewListItem(text)
+			item.SetSecondaryText(explain)
+			item.SetShortcut(key)
+			item.SetSelectedFunc(f)
+			List.AddItem(item)
+		}
+		add("Daily puzzle", "Today's Lichess puzzle", 'd', func() { startPuzzle(true) })
+		add("Puzzle training", "New puzzles, one after another", 'p', func() { startPuzzle(false) })
+		mode, other := "Rated", "casual: no rating change, no login needed"
+		if !puzzleRated() {
+			mode, other = "Casual", "rated: changes your Lichess puzzle rating"
+		}
+		add("Mode: "+mode, "Switch to "+other, 'r', func() {
+			savePuzzlePrefs(puzzleRated(), puzzleDifficulty())
+			puzzleList()
+		})
+		add("Difficulty: "+puzzleDifficulty(), "Relative to your puzzle rating; Enter for the next level", 'f', func() {
+			d := api.PuzzleDifficulties
+			next := d[0]
+			for i, x := range d {
+				if x == puzzleDifficulty() {
+					next = d[(i+1)%len(d)]
+				}
+			}
+			savePuzzlePrefs(!puzzleRated(), next)
+			puzzleList()
+		})
+		add("Back", "Go back to main options", 'b', mainList)
+		List.SetCurrentItem(cur)
+	}
+
+	watchList = func() {
+		List.Clear()
+		add := func(text, explain string, key rune, f func()) {
+			item := cv.NewListItem(text)
+			item.SetSecondaryText(explain)
+			item.SetShortcut(key)
+			item.SetSelectedFunc(f)
+			List.AddItem(item)
+		}
+		keys := "tuzrc9om" // best, bullet, blitz, rapid, classical, 960, bots, computer
+		for i, ch := range api.TvChannels {
+			ch := ch
+			explain := "The best " + strings.ToLower(ch.Name) + " game on Lichess right now"
+			if ch.Key == "best" {
+				explain = "Lichess TV: the top-rated game being played"
+			}
+			add("TV: "+ch.Name, explain, rune(keys[i]), func() { WatchTv(ch.Key, ch.Name) })
+		}
+		add("Watch a player…", "Follow someone's current game", 'p', func() { askWatch("player") })
+		add("Watch a game…", "Paste a Lichess game link or ID", 'g', func() { askWatch("game") })
+		add("Back", "Go back to main options", 'b', mainList)
+	}
+
+	studyList = func() {
+		List.Clear()
+		for _, c := range []struct {
+			text, explain string
+			key           rune
+			f             func()
+		}{
+			{"My studies", "The studies on your Lichess account, private ones too", 'm', func() { loadMyStudies(List, studyList) }},
+			{"Open a study…", "Paste a Lichess study link or ID", 'o', askStudy},
+			{"Back", "Go back to main options", 'b', mainList},
+		} {
+			item := cv.NewListItem(c.text)
+			item.SetSecondaryText(c.explain)
+			item.SetShortcut(c.key)
+			item.SetSelectedFunc(c.f)
+			List.AddItem(item)
+		}
+	}
+
 	mainList()
+	resetWelcome = mainList
 
 	titleBox := titlePrimitive(ApplicationTitle, List)
 	welcomeRibbon := ribbonPrimitive(welcomeRibbonstr, List)
@@ -66,198 +179,114 @@ func WelcomeInit() *cv.Grid {
 
 	grid := cv.NewGrid()
 	grid.SetColumns(-2, -1)
+	fitMenuColumn(grid, List, []int{-2, -1}, 1)
 	grid.SetRows(-1, -2, -1, 1)
 	grid.SetBorders(false)
 
+	newsBox = textBox(cv.AlignLeft)
+	newsBox.SetPadding(0, 0, 4, 2)
+	forwardKeys(newsBox, List)
+
 	grid.AddItem(List, 1, 1, 1, 1, 0, 0, true)
-	grid.AddItem(titleBox, 0, 0, 2, 1, 0, 0, false)
+	grid.AddItem(titleBox, 0, 0, 1, 1, 0, 0, false)
+	grid.AddItem(newsBox, 1, 0, 1, 1, 0, 0, false)
 	grid.AddItem(quoteBox, 2, 0, 1, 2, 0, 0, false)
 	grid.AddItem(welcomeRibbon, 3, 0, 1, 2, 0, 0, false)
+	registerMenus("welcome", false, List)
 
 	return grid
 }
 
-//local game grid
-func (g *GameScreen) Init() *cv.Grid {
-	Input := cv.NewInputField()
-	Input.SetDoneFunc(func(key tc.Key) {
-		Root.gameState.NextMove = Input.GetText()
-		Input.SetText("")
-		if key == tc.KeyEnter {
-			if contains(Root.gameState.LegalMoves, Root.gameState.NextMove) {
-				err := g.DoMove(Root.gameState.NextMove)
-				if err != nil {
-					Root.gameState.Status += fmt.Sprintf("%v", err)
-					Root.lgame.UpdateStatus()
-				}
-			} else {
-				Root.gameState.Status += "Last input [red]invalid.[white]\n"
-				Root.lgame.UpdateStatus()
-			}
-		} else {
-			Root.gameState.NextMove = ""
-		}
-	})
-	Input.SetLabel("Enter your move: ")
+// local game screen
+func (g *GameScreen) Init() cv.Primitive {
+	Board := NewBoardView(LocalSquareHandler)
+	Board.EnableSounds()
 
-	List := cv.NewList()
-	List.SetSelectedFocusOnly(true)
-	List.SetHover(true)
-	optionsList := []string{"Leave", "Save", "Save as new", "Quit"}
-	optionsExplain := []string{"Go back Home", "Save this game locally", "Save without rewrite", "Close chess-cli"}
+	List := menuList()
+	optionsList := []string{"Leave game", "Save", "Save as new", "Quit"}
 	optionsFunc := []ListSelectedFunc{gotoWelcome, func() { doSave(false) }, func() { doSave(true) }, Root.App.Stop}
+	keys := []rune{'x', 's', 'a', 'q'}
 	for i, opt := range optionsList {
 		item := cv.NewListItem(opt)
-		item.SetSecondaryText(optionsExplain[i])
+		item.SetShortcut(keys[i])
 		item.SetSelectedFunc(optionsFunc[i])
 		List.AddItem(item)
 	}
 
-	Board := boardPrimitive(LocalTableHandler)
-
-	Status := cv.NewTextView()
-	Status.SetWordWrap(true)
-	Status.SetDynamicColors(true)
-	Status.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(Input)
-		return nil
-	})
-
-	History := cv.NewTextView()
-	History.SetWordWrap(true)
-	History.SetDynamicColors(true)
-	History.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(Input)
-		return nil
-	})
-
-	UserInfo := cv.NewTextView()
-	UserInfo.SetTextAlign(cv.AlignLeft)
-	UserInfo.SetVerticalAlign(cv.AlignTop)
-	UserInfo.SetDynamicColors(true)
-	UserInfo.SetText("[Blue]White")
-	UserInfo.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(Input)
-		return nil
-	})
-
-	UserTimer := cv.NewTextView()
-	UserTimer.SetTextAlign(cv.AlignLeft)
-	UserTimer.SetDynamicColors(true)
-	UserTimer.SetText("∞")
-	UserTimer.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(Input)
-		return nil
-	})
-
-	OppTimer := cv.NewTextView()
-	OppTimer.SetTextAlign(cv.AlignLeft)
-	OppTimer.SetDynamicColors(true)
-	OppTimer.SetText("∞")
-	OppTimer.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(Input)
-		return nil
-	})
-
-	OppInfo := cv.NewTextView()
-	OppInfo.SetTextAlign(cv.AlignLeft)
-	OppInfo.SetVerticalAlign(cv.AlignBottom)
-	OppInfo.SetDynamicColors(true)
+	OppInfo := textBox(cv.AlignLeft)
 	OppInfo.SetText("[red]Black")
-	OppInfo.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(Input)
-		return nil
+	OppTimer := textBox(cv.AlignLeft)
+	Status := textBox(cv.AlignLeft)
+	History := textBox(cv.AlignLeft)
+	UserTimer := textBox(cv.AlignLeft)
+	UserInfo := textBox(cv.AlignLeft)
+	UserInfo.SetText("[Blue]White")
+
+	side := cv.NewFlex()
+	side.SetDirection(cv.FlexRow)
+	g.Move = newMoveBox(side, Board, func(text string) {
+		if g.engineTurn() {
+			Root.gameState.Status += "Wait for Stockfish's move. "
+			g.UpdateStatus()
+			return
+		}
+		if uci, err := parseMoveInput(Root.gameState.Game, text); err == nil {
+			if err := g.DoMove(uci); err != nil {
+				Root.gameState.Status += fmt.Sprintf("%v", err)
+				g.UpdateStatus()
+			}
+		} else {
+			Root.gameState.Status += invalidMoveHint(text)
+			g.UpdateStatus()
+			g.Move.show() // let them try again
+		}
+	})
+	side.AddItem(OppInfo, 2, 0, false)
+	side.AddItem(OppTimer, 1, 0, false)
+	side.AddItem(Status, 0, 1, false)
+	side.AddItem(History, 0, 2, false)
+	side.AddItem(g.Move.input, 0, 0, false)
+	side.AddItem(List, len(optionsList), 0, false)
+	side.AddItem(UserTimer, 1, 0, false)
+	side.AddItem(UserInfo, 2, 0, false)
+
+	// Tab: board <-> menu
+	Board.SetTabFunc(func() { Root.App.SetFocus(List) })
+	List.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
+		if event.Key() == tc.KeyTab || event.Key() == tc.KeyEscape {
+			Root.App.SetFocus(Board)
+			return nil
+		}
+		return event
 	})
 
-	Ribbon := ribbonPrimitive(gameRibbonstr, Input)
-
-	grid := cv.NewGrid()
-	grid.SetColumns(-1, -2, -1)
-	grid.SetRows(-1, 1, 1, -1, 10, 1)
-	grid.SetBorders(false)
-
-	grid.AddItem(Input, 4, 1, 1, 1, 0, 0, true)
-	grid.AddItem(Center(30, 10, Board, Input), 0, 1, 4, 1, 0, 0, false)
-	grid.AddItem(Status, 0, 0, 2, 1, 0, 0, false)
-	grid.AddItem(History, 2, 0, 2, 1, 0, 0, false)
-	grid.AddItem(Ribbon, 5, 0, 1, 3, 0, 0, false)
-	grid.AddItem(OppInfo, 0, 2, 1, 1, 0, 0, false)
-	grid.AddItem(OppTimer, 1, 2, 1, 1, 0, 0, false)
-	grid.AddItem(UserTimer, 2, 2, 1, 1, 0, 0, false)
-	grid.AddItem(UserInfo, 3, 2, 1, 1, 0, 0, false)
-	grid.AddItem(List, 4, 0, 1, 1, 0, 0, false)
+	go g.clockTicker()
+	screen := newGameLayout(Board, side, gameRibbonstr)
 
 	g.Board = Board
 	g.Status = Status
 	g.History = History
+	linkMoveList(History, Board)
 	g.UserInfo = UserInfo
 	g.UserTimer = UserTimer
 	g.OppInfo = OppInfo
 	g.OppTimer = OppTimer
 	g.List = List
+	registerMenus("localgame", false, List)
 
-	return grid
+	return screen
 }
 
-func (p *PostGameScreen) Init() *cv.Grid {
-	postList := cv.NewList() //list construction
-	postList.SetWrapAround(true)
-	postList.SetHover(true)
-	choices := []string{"New", "Ongoing", "Home", "Quit"}
-	explain := []string{"Play a new game", "Select from your saved games", "Back to the welcome screen", "Press to exit"}
-	shortcuts := []rune{'n', 'o', 'h', 'q'}
-	selectFunc := []ListSelectedFunc{startNewLocalGame, gotoSaved, gotoWelcome, Root.App.Stop}
-	for i := 0; i < len(choices); i++ {
-		item := cv.NewListItem(choices[i])
-		item.SetSecondaryText(explain[i])
-		item.SetShortcut(rune(shortcuts[i]))
-		item.SetSelectedFunc(selectFunc[i])
-		postList.AddItem(item)
-	}
-
-	gameBox := cv.NewTable()
-	gameBox.SetSelectable(false, false)
-	gameBox.SetSortClicked(false)
-	gameBox.SetFixed(10, 10)
-	gameBox.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(postList)
-		return nil
-	})
-
-	historyBox := cv.NewTextView()
-	historyBox.SetWordWrap(true)
-	historyBox.SetDynamicColors(true)
-	historyBox.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(postList)
-		return nil
-	})
-
-	resultBox := cv.NewTextView()
-	resultBox.SetWordWrap(true)
-	resultBox.SetDynamicColors(true)
-	resultBox.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(postList)
-		return nil
-	})
-
-	Ribbon := ribbonPrimitive(gameRibbonstr, postList)
-
-	grid := cv.NewGrid()
-	grid.SetColumns(-2, -1)
-	grid.SetRows(-1, -3, -1, 1)
-	grid.SetBorders(false)
-
-	grid.AddItem(postList, 2, 1, 1, 1, 0, 0, true)
-	grid.AddItem(resultBox, 0, 0, 1, 1, 0, 0, false)
-	grid.AddItem(Center(28, 10, gameBox, postList), 1, 0, 2, 1, 0, 0, false)
-	grid.AddItem(Ribbon, 3, 0, 1, 2, 0, 0, false)
-	grid.AddItem(historyBox, 0, 1, 2, 1, 0, 0, false)
-
-	p.Board = gameBox
-	p.Result = resultBox
-	p.History = historyBox
-
-	return grid
+func (p *PostGameScreen) Init() cv.Primitive {
+	pg, screen := newPostGame([]*cv.ListItem{
+		menuItem("New game", 'n', startNewLocalGame),
+		menuItem("Saved games", 's', gotoSaved),
+		menuItem("Home", 'h', gotoWelcome),
+		menuItem("Quit", 'q', Root.App.Stop),
+	}, postRibbonstr)
+	p.postGame = pg
+	registerMenus("postlocal", false, pg.List)
+	return screen
 }
 
 func (sg *SavedGames) Init() *cv.Grid {
@@ -280,25 +309,24 @@ func (sg *SavedGames) Init() *cv.Grid {
 	options.SetSelectedFocusOnly(true)
 	options.SetWrapAround(true)
 	options.SetHover(true)
-	optionsList := []string{"Leave", "Quit"}
+	optionsList := []string{"Back", "Quit"}
 	optionsExplain := []string{"Go back Home", "Close chess-cli"}
 	optionsFunc := []ListSelectedFunc{gotoWelcome, Root.App.Stop}
+	keys := []rune{'b', 'q'}
 	for i, opt := range optionsList {
 		item := cv.NewListItem(opt)
 		item.SetSecondaryText(optionsExplain[i])
+		item.SetShortcut(keys[i])
 		item.SetSelectedFunc(optionsFunc[i])
 		options.AddItem(item)
 	}
 
 	title := titlePrimitive("Select a saved game.", gameList)
 
-	preview := boardPrimitive(func(row, col int) {})
-	preview.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(gameList)
-		return nil
-	})
+	preview := NewBoardView(nil)
+	forwardKeys(preview, gameList)
 
-	ribbon := ribbonPrimitive(OngoingRibbonstr, gameList)
+	ribbon := ribbonPrimitive(savedRibbonstr, gameList)
 
 	grid := cv.NewGrid()
 	grid.SetColumns(-1, -2, -4)
@@ -308,12 +336,13 @@ func (sg *SavedGames) Init() *cv.Grid {
 	//row col rowSpan colSpan
 	grid.AddItem(gameList, 1, 2, 2, 1, 0, 0, true)
 	grid.AddItem(title, 0, 0, 1, 3, 0, 0, false)
-	grid.AddItem(Center(30, 10, preview, gameList), 1, 0, 1, 2, 0, 0, false)
+	grid.AddItem(preview, 1, 0, 1, 2, 0, 0, false)
 	grid.AddItem(ribbon, 3, 0, 1, 3, 0, 0, false)
 	grid.AddItem(options, 2, 1, 1, 1, 0, 0, false)
 
 	sg.List = gameList
 	sg.Preview = preview
+	registerMenus("saved", true, gameList, options)
 
 	return grid
 }

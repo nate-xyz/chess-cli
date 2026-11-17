@@ -2,174 +2,75 @@ package pkg
 
 import (
 	"fmt"
-	"log"
-	"os"
-	"strconv"
-	"unicode"
+	"strings"
 
-	cv "code.rocketnine.space/tslocum/cview"
-	tc "github.com/gdamore/tcell/v3"
+	cv "codeberg.org/tslocum/cview"
 	"github.com/notnil/chess"
 )
 
 func DrawMoveHistory(win *cv.TextView) {
-	var text string
-	moveArr := Root.gameState.MoveHistoryArray
-	if moveArr == nil {
-		return
-	}
-	pieceArr, err := GetPieceArr(moveArr)
-	if err != nil {
-		text += fmt.Sprintf("%v", err)
-		return
-	}
-	if pieceArr == nil {
-		return
-	}
-	for i := len(moveArr) - 1; i >= 0; i-- {
-		move := moveArr[i]
-		text += fmt.Sprintf("\t%v: %v %v", i, pieceArr[i], move)
-		if i%2 == 0 {
-			text += " ⬜\n"
-		} else {
-			text += " ⬛\n"
-		}
-	}
-	win.SetText(text)
+	win.SetText(moveListText(Root.gameState.Game))
+	win.ScrollToEnd()
 }
 
-func DrawBoard(table *cv.Table, white bool) {
-	var FEN string
-	if white {
-		FEN = Root.gameState.Game.Position().String()
-		for i := 0; i < 8; i++ {
-			rank := cv.NewTableCell(fmt.Sprintf("%v", i+1))
-			file := cv.NewTableCell(string(rune('a' + i)))
-			rank.SetAlign(cv.AlignRight)
-			file.SetAlign(cv.AlignRight)
-			rank.SetSelectable(false)
-			file.SetSelectable(false)
-			table.SetCell(8-i, 0, rank)
-			table.SetCell(8-i, 9, rank)
-			table.SetCell(0, i+1, file)
-			table.SetCell(9, i+1, file)
+// moveListText is a game's moves in standard notation, numbered in pairs.
+func moveListText(game *chess.Game) string {
+	return moveListFrom(game.Positions(), game.Moves(), nil)
+}
+
+// moveListFrom is moveListText for positions and moves, with an optional
+// mark after each move (a coloured ?! from the analysis): marks[i] is shown
+// after move i+1, as text and its visible width.
+func moveListFrom(positions []*chess.Position, moves []*chess.Move, marks []moveMark) string {
+	var text strings.Builder
+	text.WriteString("[::b]Moves[::-]\n")
+	for i, m := range moves {
+		san := chess.AlgebraicNotation{}.Encode(positions[i], m)
+		width := len([]rune(san))
+		// each move is a region, m<ply>, so it can be clicked (linkMoveList)
+		tagged := fmt.Sprintf(`["m%d"]%s[""]`, i+1, san)
+		if i < len(marks) && marks[i].width > 0 {
+			tagged += marks[i].text
+			width += marks[i].width
 		}
-	} else {
-		FEN = Root.gameState.Game.Position().Board().Flip(chess.UpDown).Flip(chess.LeftRight).String()
-		for i := 0; i < 8; i++ {
-			rank := cv.NewTableCell(fmt.Sprintf("%v", 8-i))
-			file := cv.NewTableCell(string(rune('h' - i)))
-			rank.SetAlign(cv.AlignRight)
-			file.SetAlign(cv.AlignRight)
-			rank.SetSelectable(false)
-			file.SetSelectable(false)
-			table.SetCell(8-i, 0, rank)
-			table.SetCell(8-i, 9, rank)
-			table.SetCell(0, i+1, file)
-			table.SetCell(9, i+1, file)
-		}
-	}
-
-	empty := cv.NewTableCell(EmptyChar)
-	empty.SetSelectable(false)
-	empty.SetTextColor(tc.ColorBlack.TrueColor())
-	table.SetCell(0, 0, empty)
-	table.SetCell(0, 9, empty)
-	table.SetCell(9, 0, empty)
-	table.SetCell(9, 9, empty)
-
-	//loop through current FEN and print to board
-	square := 0
-	col, row := 1, 1
-	for _, current_piece := range FEN { //loop to parse the FEN string
-
-		if current_piece == ' ' {
-			break
-		} else if current_piece == '/' {
-			col = 1
-			row++
-			square++
-			continue
-		} else if unicode.IsDigit(current_piece) { //nothing
-			int_, _ := strconv.Atoi(string(current_piece))
-			for i := 1; i <= int_; i++ {
-				cell := cv.NewTableCell(EmptyChar)
-				cell.SetSelectable(true)
-				cell.SetAlign(cv.AlignRight)
-
-				if square%2 == 0 {
-					cell.SetTextColor(tc.NewRGBColor(145, 130, 109))
-					cell.SetBackgroundColor(tc.NewRGBColor(145, 130, 109))
-				} else {
-					cell.SetTextColor(tc.NewRGBColor(108, 81, 59))
-					cell.SetBackgroundColor(tc.NewRGBColor(108, 81, 59))
-				}
-				table.SetCell(row, col, cell)
-				col++
-				square++
-			}
-			if col > 8 {
-				col = 1
-			}
-			continue
-		} else if !unicode.IsDigit(current_piece) {
-			cell := cv.NewTableCell(PiecesMap[unicode.ToLower(current_piece)] + " ")
-			cell.SetSelectable(true)
-			cell.SetAlign(cv.AlignRight)
-			if unicode.IsUpper(current_piece) {
-				cell.SetTextColor(tc.NewRGBColor(255, 248, 220))
-			} else {
-				cell.SetTextColor(tc.NewRGBColor(18, 18, 18))
-			}
-			if square%2 == 0 {
-				cell.SetBackgroundColor(tc.NewRGBColor(145, 130, 109))
-			} else {
-				cell.SetBackgroundColor(tc.NewRGBColor(108, 81, 59))
-			}
-			table.SetCell(row, col, cell)
-			square++
-			col++
+		if positions[i].Turn() == chess.White {
+			fmt.Fprintf(&text, "%3d. %s%s", moveNumber(positions[i]), tagged, strings.Repeat(" ", max(1, 8-width)))
 		} else {
-			log.Fatal("error parsing starting FEN")
+			if i == 0 { // game started with black to move
+				fmt.Fprintf(&text, "%3d. %-8s", moveNumber(positions[0]), "…")
+			}
+			text.WriteString(tagged + "\n")
 		}
 	}
+	return text.String()
+}
 
-	//check if piece is selected
-	if !LastSelectedCell.Empty {
-		FEN = Root.gameState.Game.Position().String()
-		fen, err := chess.FEN(FEN)
-		if err != nil {
-			log.Fatal(err)
-			os.Exit(10)
-		}
-		NewChessGame = chess.NewGame(fen)
-		destArr := []string{}
-		for _, m := range NewChessGame.ValidMoves() {
-			move := m.String()
-			if move[0:2] == LastSelectedCell.Alg {
-				destArr = append(destArr, move[2:])
+// moveMark is something shown after a move in the move list.
+type moveMark struct {
+	text  string
+	width int
+}
 
-			}
-
-		}
-		for _, d := range destArr {
-			r, c := translateAlgtoCell(d, white)
-			cell := table.GetCell(r, c)
-			if cell.GetText() == EmptyChar {
-				if white {
-					cell.SetTextColor(tc.NewRGBColor(255, 248, 220))
-				} else {
-					cell.SetTextColor(tc.NewRGBColor(18, 18, 18))
-				}
-				cell.SetText("•")
-			} else {
-				t := cell.GetText()
-				cell.SetAttributes(tc.AttrItalic | tc.AttrBlink)
-				cell.SetText(t)
-			}
-
-		}
+// moveNumber is a position's full move number (the FEN's last field).
+func moveNumber(pos *chess.Position) int {
+	n := 1
+	if f := strings.Fields(pos.String()); len(f) == 6 {
+		fmt.Sscan(f[5], &n)
 	}
+	return n
+}
 
-	Root.App.QueueUpdateDraw(func() {}, table)
+// DrawBoard shows the current game position on a board, with white at the
+// bottom if white is true, and highlights the last move played.
+func DrawBoard(board *BoardView, white bool) {
+	game := Root.gameState.Game
+	board.SetPosition(game.Position(), white)
+	board.SetHistory(game.Positions(), game.Moves())
+	from, to := chess.NoSquare, chess.NoSquare
+	if moves := game.Moves(); len(moves) > 0 {
+		last := moves[len(moves)-1]
+		from, to = last.S1(), last.S2()
+	}
+	board.SetLastMove(from, to)
+	Root.App.QueueUpdateDraw(func() {}) // full draw, so big pieces are flushed too
 }

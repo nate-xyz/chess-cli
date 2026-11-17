@@ -9,24 +9,15 @@ import (
 func (user *Login) GetLichessUserInfo() error {
 	var err error
 	if user.Token != "" {
-		if user.Email == "" {
-			user.Email, err = api.GetEmail()
-			if err != nil {
-				return err
-			}
-		}
 		if user.Name == "" {
 			user.Name, err = api.GetUsername()
 			if err != nil {
 				return err
 			}
 		}
-		user.Friends, err = api.GetFriends()
-		if err != nil {
-			return err
-		}
-		if !api.StreamEventStarted {
-			Ready <- struct{}{} //start event stream
+		user.Friends, _ = api.GetFriends() // only used for suggestions; not worth failing login over
+		if StreamChannel != nil {
+			api.StartEventStream(StreamChannel)
 		}
 		return nil
 	}

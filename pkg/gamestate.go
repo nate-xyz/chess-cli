@@ -1,7 +1,12 @@
 package pkg
 
 import (
-	cv "code.rocketnine.space/tslocum/cview"
+	"context"
+	"errors"
+	"net/http"
+	"sync/atomic"
+
+	cv "codeberg.org/tslocum/cview"
 	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"
 )
@@ -12,30 +17,45 @@ func (s *State) NewGame() {
 	s.gameState = game
 }
 
-func (s *State) Login() error {
-	s.User = new(Login)
-	err := s.User.Init()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (user *Login) Init() error {
+// Init logs in (reusing a saved token if it's still valid) and loads the
+// account details. showURL is called with the browser login URL, if needed.
+func (user *Login) Init(ctx context.Context, showURL func(string)) error {
 	var err error
-	user.Token, err = api.PerformOAuth()
+	user.Token, err = api.PerformOAuth(ctx, showURL)
 	if err != nil {
 		return err
 	}
 	err = user.GetLichessUserInfo()
-	if err != nil {
-		return err
+	var apiErr *api.APIError
+	if errors.As(err, &apiErr) && apiErr.Status == http.StatusUnauthorized {
+		// the saved token was revoked: log in again
+		if err := api.ClearToken(); err != nil {
+			return err
+		}
+		if user.Token, err = api.AuthUser(ctx, showURL); err != nil {
+			return err
+		}
+		err = user.GetLichessUserInfo()
 	}
-	return nil
+	return err
+}
+
+// frontPanel is the screen showing, readable from any goroutine (background
+// tickers use it to stay idle when their screen isn't open).
+var frontPanel atomic.Value
+
+func showing(panel string) bool {
+	p, _ := frontPanel.Load().(string)
+	return p == panel
 }
 
 func (s *State) Switch(panel string) {
+	frontPanel.Store(panel)
 	s.nav.SetCurrentPanel(panel)
+	if panel == "onlinegame" || panel == "watch" {
+		applyLayoutPrefs()
+	}
+	focusMoveBox(panel)
 }
 
 func (s *State) RefreshAll(p ...cv.Primitive) {

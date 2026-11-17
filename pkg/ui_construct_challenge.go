@@ -3,7 +3,7 @@ package pkg
 import (
 	"fmt"
 
-	cv "code.rocketnine.space/tslocum/cview"
+	cv "codeberg.org/tslocum/cview"
 )
 
 func initConstruct() *cv.Grid {
@@ -45,7 +45,9 @@ func initConstruct() *cv.Grid {
 	var seventhfriendsOptions func()
 	var eightSubmitOption func()
 	var updateTree func([]string)
-	var Minutes float64 = 0.25
+	// 10+0 by default: rapid, which Lichess allows for every kind of game
+	// started through the Board API (bullet isn't allowed at all)
+	var Minutes float64 = 10
 	var Seconds int
 	var Days int = 1
 	var BotPowerLevel int = 1
@@ -213,17 +215,18 @@ func initConstruct() *cv.Grid {
 
 			//slider 1: Minutes per side
 			slider1 := cv.NewSlider()
-			slider1.SetLabel("Minutes per side:   0.25")
 			slider1.SetChangedFunc(func(value int) {
 				Minutes = m[value]
 				slider1.SetLabel(fmt.Sprintf("Minutes per side: %3v", m[value]))
 			})
 			slider1.SetMax(len(m) - 1)
 			slider1.SetIncrement(1)
+			// open at the current value, so what's shown is what's sent
+			slider1.SetProgress(indexOf(m, Minutes))
+			slider1.SetLabel(fmt.Sprintf("Minutes per side: %3v", Minutes))
 
 			//slider 2:
 			slider2 := cv.NewSlider()
-			slider2.SetLabel("Increment in seconds:   0")
 
 			slider2.SetChangedFunc(func(value int) {
 				Seconds = s[value]
@@ -231,6 +234,8 @@ func initConstruct() *cv.Grid {
 			})
 			slider2.SetMax(len(s) - 1)
 			slider2.SetIncrement(1)
+			slider2.SetProgress(indexOf(s, Seconds))
+			slider2.SetLabel(fmt.Sprintf("Increment in seconds: %3d", Seconds))
 
 			form.AddFormItem(slider1)
 			form.AddFormItem(slider2)
@@ -238,13 +243,14 @@ func initConstruct() *cv.Grid {
 			d := []int{1, 2, 3, 5, 7, 10, 14}
 			//slider 1: Days
 			slider1 := cv.NewSlider()
-			slider1.SetLabel("Days per turn:   1")
 			slider1.SetChangedFunc(func(value int) {
 				Days = d[value]
 				slider1.SetLabel(fmt.Sprintf("Days per turn:   %3v", d[value]))
 			})
 			slider1.SetMax(len(d) - 1)
 			slider1.SetIncrement(1)
+			slider1.SetProgress(indexOf(d, Days))
+			slider1.SetLabel(fmt.Sprintf("Days per turn:   %3v", Days))
 
 			form.AddFormItem(slider1)
 
@@ -598,12 +604,24 @@ func initConstruct() *cv.Grid {
 	firstOption()
 
 	grid.SetColumns(-1, -1)
+	fitMenuColumn(grid, list, []int{-1, -1}, 1)
 	grid.SetRows(-1, -2, 1)
 
 	grid.AddItem(list, 1, 1, 1, 1, 0, 0, true)
 	grid.AddItem(tv, 0, 0, 1, 2, 0, 0, false)
 	grid.AddItem(tree, 1, 0, 1, 1, 0, 0, false)
 	grid.AddItem(Ribbon, 2, 0, 1, 2, 0, 0, false)
+	registerMenus("challenge", false, list)
 
 	return grid
+}
+
+// indexOf is the position of v in values (0 if it isn't there).
+func indexOf[T comparable](values []T, v T) int {
+	for i, x := range values {
+		if x == v {
+			return i
+		}
+	}
+	return 0
 }

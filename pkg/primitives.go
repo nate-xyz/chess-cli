@@ -1,7 +1,9 @@
 package pkg
 
 import (
-	cv "code.rocketnine.space/tslocum/cview"
+	"strings"
+
+	cv "codeberg.org/tslocum/cview"
 	tc "github.com/gdamore/tcell/v3"
 )
 
@@ -10,11 +12,9 @@ func titlePrimitive(text string, toFocus cv.Primitive) *cv.TextView {
 	tv.SetTextAlign(cv.AlignCenter)
 	tv.SetVerticalAlign(cv.AlignMiddle)
 	tv.SetDynamicColors(true)
+	tv.SetWordWrap(true) // a narrow column wraps the title instead of cutting it
 	tv.SetText(text)
-	tv.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(toFocus)
-		return nil
-	})
+	forwardKeys(tv, toFocus)
 	return tv
 }
 
@@ -24,11 +24,11 @@ func ribbonPrimitive(text string, toFocus cv.Primitive) *cv.TextView {
 	tv.SetVerticalAlign(cv.AlignTop)
 	tv.SetBackgroundColor(tc.ColorKhaki)
 	tv.SetTextColor(tc.ColorFireBrick)
-	tv.SetText(text)
-	tv.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(toFocus)
-		return nil
-	})
+	tv.SetText(keysText(text))
+	if strings.Contains(text, "arrows/hjkl") {
+		keyRibbons[tv] = text
+	}
+	forwardKeys(tv, toFocus)
 	return tv
 }
 
@@ -37,21 +37,11 @@ func quoutePrimitive(text string, toFocus cv.Primitive) *cv.TextView {
 	tv.SetTextAlign(cv.AlignCenter)
 	tv.SetVerticalAlign(cv.AlignTop)
 	tv.SetTextColor(tc.ColorLightSlateGray)
+	tv.SetWordWrap(true)
+	tv.SetPadding(1, 1, 10, 10)
 	tv.SetText(text)
-	tv.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(toFocus)
-		return nil
-	})
+	forwardKeys(tv, toFocus)
 	return tv
-}
-
-func boardPrimitive(handler func(row, col int)) *cv.Table {
-	table := cv.NewTable()
-	table.SetSelectable(true, true)
-	table.SetSelectionChangedFunc(handler)
-	table.SetSortClicked(false)
-	table.SetFixed(11, 11)
-	return table
 }
 
 func NewOptionWindow(msg, op1, op2 string, handler1, handler2 func()) *cv.Flex {
@@ -85,10 +75,7 @@ func NewOptionWindow(msg, op1, op2 string, handler1, handler2 func()) *cv.Flex {
 
 func Center(width, height int, p cv.Primitive, toFocus cv.Primitive) cv.Primitive {
 	spacer := cv.NewBox()
-	spacer.SetInputCapture(func(event *tc.EventKey) *tc.EventKey {
-		Root.App.SetFocus(toFocus)
-		return nil
-	})
+	forwardKeys(spacer, toFocus)
 	subFlex := cv.NewFlex()
 	subFlex.SetDirection(cv.FlexRow)
 	subFlex.AddItem(spacer, 0, 1, false)

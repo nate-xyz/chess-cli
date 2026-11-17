@@ -3,11 +3,13 @@ package pkg
 import (
 	"encoding/json"
 	"errors"
-	"io"
+	"fmt"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/nate-xyz/chess-cli/api"
 	"github.com/notnil/chess"
 )
 
@@ -65,7 +67,9 @@ func (gs *GameState) SaveGame(new bool) {
 		}
 	}
 	Root.sglist.Games = append(Root.sglist.Games, saved)
-	writeToSavedGames()
+	if err := writeToSavedGames(); err != nil {
+		Root.gameState.Status += fmt.Sprintf("[red]Could not save: %v[-]\n", err)
+	}
 }
 
 func RestoreGame(info SavedInfo) error {
@@ -82,6 +86,10 @@ func RestoreGame(info SavedInfo) error {
 		return err
 	}
 	Root.gameState.Game = chess.NewGame(fen)
+	Root.lgame.stopEngine()
+	Root.lgame.clock = localClock{} // saved games have no clock
+	clockActive.Store(false)
+	Root.lgame.tickClock()
 	DrawBoard(Root.lgame.Board, Root.gameState.Game.Position().Turn() == chess.White)
 	DrawMoveHistory(Root.lgame.History)
 	Root.lgame.UpdateStatus()
@@ -89,45 +97,58 @@ func RestoreGame(info SavedInfo) error {
 	return nil
 }
 
+// savedGamesPath is ~/.config/chess-cli/saved_games.json (or the platform
+// equivalent). Older versions saved to ./saved_games.json; if the new file
+// doesn't exist yet, that file is copied over (and left in place).
+func savedGamesPath() (string, error) {
+	dir, err := api.ConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "saved_games.json"), nil
+}
+
 func checkForSavedGames() error {
-	_, err := os.Stat(saved_path)
-	if err == nil {
-		jsonFile, err := os.Open(saved_path)
-		if err != nil {
-			return err
-		}
-		defer jsonFile.Close()
-		byteValue, _ := io.ReadAll(jsonFile)
-		err = json.Unmarshal(byteValue, &Root.sglist)
-		if err != nil {
-			return err
-		}
-	} else if errors.Is(err, os.ErrNotExist) {
-		b, err := json.Marshal(&Root.sglist)
-		if err != nil {
-			return err
-		}
-		err = os.WriteFile(saved_path, b, 0644)
-		if err != nil {
-			return err
-		}
-	} else {
+	path, err := savedGamesPath()
+	if err != nil {
 		return err
 	}
-	return nil
+	b, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		b, err = os.ReadFile(saved_path) // legacy location
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		if err == nil {
+			if err := json.Unmarshal(b, &Root.sglist); err != nil {
+				return err
+			}
+			return writeToSavedGames()
+		}
+	}
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(b, &Root.sglist)
 }
 
 func writeToSavedGames() error {
-	list := Root.sglist
-	b, err := json.Marshal(*list)
+	path, err := savedGamesPath()
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile(saved_path, b, 0644)
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return err
+	}
+	b, err := json.MarshalIndent(Root.sglist, "", "  ")
 	if err != nil {
 		return err
 	}
-	return nil
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, b, 0o600); err != nil {
+		return err
+	}
+	return os.Rename(tmp, path)
 }
 
 func RandStringRunes(n int) string {

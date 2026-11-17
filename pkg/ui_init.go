@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	cv "code.rocketnine.space/tslocum/cview"
+	cv "codeberg.org/tslocum/cview"
 )
 
 func InitUI() {
@@ -35,8 +35,30 @@ func InitUI() {
 	panels.AddPanel("ongoing", ongoing.Init(), true, false)
 	panels.AddPanel("listchallenge", challenges.Init(), true, false)
 	panels.AddPanel("saved", sgame.Init(), true, false)
+	panels.AddPanel("options", optionsInit(), true, false)
+	Root.puzzle = new(PuzzleScreen)
+	panels.AddPanel("puzzle", Root.puzzle.Init(), true, false)
+	Root.watch = new(WatchScreen)
+	panels.AddPanel("watch", Root.watch.Init(), true, false)
+	Root.study = new(StudyScreen)
+	panels.AddPanel("study", Root.study.Init(), true, false)
+	panels.AddPanel("prompt", promptInit(), true, false)
+	setMoveBoxAlways(moveBoxAlways()) // apply the saved settings
+	applyKeyPrefs()
+	refreshNews()
+	onboard := needsOnboarding()
+	if onboard {
+		panels.AddPanel("onboard", onboardInit(), true, false)
+	}
 	Root.nav = panels
 	Root.sglist = new(SavedGameList)
 	Root.sglist.Init()
 	Root.App.SetRoot(panels, true)
+	if onboard {
+		Root.Switch("onboard")
+		Root.App.SetFocus(onboardList)
+	}
+	Root.App.SetAfterDrawFunc(afterDraw)
+	Root.App.SetMouseCapture(trackHover)
+	Root.App.SetInputCapture(globalKeys)
 }
