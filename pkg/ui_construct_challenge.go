@@ -52,7 +52,27 @@ func initConstruct() *cv.Grid {
 	var Days int = 1
 	var BotPowerLevel int = 1
 
+	// The time and bot-level steps put a form of sliders where the menu is;
+	// showList puts the menu back.
+	showList := func() {
+		grid.Clear()
+		grid.AddItem(tv, 0, 0, 1, 2, 0, 0, false)
+		grid.AddItem(list, 1, 1, 1, 1, 0, 0, true)
+		grid.AddItem(Ribbon, 2, 0, 1, 2, 0, 0, false)
+		grid.AddItem(tree, 1, 0, 1, 1, 0, 0, false)
+		Root.App.SetFocus(list)
+	}
+	showForm := func(form *cv.Form) {
+		grid.Clear()
+		grid.AddItem(tv, 0, 0, 1, 2, 0, 0, false)
+		grid.AddItem(form, 1, 1, 1, 1, 0, 0, true)
+		grid.AddItem(Ribbon, 2, 0, 1, 2, 0, 0, false)
+		grid.AddItem(tree, 1, 0, 1, 1, 0, 0, false)
+		Root.App.SetFocus(form) // the menu it replaces had the keyboard
+	}
+
 	goHome := func() {
+		showList()
 		path = []string{}
 		firstOption()
 		gotoLichessAfterLogin()
@@ -200,7 +220,6 @@ func initConstruct() *cv.Grid {
 
 	fourthIntervalOption = func() {
 		list.Clear()
-		grid.Clear()
 
 		tv.SetText("Select time interval.")
 		form := cv.NewForm()
@@ -272,19 +291,11 @@ func initConstruct() *cv.Grid {
 
 			updateTree(ratedOption)
 
-			grid.Clear()
-			grid.AddItem(tv, 0, 0, 1, 2, 0, 0, false)
-			grid.AddItem(list, 1, 1, 1, 1, 0, 0, true)
-			grid.AddItem(Ribbon, 2, 0, 1, 2, 0, 0, false)
-			grid.AddItem(tree, 1, 0, 1, 1, 0, 0, false)
+			showList()
 			fifthRatedOption()
 		})
 		form.AddButton("Back", func() {
-			grid.Clear()
-			grid.AddItem(tv, 0, 0, 1, 2, 0, 0, false)
-			grid.AddItem(list, 1, 1, 1, 1, 0, 0, true)
-			grid.AddItem(Ribbon, 2, 0, 1, 2, 0, 0, false)
-			grid.AddItem(tree, 1, 0, 1, 1, 0, 0, false)
+			showList()
 			if len(path) > 0 {
 				path = path[:len(path)-1]
 			}
@@ -297,10 +308,7 @@ func initConstruct() *cv.Grid {
 		form.SetTitle("Choose time interval option:")
 		form.SetTitleAlign(cv.AlignCenter)
 
-		grid.AddItem(tv, 0, 0, 1, 2, 0, 0, false)
-		grid.AddItem(form, 1, 1, 1, 1, 0, 0, true)
-		grid.AddItem(Ribbon, 2, 0, 1, 2, 0, 0, false)
-		grid.AddItem(tree, 1, 0, 1, 1, 0, 0, false)
+		showForm(form)
 	}
 
 	fifthRatedOption = func() {
@@ -482,30 +490,26 @@ func initConstruct() *cv.Grid {
 
 	BotPowerLevelOption = func() {
 		list.Clear()
-		grid.Clear()
 
 		form := cv.NewForm()
 		tv.SetText("Select bot power level.")
 		p := []int{1, 2, 3, 4, 5, 6, 7, 8}
 		slider1 := cv.NewSlider()
-		slider1.SetLabel("AI Strength:   1")
 		slider1.SetChangedFunc(func(value int) {
 			BotPowerLevel = p[value]
 			slider1.SetLabel(fmt.Sprintf("AI Strength:   %3v", p[value]))
 		})
 		slider1.SetMax(len(p) - 1)
 		slider1.SetIncrement(1)
+		slider1.SetProgress(indexOf(p, BotPowerLevel))
+		slider1.SetLabel(fmt.Sprintf("AI Strength:   %3v", BotPowerLevel))
 
 		form.AddFormItem(slider1)
 
 		form.AddButton("Submit", func() {
 			newChallenge.Level = fmt.Sprintf("%v", BotPowerLevel)
 
-			grid.Clear()
-			grid.AddItem(tv, 0, 0, 1, 2, 0, 0, false)
-			grid.AddItem(list, 1, 1, 1, 1, 0, 0, true)
-			grid.AddItem(Ribbon, 2, 0, 1, 2, 0, 0, false)
-			grid.AddItem(tree, 1, 0, 1, 1, 0, 0, false)
+			showList()
 
 			path = append(path, fmt.Sprintf("AI Strength: %v", BotPowerLevel))
 			updateTree([]string{})
@@ -513,11 +517,7 @@ func initConstruct() *cv.Grid {
 			eightSubmitOption()
 		})
 		form.AddButton("Back", func() {
-			grid.Clear()
-			grid.AddItem(tv, 0, 0, 1, 2, 0, 0, false)
-			grid.AddItem(list, 1, 1, 1, 1, 0, 0, true)
-			grid.AddItem(Ribbon, 2, 0, 1, 2, 0, 0, false)
-			grid.AddItem(tree, 1, 0, 1, 1, 0, 0, false)
+			showList()
 
 			if len(path) > 0 {
 				path = path[:len(path)-1]
@@ -531,10 +531,7 @@ func initConstruct() *cv.Grid {
 		form.SetTitle("Choose bot power level:")
 		form.SetTitleAlign(cv.AlignCenter)
 
-		grid.AddItem(tv, 0, 0, 1, 2, 0, 0, false)
-		grid.AddItem(form, 1, 1, 1, 1, 0, 0, true)
-		grid.AddItem(Ribbon, 2, 0, 1, 2, 0, 0, false)
-		grid.AddItem(tree, 1, 0, 1, 1, 0, 0, false)
+		showForm(form)
 	}
 
 	eightSubmitOption = func() {
