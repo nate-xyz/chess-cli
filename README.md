@@ -85,6 +85,18 @@ Options also has:
 Local games are two players on one keyboard; the board flips each move. Games
 can be saved and resumed.
 
+# Computer analysis
+
+When a game ends, **Computer analysis** (`a`) runs Stockfish on your computer
+over the whole game and works the numbers out the way Lichess does: an
+evaluation graph (click it to go to a move), each side's accuracy, average
+centipawn loss and inaccuracies, mistakes and blunders, overall and for the
+opening, middlegame and endgame. The move list marks each `?!` `?` `??`, and
+for the move shown you get its accuracy, the evaluation and the move Stockfish
+preferred. No Stockfish yet? *Local → Play local Stockfish* can download it.
+
+![Computer analysis after a game against Stockfish](docs/screenshots/analysis.png)
+
 # Puzzles
 
 *Puzzles* on the home screen: the **daily puzzle**, or **puzzle training**
