@@ -158,21 +158,31 @@ func (b *BoardView) notifyShown() {
 	go Root.App.QueueUpdateDraw(func() { f(ply) })
 }
 
-// historyLabel describes the position shown while stepping back, in at
+// historyLabel describes the position shown while stepping back: the move
+// that led to it, as the move list writes it ("29. Ne7+", "29… Kh7"), in at
 // most width cells if it can (shorter forms for a narrow board or a clock
-// sharing the row).
+// sharing the row). Locked by caller.
 func (b *BoardView) historyLabel(width int) string {
-	i, n := len(b.history)-1-b.back, len(b.history)-1
+	what := "start"
+	if i := len(b.history) - 1 - b.back; i > 0 && i <= len(b.historyMoves) {
+		p := b.history[i-1]
+		dots := ". "
+		if p.Turn() == chess.Black {
+			dots = "… "
+		}
+		what = fmt.Sprintf("%d%s%s", moveNumber(p), dots, chess.AlgebraicNotation{}.Encode(p, b.historyMoves[i-1]))
+	}
 	for _, l := range []string{
-		fmt.Sprintf(" move %d of %d · scroll down or ] to return ", i, n),
-		fmt.Sprintf(" move %d of %d · ] to return ", i, n),
-		fmt.Sprintf(" move %d/%d · ] returns ", i, n),
+		" " + what + " · scroll down or ] to return ",
+		" " + what + " · ] to return ",
+		" " + what + " · ] returns ",
+		" " + what + " ",
 	} {
 		if len([]rune(l)) <= width {
 			return l
 		}
 	}
-	return fmt.Sprintf(" %d/%d ", i, n)
+	return " " + what + " "
 }
 
 // toggleShape adds a shape, or removes it if it's already drawn (in any

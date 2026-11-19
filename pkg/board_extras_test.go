@@ -143,11 +143,37 @@ func TestHistoryBannerKeepsClock(t *testing.T) {
 		if !strings.Contains(text, "9:18") {
 			t.Errorf("%d wide: top clock hidden: %q", w, text)
 		}
-		if !strings.Contains(text, "move 5/7") && !strings.Contains(text, "move 5 of 7 · ") {
+		if !strings.Contains(text, " 3. Bc4 · ") { // 2 back from 4. Bxf7+
+			t.Errorf("%d wide: banner %q", w, text)
+		}
+		if strings.Contains(text, "move 5") { // it used to count half-moves
+
 			t.Errorf("%d wide: banner %q", w, text)
 		}
 		if end := strings.TrimRight(text, " "); len([]rune(end)) > b.ox+8*b.sqW {
 			t.Errorf("%d wide: banner runs past the board: %q", w, text)
+		}
+	}
+}
+
+// The banner names the move shown as the move list does, not a count of
+// half-moves.
+func TestHistoryLabelNamesMove(t *testing.T) {
+	b := NewBoardView(nil)
+	g, _ := gameFromSAN("", "e4 e5 Nf3 Nc6 Bc4 Nd4 Bxf7+")
+	b.SetPosition(g.Position(), true)
+	b.SetHistory(g.Positions(), g.Moves())
+	for back, want := range map[int]string{1: " 3… Nd4 ", 2: " 3. Bc4 ", 7: " start "} {
+		b.mu.Lock()
+		b.back = back
+		got := b.historyLabel(100)
+		short := b.historyLabel(12)
+		b.mu.Unlock()
+		if !strings.HasPrefix(got, want+"· scroll down or ] to return") {
+			t.Errorf("%d back: %q", back, got)
+		}
+		if len([]rune(short)) > 12 && short != want {
+			t.Errorf("%d back, 12 wide: %q", back, short)
 		}
 	}
 }
