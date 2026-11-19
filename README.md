@@ -10,8 +10,8 @@
 
 chess-cli is a tui (terminal user interface) that allows you to play chess, both offline with a friend or online as a Lichess api client.
 
-![home](https://user-images.githubusercontent.com/57846867/182972093-c9917d32-81c3-4ba5-a6ec-a783bf254f33.png)
-![game](https://user-images.githubusercontent.com/42559123/183780181-a4cb62c0-8515-4371-8406-932e11e84f77.png)
+![The home screen: chess news, the menu and a quote](docs/screenshots/home.png)
+![An online game on Lichess, with clocks and chat](docs/screenshots/online-game-clocks.png)
 
 <p align="center">♞♞♞♞♞♞♞♞♞♞♞</p>
 
@@ -47,6 +47,14 @@ Choose under **Options** on the home screen:
 | **Image** | Lichess boards and piece sets as real images, scaled to the board. 12 piece sets and 6 boards, previewed as you pick | terminals with the [kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/): kitty, Ghostty, WezTerm |
 | **Advanced** | Unicode chess symbols, drawn big with kitty's [text sizing protocol](https://sw.kovidgoyal.net/kitty/text-sizing-protocol/) where available | everywhere; big in kitty 0.40+ |
 | **Basic** | Plain symbols in the terminal's 8 standard colours, like the original chess-cli | any terminal, including old ones |
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/image-rendering.png" alt="Image rendering" width="260"><br><sub>Image</sub></td>
+    <td align="center"><img src="docs/screenshots/advanced-rendering.png" alt="Advanced rendering" width="260"><br><sub>Advanced</sub></td>
+    <td align="center"><img src="docs/screenshots/basic-rendering.png" alt="Basic rendering" width="390"><br><sub>Basic</sub></td>
+  </tr>
+</table>
 
 Support is detected at startup (image rendering falls back to advanced where
 images aren't supported, e.g. inside tmux). `CHESS_CLI_IMAGES=0/1` and
@@ -84,6 +92,8 @@ can be saved and resumed.
 rating). **Rated** puzzles update your Lichess puzzle rating and need a login;
 **casual** ones work without. Hints, solutions and themes as on Lichess.
 
+![A solved puzzle](docs/screenshots/puzzle.png)
+
 # Watching, studies and news
 
 Once you've logged in to Lichess, the home screen also has:
@@ -97,6 +107,9 @@ Once you've logged in to Lichess, the home screen also has:
   (in a variation too) to go there.
 - **Chess news**: elite events Lichess is broadcasting (live, coming up, just
   finished, with leaders and winners) and the latest Lichess blog posts.
+
+![Lichess TV: the top-rated game being played](docs/screenshots/watch-tv.png)
+![A study: Fischer's annotated game, with variations and comments](docs/screenshots/study.png)
 
 Without a login chess-cli doesn't contact Lichess at all (casual puzzles
 aside, which you choose explicitly).
