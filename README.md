@@ -10,8 +10,8 @@
 
 chess-cli is a tui (terminal user interface) that allows you to play chess, both offline with a friend or online as a Lichess api client.
 
-![home](https://user-images.githubusercontent.com/57846867/182972093-c9917d32-81c3-4ba5-a6ec-a783bf254f33.png)
-![game](https://user-images.githubusercontent.com/42559123/183780181-a4cb62c0-8515-4371-8406-932e11e84f77.png)
+![The home screen: chess news, the menu and a quote](docs/screenshots/home.png)
+![An online game on Lichess, with clocks and chat](docs/screenshots/online-game-clocks.png)
 
 <p align="center">♞♞♞♞♞♞♞♞♞♞♞</p>
 
@@ -48,6 +48,14 @@ Choose under **Options** on the home screen:
 | **Advanced** | Unicode chess symbols, drawn big with kitty's [text sizing protocol](https://sw.kovidgoyal.net/kitty/text-sizing-protocol/) where available | everywhere; big in kitty 0.40+ |
 | **Basic** | Plain symbols in the terminal's 8 standard colours, like the original chess-cli | any terminal, including old ones |
 
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/image-rendering.png" alt="Image rendering" width="260"><br><sub>Image</sub></td>
+    <td align="center"><img src="docs/screenshots/advanced-rendering.png" alt="Advanced rendering" width="260"><br><sub>Advanced</sub></td>
+    <td align="center"><img src="docs/screenshots/basic-rendering.png" alt="Basic rendering" width="390"><br><sub>Basic</sub></td>
+  </tr>
+</table>
+
 Support is detected at startup (image rendering falls back to advanced where
 images aren't supported, e.g. inside tmux). `CHESS_CLI_IMAGES=0/1` and
 `CHESS_CLI_BIG_PIECES=0/1` override the detection.
@@ -77,12 +85,26 @@ Options also has:
 Local games are two players on one keyboard; the board flips each move. Games
 can be saved and resumed.
 
+# Computer analysis
+
+When a game ends, **Computer analysis** (`a`) runs Stockfish on your computer
+over the whole game and works the numbers out the way Lichess does: an
+evaluation graph (click it to go to a move), each side's accuracy, average
+centipawn loss and inaccuracies, mistakes and blunders, overall and for the
+opening, middlegame and endgame. The move list marks each `?!` `?` `??`, and
+for the move shown you get its accuracy, the evaluation and the move Stockfish
+preferred. No Stockfish yet? *Local → Play local Stockfish* can download it.
+
+![Computer analysis after a game against Stockfish](docs/screenshots/analysis.png)
+
 # Puzzles
 
 *Puzzles* on the home screen: the **daily puzzle**, or **puzzle training**
 (new puzzles one after another, five difficulty levels relative to your
 rating). **Rated** puzzles update your Lichess puzzle rating and need a login;
 **casual** ones work without. Hints, solutions and themes as on Lichess.
+
+![A solved puzzle](docs/screenshots/puzzle.png)
 
 # Watching, studies and news
 
@@ -97,6 +119,9 @@ Once you've logged in to Lichess, the home screen also has:
   (in a variation too) to go there.
 - **Chess news**: elite events Lichess is broadcasting (live, coming up, just
   finished, with leaders and winners) and the latest Lichess blog posts.
+
+![Lichess TV: the top-rated game being played](docs/screenshots/watch-tv.png)
+![A study: Fischer's annotated game, with variations and comments](docs/screenshots/study.png)
 
 Without a login chess-cli doesn't contact Lichess at all (casual puzzles
 aside, which you choose explicitly).
