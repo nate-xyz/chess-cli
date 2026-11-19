@@ -46,7 +46,7 @@ Choose under **Options** on the home screen:
 |---|---|---|
 | **Image** | Lichess boards and piece sets as real images, scaled to the board. 12 piece sets and 6 boards, previewed as you pick | terminals with the [kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/): kitty, Ghostty, WezTerm |
 | **Advanced** | Unicode chess symbols, drawn big with kitty's [text sizing protocol](https://sw.kovidgoyal.net/kitty/text-sizing-protocol/) where available | everywhere; big in kitty 0.40+ |
-| **Basic** | Plain symbols in the terminal's 8 standard colours, like the original chess-cli | any terminal, including old ones |
+| **Basic** | Plain symbols in the terminal's 8 standard colours, like the original chess-cli | any terminal |
 
 <table>
   <tr>
@@ -123,8 +123,7 @@ Once you've logged in to Lichess, the home screen also has:
 ![Lichess TV: the top-rated game being played](docs/screenshots/watch-tv.png)
 ![A study: Fischer's annotated game, with variations and comments](docs/screenshots/study.png)
 
-Without a login chess-cli doesn't contact Lichess at all (casual puzzles
-aside, which you choose explicitly).
+Without a login chess-cli doesn't contact Lichess at all (besides the optional casual puzzles).
 
 # Lichess
 
@@ -193,6 +192,7 @@ keeps its own licence (GPL, MIT, Apache, CC0, CC BY, CC BY-SA). See
 
 - Save clock times with saved games
 - Stockfish analysis of a finished game
+- UI consistency
 
 #### online
 
